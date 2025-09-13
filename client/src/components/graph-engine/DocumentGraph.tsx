@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { useEffect, useRef } from 'react';
 import cytoscape from 'cytoscape';
 import dagre from 'cytoscape-dagre';
@@ -53,8 +54,8 @@ export function DocumentGraph({ data, onNodeClick }: DocumentGraphProps) {
             'text-halign': 'center',
             'padding': '10px',
             'shape': 'rectangle',
-            'width': 'label',
-            'height': 'label'
+            'width': 120,
+            'height': 60
           }
         },
         {
@@ -70,14 +71,23 @@ export function DocumentGraph({ data, onNodeClick }: DocumentGraphProps) {
       ],
       layout: {
         name: 'dagre',
-        rankDir: 'LR',
-        spacingFactor: 1.5,
-        nodeSep: 50,
-        rankSep: 100,
+        // @ts-ignore
+        rankDir: 'LR', // Cytoscape-dagre özel özelliği
+        spacingFactor: 2,
+        nodeSep: 80,
+        rankSep: 150,
         fit: true,
-        padding: 50
+        padding: 50,
+        animate: false, // Animasyonu devre dışı bırak
+        refresh: 1, // Her değişiklikte yenile
+        randomize: false // Düğüm pozisyonlarını rastgele belirleme
       },
-      wheelSensitivity: 0.2
+      wheelSensitivity: 0.1, // Daha düşük fare tekerleği hassasiyeti
+      minZoom: 0.5, // Minimum zoom seviyesi
+      maxZoom: 2, // Maximum zoom seviyesi
+      autoungrabify: true, // Düğümlerin sürüklenmesini engelle
+      userZoomingEnabled: true, // Kullanıcı zoom'u etkin
+      userPanningEnabled: true // Kullanıcı kaydırma etkin
     });
 
     // Event handlers
@@ -99,8 +109,27 @@ export function DocumentGraph({ data, onNodeClick }: DocumentGraphProps) {
         width: '100%', 
         height: '600px',
         backgroundColor: '#f7fafc',
-        borderRadius: '0.5rem'
+        borderRadius: '0.5rem',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+        position: 'relative',
+        overflow: 'hidden'
       }} 
-    />
+    >
+      {!data?.nodes?.length && (
+        <div 
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            textAlign: 'center',
+            color: '#718096'
+          }}
+        >
+          Belge ilişkileri bulunamadı veya yüklenemiyor
+        </div>
+      )}
+    </div>
   );
 }

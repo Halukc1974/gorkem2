@@ -12,9 +12,25 @@ export function useDocumentGraph() {
       setLoading(true);
       setError(undefined);
       const data = await graphService.buildDocumentGraph(rootDocId);
+      
+      // Graf boş veya çok az düğüm içeriyorsa uyarı göster
+      if (!data.nodes.length) {
+        setError('Bu belge için ilişkili belgeler bulunamadı.');
+        return;
+      }
+      
       setGraphData(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Graph yüklenirken bir hata oluştu');
+      // Hata mesajını daha açıklayıcı hale getir
+      let errorMessage = 'Graf yüklenirken bir hata oluştu';
+      if (err instanceof Error) {
+        if (err.message.includes('nonexistant target')) {
+          errorMessage = 'Bazı referans belgeler bulunamadı. Lütfen belge numaralarını kontrol edin.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      setError(errorMessage);
       console.error('Graph yükleme hatası:', err);
     } finally {
       setLoading(false);
