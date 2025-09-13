@@ -44,16 +44,16 @@ export function DocumentGraph({ data, onNodeClick }: DocumentGraphProps) {
         {
           selector: 'node',
           style: {
-            'background-color': '#4299e1',
+            'background-color': '#008cffff',
             'label': 'data(label)',
-            'color': '#2d3748',
+            'color': '#ffffffff',
             'text-wrap': 'wrap',
             'text-max-width': '80px',
-            'font-size': '10px',
+            'font-size': '14px',
             'text-valign': 'center',
             'text-halign': 'center',
             'padding': '10px',
-            'shape': 'rectangle',
+            'shape': 'roundrectangle',
             'width': 120,
             'height': 60
           }
@@ -77,14 +77,14 @@ export function DocumentGraph({ data, onNodeClick }: DocumentGraphProps) {
         nodeSep: 80,
         rankSep: 150,
         fit: true,
-        padding: 50,
+        padding: 10,
         animate: false, // Animasyonu devre dışı bırak
         refresh: 1, // Her değişiklikte yenile
         randomize: false // Düğüm pozisyonlarını rastgele belirleme
       },
       wheelSensitivity: 0.1, // Daha düşük fare tekerleği hassasiyeti
-      minZoom: 0.5, // Minimum zoom seviyesi
-      maxZoom: 2, // Maximum zoom seviyesi
+      minZoom: 0.1, // Minimum zoom seviyesi
+      maxZoom: 4, // Maximum zoom seviyesi
       autoungrabify: true, // Düğümlerin sürüklenmesini engelle
       userZoomingEnabled: true, // Kullanıcı zoom'u etkin
       userPanningEnabled: true // Kullanıcı kaydırma etkin
