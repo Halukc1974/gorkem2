@@ -51,48 +51,6 @@ export interface UserConfig {
     textWeight: number;
     textScoreMethod: 'overlap' | 'simple';
   };
-
-  // Graph Konfigürasyonu
-  graph?: {
-    // Layout ayarları
-    layout: {
-      name: string;      // 'dagre', 'grid', etc.
-      rankDir: string;   // 'TB', 'LR', etc.
-      nodeSep: number;   // Node aralığı
-      rankSep: number;   // Rank aralığı
-    };
-    
-    // Node stilleri
-    nodeStyles: {
-      shape: string;     // 'rectangle', 'circle', etc.
-      width: number;
-      height: number;
-      fontSize: number;
-      fontColor: string;
-      backgroundColor: string;
-      borderColor: string;
-      borderWidth: number;
-      opacity: number;
-    };
-    
-    // Edge stilleri
-    edgeStyles: {
-      width: number;
-      color: string;
-      opacity: number;
-      arrowColor: string;
-      arrowShape: string; // 'triangle', 'circle', etc.
-      lineStyle: string;  // 'solid', 'dotted', 'dashed'
-    };
-    
-    // Etkileşim ayarları
-    interaction: {
-      draggable: boolean;
-      selectable: boolean;
-      zoomable: boolean;
-      pannable: boolean;
-    };
-  };
   
   // Meta veriler
   meta: {
@@ -118,39 +76,6 @@ export const DEFAULT_USER_CONFIG: Omit<UserConfig, 'meta'> = {
     vectorWeight: 0.3,
     textWeight: 0.7,
     textScoreMethod: 'overlap'
-  },
-  graph: {
-    layout: {
-      name: 'dagre',
-      rankDir: 'TB',
-      nodeSep: 50,
-      rankSep: 50
-    },
-    nodeStyles: {
-      shape: 'rectangle',
-      width: 180,
-      height: 40,
-      fontSize: 12,
-      fontColor: '#000000',
-      backgroundColor: '#ffffff',
-      borderColor: '#000000',
-      borderWidth: 1,
-      opacity: 1
-    },
-    edgeStyles: {
-      width: 1,
-      color: '#666666',
-      opacity: 0.8,
-      arrowColor: '#666666',
-      arrowShape: 'triangle',
-      lineStyle: 'solid'
-    },
-    interaction: {
-      draggable: true,
-      selectable: true,
-      zoomable: true,
-      pannable: true
-    }
   }
 };
 
@@ -377,11 +302,6 @@ class FirebaseConfigService {
   // Search config güncelleme
   async updateSearchConfig(userId: string, searchConfig: UserConfig['search']): Promise<void> {
     await this.updateUserConfig(userId, { search: searchConfig });
-  }
-
-  // Graph config güncelleme
-  async updateGraphConfig(userId: string, graphConfig: UserConfig['graph']): Promise<void> {
-    await this.updateUserConfig(userId, { graph: graphConfig });
   }
 
   // GÜVENLİ LocalStorage Migration - Sadece authenticated kullanıcılar için

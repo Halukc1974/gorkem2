@@ -141,15 +141,6 @@ function AuthenticatedApp() {
             
             {user && (
               <div className="flex items-center space-x-2">
-                <img 
-                  src={(user as any)?.photoURL || (user as any)?.picture || ''} 
-                  alt={(user as any)?.displayName || (user as any)?.name || ''} 
-                  className="w-8 h-8 rounded-full object-cover"
-                  data-testid="img-user-avatar"
-                />
-                <span className="text-sm text-foreground" data-testid="text-user-name">
-                  {(user as any)?.displayName || (user as any)?.name || 'Kullanıcı'}
-                </span>
                 <Button 
                   variant="outline" 
                   size="sm" 

@@ -7,6 +7,7 @@ export interface NodeStyle {
   fontSize: number;
   width: number;
   height: number;
+  opacity: number;
   gradientStart?: string;
   gradientEnd?: string;
 }
@@ -17,6 +18,7 @@ export interface EdgeStyle {
   arrowColor: string;
   arrowShape: 'triangle' | 'circle' | 'square';
   lineStyle: 'solid' | 'dashed' | 'dotted';
+  opacity: number;
 }
 
 export interface LayoutSettings {
@@ -43,20 +45,22 @@ export interface GraphCustomizationContextType {
 export const defaultCustomization: GraphCustomization = {
   nodeStyle: {
     shape: 'roundrectangle',
-    backgroundColor: '#088cf8ff',
-    borderColor: '#016df9ff',
+    backgroundColor: '#088cf8',
+    borderColor: '#016df9',
     borderWidth: 1,
-    textColor: '#ffffffff',
+    textColor: '#ffffff',
     fontSize: 14,
     width: 120,
-    height: 60
+    height: 60,
+    opacity: 1
   },
   edgeStyle: {
     width: 2,
-    lineColor: '#fff305ff',
-    arrowColor: '#016df9ff',
+    lineColor: '#fff305',
+    arrowColor: '#016df9',
     arrowShape: 'triangle',
-    lineStyle: 'solid'
+    lineStyle: 'solid',
+    opacity: 1
   },
   layout: {
     direction: 'LR',
