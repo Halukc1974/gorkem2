@@ -124,19 +124,9 @@ function AuthenticatedApp() {
           </div>
           
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-3 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex h-2 w-2 rounded-full bg-green-500"></span>
-                <span className="text-green-600">Bağlı</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <i className="fas fa-envelope text-blue-500"></i>
-                <span className="text-muted-foreground">{(user as any)?.email || 'Kullanıcı'}</span>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground" title="Son senkronizasyon zamanı">
-                <i className="fas fa-sync-alt h-4 w-4 text-blue-500"></i>
-                <span data-testid="text-last-sync">{new Date().toLocaleTimeString('tr-TR')}</span>
-              </div>
+            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+              <i className="fas fa-sync-alt h-4 w-4"></i>
+              <span data-testid="text-last-sync">Son senkronizasyon: {new Date().toLocaleTimeString('tr-TR')}</span>
             </div>
             
             {user && (
