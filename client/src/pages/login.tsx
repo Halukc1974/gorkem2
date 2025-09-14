@@ -45,7 +45,7 @@ export default function Login() {
       <Card className="w-[420px]">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Görkem İnşaat</CardTitle>
-          <CardDescription>Proje Takip ve Muhasebe Sistemi</CardDescription>
+          <CardDescription>Belge Yönetim Sistemi</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="text-center">
@@ -76,20 +76,7 @@ export default function Login() {
               </Button>
             </form>
             
-            <div className="mt-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400 my-2">veya</p>
-              <Button 
-                type="button" 
-                className="w-full" 
-                variant="outline"
-                onClick={() => {
-                  setError('Google Sheets client-side authentication is deprecated. Use server-side configuration or skip this step.');
-                }}
-                disabled={loading}
-              >
-                Google ile Giriş Yap
-              </Button>
-            </div>
+            
           </div>
         </CardContent>
       </Card>

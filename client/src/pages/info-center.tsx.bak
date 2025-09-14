@@ -237,15 +237,15 @@ export default function InfoCenterPage(): JSX.Element {
                   field="letter_no" 
                   header="letter_no" 
                   sortable 
-                  /* filter 
+                  filter 
                   showFilterMenu={false}
-                  filterPlaceholder="Search letter_no" */
+                  filterPlaceholder="Search letter_no" 
                 />
                 <Column 
                   field="letter_date" 
                   header="letter_date" 
                   sortable 
-                  /* filter 
+                  filter 
                   showFilterMenu={false}
                   filterElement={
                     <Calendar 
@@ -257,30 +257,30 @@ export default function InfoCenterPage(): JSX.Element {
                       }))}
                       className="w-full"
                     />
-                  } */
+                  } 
                   body={DateBody}
                 />
                 <Column 
                   field="short_desc" 
                   header="short_desc" 
                   sortable 
-                  /* filter 
+                  filter 
                   showFilterMenu={false}
-                  filterPlaceholder="Search short_desc" */
+                  filterPlaceholder="Search short_desc" 
                 />
                 <Column 
                   field="ref_letters" 
                   header="ref_letters" 
                   sortable 
-                  /* filter 
+                  filter 
                   showFilterMenu={false}
-                  filterPlaceholder="Search ref_letters" */
+                  filterPlaceholder="Search ref_letters" 
                 />
                 <Column 
                   field="severity_rate" 
                   header="severity_rate" 
                   sortable 
-                  /* filter 
+                  filter 
                   showFilterMenu={false}
                   filterElement={
                     <Dropdown 
@@ -292,16 +292,16 @@ export default function InfoCenterPage(): JSX.Element {
                       placeholder="All"
                       className="w-full"
                     />
-                  } */
+                  } 
                   body={SeverityBody}
                 />
                 <Column 
                   field="keywords" 
                   header="keywords" 
                   sortable 
-                  /* filter 
+                  filter 
                   showFilterMenu={false}
-                  filterPlaceholder="Search keywords" */
+                  filterPlaceholder="Search keywords" 
                 />
                 <Column 
                   field="web_url" 
