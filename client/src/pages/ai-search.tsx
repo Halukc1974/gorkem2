@@ -5,10 +5,11 @@ import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { Switch } from '../components/ui/switch';
 import { 
-  Search, Network 
+  Search, Network, Brain, Cpu, CircuitBoard, Sparkles 
 } from 'lucide-react';
 import { DocumentGraph } from '../components/graph-engine/DocumentGraph';
 import { useDocumentGraph } from '../hooks/use-document-graph';
+import { GraphCustomizationProvider } from '../components/graph-engine/context/GraphCustomizationContext';
 import { useDocumentSearch } from '../hooks/use-document-search';
 
 export default function AISearchPage() {
@@ -54,7 +55,12 @@ export default function AISearchPage() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">🤖 Yapay Zeka ile Ara</h1>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+            <span className="inline-flex items-center justify-center p-2 bg-blue-100 rounded-lg">
+              <Brain className="h-8 w-8 text-blue-600 stroke-2" strokeLinejoin="round" />
+            </span>
+            Yapay Zeka ile Ara
+          </h1>
           <p className="text-gray-600 mt-1">
             AI destekli arama ve belge ilişkileri görselleştirme
           </p>
@@ -64,7 +70,7 @@ export default function AISearchPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full md:w-auto grid-cols-2">
           <TabsTrigger value="search" className="flex items-center gap-2">
-            <Search className="h-4 w-4" />
+            <Brain className="h-4 w-4 text-current stroke-2" strokeLinejoin="round" />
             AI Arama
           </TabsTrigger>
           <TabsTrigger value="graph" className="flex items-center gap-2">
@@ -214,10 +220,12 @@ export default function AISearchPage() {
                 )}
                 
                 {graphData && (
-                  <DocumentGraph 
-                    data={graphData}
-                    onNodeClick={handleNodeClick}
-                  />
+                  <GraphCustomizationProvider>
+                    <DocumentGraph 
+                      data={graphData}
+                      onNodeClick={handleNodeClick}
+                    />
+                  </GraphCustomizationProvider>
                 )}
               </div>
             </CardContent>

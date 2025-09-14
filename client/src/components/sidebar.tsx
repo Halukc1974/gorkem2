@@ -3,6 +3,7 @@ import { Button } from "../components/ui/button";
 import CreateSheetModal from "./create-sheet-modal";
 import { useState } from "react";
 import { useToast } from "../hooks/use-toast";
+import { Brain } from "lucide-react";
 // Google Sheets integration removed for Info Center migration
 import { apiRequest } from "../lib/queryClient";
 import RenameSheetModal from "./rename-sheet-modal";
@@ -151,8 +152,8 @@ export default function Sidebar({ isOpen, onClose, isMobile }: SidebarProps) {
           }`}
           data-testid="nav-ai-search"
         >
-          <i className="fas fa-robot mr-3 h-5 w-5"></i>
-          🤖 Yapay Zeka İle Ara
+          <Brain className="mr-3 h-5 w-5 stroke-2" strokeLinejoin="round" />
+          Yapay Zeka İle Ara
         </button>
         
         {/* Info Center link (replaces Google Sheets list) */}
