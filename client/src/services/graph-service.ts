@@ -9,6 +9,7 @@ export interface GraphNode {
     letterNo: string;
     date: string;
     webUrl?: string;
+    references?: string[]; // Referansları ekledik
   };
 }
 
