@@ -12,9 +12,11 @@ interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   isMobile: boolean;
+  width?: number;
+  isVisible?: boolean;
 }
 
-export default function Sidebar({ isOpen, onClose, isMobile }: SidebarProps) {
+export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, width = 320 }: SidebarProps) {
   const [location, setLocation] = useLocation();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const { toast } = useToast();
@@ -273,8 +275,13 @@ export default function Sidebar({ isOpen, onClose, isMobile }: SidebarProps) {
     );
   }
 
+  // Desktop sidebar görünürlük kontrolü
+  if (!isVisible) {
+    return null;
+  }
+
   return (
-    <div className="hidden md:flex md:w-80 md:flex-col">
+    <div className="hidden md:flex md:flex-col" style={{ width: width || 320 }}>
       {sidebarContent}
     </div>
   );

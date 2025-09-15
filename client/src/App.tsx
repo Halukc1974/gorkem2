@@ -1,6 +1,6 @@
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from "./components/ui/toaster";
 import { TooltipProvider } from "./components/ui/tooltip";
 import Dashboard from "./pages/dashboard";
@@ -38,6 +38,8 @@ function Router() {
 
 function AuthenticatedApp() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true); // Sidebar görünürlüğü için state
+  const [sidebarWidth, setSidebarWidth] = useState(320); // Sidebar genişliği için state
   const isMobile = useIsMobile();
   const { user, signOut } = useAuth();
   const { config } = useUserSettings();
@@ -103,19 +105,30 @@ function AuthenticatedApp() {
         isOpen={sidebarOpen} 
         onClose={() => setSidebarOpen(false)}
         isMobile={isMobile}
+        isVisible={isSidebarVisible}
+        width={sidebarWidth}
       />
       
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top bar */}
         <div className="flex h-16 flex-shrink-0 items-center justify-between px-6 bg-card border-b border-border">
           <div className="flex items-center">
-            {isMobile && (
+            {isMobile ? (
               <button 
                 className="mr-4 p-2 rounded-md hover:bg-accent"
                 onClick={() => setSidebarOpen(true)}
                 data-testid="button-toggle-sidebar"
               >
                 <i className="fas fa-bars h-5 w-5"></i>
+              </button>
+            ) : (
+              <button 
+                className="mr-4 p-2 rounded-md hover:bg-accent flex items-center gap-2"
+                onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+                data-testid="button-toggle-sidebar-desktop"
+              >
+                <i className={`fas fa-${isSidebarVisible ? 'times' : 'bars'} h-5 w-5`}></i>
+                <span>{isSidebarVisible ? 'Menüyü Gizle' : 'Menüyü Göster'}</span>
               </button>
             )}
             <h2 className="text-xl font-semibold text-foreground" data-testid="text-page-title">

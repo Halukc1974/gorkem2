@@ -27,6 +27,19 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        main: path.resolve(import.meta.dirname, "client/index.html"),
+      },
+      output: {
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name === '.htaccess') {
+            return '.htaccess';
+          }
+          return 'assets/[name]-[hash][extname]';
+        },
+      },
+    },
   },
   server: {
     fs: {
