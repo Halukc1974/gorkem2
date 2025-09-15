@@ -31,7 +31,8 @@ const createCyInstance = (
       nodes: data.nodes.map(node => ({
         data: { 
           id: node.id,
-          label: `${node.data.letterNo}\n${node.data.date}`,
+          label: '',
+          keywords: node.data.keywords || '',
           ...node.data
         }
       })),
@@ -48,12 +49,65 @@ const createCyInstance = (
       {
         selector: 'node',
         style: {
-          'label': 'data(label)',
-          'text-wrap': 'wrap', 
-          'text-max-width': '80px',
+          'background-color': '#22c55e',
+          'border-width': 2,
+          'border-color': '#16a34a',
+          'width': '200px',
+          'height': '80px',
+          'shape': 'roundrectangle',
+          'content': function(ele: cytoscape.NodeSingular) {
+            const keywords = ele.data('keywords');
+            let text = '';
+            if (Array.isArray(keywords)) {
+              text = keywords.slice(0, 5).join(', ');
+            } else if (keywords) {
+              text = String(keywords).split(',').slice(0, 5).join(', ');
+            }
+            
+            // Kelime bölme olmadan metin sığdırma
+            const maxLength = 80;
+            if (text.length > maxLength) {
+              const words = text.split(' ');
+              let result = '';
+              let line = '';
+              
+              for (const word of words) {
+                if ((line + word).length > maxLength) {
+                  if (result) result += '\\n';
+                  result += line;
+                  line = word;
+                } else {
+                  if (line) line += ' ';
+                  line += word;
+                }
+              }
+              
+              if (line) {
+                if (result) result += '\\n';
+                result += line;
+              }
+              
+              return result;
+            }
+            
+            return text;
+          },
+          'text-wrap': 'wrap',
+          'text-max-width': '180px',
+          'text-overflow-wrap': 'whitespace',
           'text-valign': 'center',
           'text-halign': 'center',
-          'padding': '10px'
+          'color': '#000000',
+          'font-size': '11px',
+          'font-weight': 'normal',
+          'text-background-opacity': 0,
+          'text-outline-width': 0,
+          'padding': '8px',
+          'text-margin-x': 5,
+          'text-margin-y': 0,
+          'text-transform': 'none',
+          'text-line-spacing': 1.2,
+          'z-index': 10
         }
       },
       {

@@ -9,7 +9,8 @@ export interface GraphNode {
     letterNo: string;
     date: string;
     webUrl?: string;
-    references?: string[]; // Referansları ekledik
+    references?: string[];
+    keywords?: string[] | string;
   };
 }
 
@@ -26,6 +27,7 @@ interface DocumentDetails {
   letter_date?: string;
   ref_letters?: string;
   weburl?: string;
+  keywords?: string[] | string;
 }
 
 class GraphService {
@@ -183,7 +185,8 @@ class GraphService {
             docId: String(doc.id),
             letterNo: doc.letter_no || `Belge #${doc.id}`,
             date: doc.letter_date || 'Tarih yok',
-            webUrl: doc.weburl
+            webUrl: doc.weburl,
+            keywords: doc.keywords || [] // keywords alanını ekledik
           }
         });
       }
