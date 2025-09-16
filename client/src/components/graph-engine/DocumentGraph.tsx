@@ -52,8 +52,8 @@ const createCyInstance = (
           'background-color': '#22c55e',
           'border-width': 2,
           'border-color': '#16a34a',
-          'width': '200px',
-          'height': '80px',
+          'width': '140px',
+          'height': '140px',
           'shape': 'roundrectangle',
           'content': function(ele: cytoscape.NodeSingular) {
             const keywords = ele.data('keywords');
@@ -65,48 +65,52 @@ const createCyInstance = (
             }
             
             // Kelime bölme olmadan metin sığdırma
-            const maxLength = 80;
+            const maxLength = 120; // Toplam karakter sınırı
+            const maxLines = 4; // Maksimum satır sayısı
+            
             if (text.length > maxLength) {
               const words = text.split(' ');
               let result = '';
-              let line = '';
+              let currentLine = '';
+              let lineCount = 0;
               
               for (const word of words) {
-                if ((line + word).length > maxLength) {
-                  if (result) result += '\\n';
-                  result += line;
-                  line = word;
+                if (lineCount >= maxLines) {
+                  break;
+                }
+                
+                if ((currentLine + ' ' + word).length > 30) { // Her satır için yaklaşık 30 karakter
+                  result += (result ? '\\n' : '') + currentLine;
+                  currentLine = word;
+                  lineCount++;
                 } else {
-                  if (line) line += ' ';
-                  line += word;
+                  currentLine += (currentLine ? ' ' : '') + word;
                 }
               }
               
-              if (line) {
-                if (result) result += '\\n';
-                result += line;
+              if (currentLine && lineCount < maxLines) {
+                result += (result ? '\\n' : '') + currentLine;
               }
               
-              return result;
+              return result + (text.length > maxLength ? '...' : '');
             }
             
             return text;
           },
-          'text-wrap': 'wrap',
-          'text-max-width': '180px',
-          'text-overflow-wrap': 'whitespace',
+                    'text-wrap': 'wrap',
+          'text-max-width': '120px',
+          'text-overflow-wrap': 'anywhere',
           'text-valign': 'center',
           'text-halign': 'center',
+          'padding': '6px',
           'color': '#000000',
-          'font-size': '11px',
+          'font-size': '8px',
           'font-weight': 'normal',
           'text-background-opacity': 0,
           'text-outline-width': 0,
-          'padding': '8px',
-          'text-margin-x': 5,
-          'text-margin-y': 0,
+          'text-margin-x': 2,
+          'text-margin-y': 2,
           'text-transform': 'none',
-          'text-line-spacing': 1.2,
           'z-index': 10
         }
       },
