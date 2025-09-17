@@ -221,33 +221,46 @@ const createCyInstance = (
   // After layout completes, position clones relative to their main node and lock them
   instance.on('layoutstop', () => {
     try {
-      data.nodes.forEach(node => {
-        const mainId = node.id;
-        const topId = `${mainId}__top`;
-        const bottomId = `${mainId}__bottom`;
+      // We'll attempt to position clones and then watch for stabilization for a few frames.
+      const gap = 2; // small gap for clarity
 
-        const mainEle = instance.getElementById(mainId);
-        const topEle = instance.getElementById(topId);
-        const bottomEle = instance.getElementById(bottomId);
+      const positionClonesOnce = () => {
+        data.nodes.forEach(node => {
+          const mainId = node.id;
+          const topId = `${mainId}__top`;
+          const bottomId = `${mainId}__bottom`;
 
-        if (!mainEle || !topEle || !bottomEle) return;
+          const mainEle = instance.getElementById(mainId);
+          const topEle = instance.getElementById(topId);
+          const bottomEle = instance.getElementById(bottomId);
 
-        const mainPos = mainEle.position();
-        const mainBB = mainEle.renderedBoundingBox();
-        const topBB = topEle.renderedBoundingBox();
-        const gap = 1; // almost zero gap for tight positioning
+          if (!mainEle || !topEle || !bottomEle) return;
 
-        // place top clone above main
-        topEle.position({ x: mainPos.x, y: mainPos.y - (mainBB.h / 2) - (topBB.h / 2) - gap });
-        // place bottom clone below main
-        bottomEle.position({ x: mainPos.x, y: mainPos.y + (mainBB.h / 2) + (topBB.h / 2) + gap });
+          // Prefer boundingBox() which is layout-stable; fallback to renderedBoundingBox
+          const mainPos = mainEle.position();
+          const mainBB = (typeof mainEle.boundingBox === 'function') ? mainEle.boundingBox() : mainEle.renderedBoundingBox();
+          const topBB = (typeof topEle.boundingBox === 'function') ? topEle.boundingBox() : topEle.renderedBoundingBox();
 
-        // Do not lock clones; instead keep them non-interactive and let position handlers
-        // move them together with their main node when the main node moves.
-        // (clones are non-interactive via 'events': 'no' style)
-      });
+          // set positions relative to main node
+          topEle.position({ x: mainPos.x, y: mainPos.y - (mainBB.h / 2) - (topBB.h / 2) - gap });
+          bottomEle.position({ x: mainPos.x, y: mainPos.y + (mainBB.h / 2) + (topBB.h / 2) + gap });
+
+          // lock clones so they move only when main node moves programmatically
+          try { topEle.lock(); bottomEle.lock(); } catch (e) { /* ignore if already locked */ }
+        });
+      };
+
+      // run a small RAF loop to allow CSS/renderer to settle
+      let frames = 0;
+      const maxFrames = 6;
+      const rafLoop = () => {
+        positionClonesOnce();
+        frames += 1;
+        if (frames < maxFrames) requestAnimationFrame(rafLoop);
+      };
+      requestAnimationFrame(rafLoop);
     } catch (err) {
-      // ignore positioning errors
+      // ignore positioning errors but keep app stable
       // console.warn('layoutstop clone positioning failed', err);
     }
   });
@@ -262,12 +275,15 @@ const createCyInstance = (
       if (!topEle || !bottomEle) return;
 
       const mainPos = main.position();
-      const mainBB = main.renderedBoundingBox();
-      const topBB = topEle.renderedBoundingBox();
-      const gap = 1; // almost zero gap for tight positioning
+      const mainBB = (typeof main.boundingBox === 'function') ? main.boundingBox() : main.renderedBoundingBox();
+      const topBB = (typeof topEle.boundingBox === 'function') ? topEle.boundingBox() : topEle.renderedBoundingBox();
+      const gap = 2;
 
+      // Unlock briefly so position can be set, then re-lock
+      try { topEle.unlock(); bottomEle.unlock(); } catch (e) {}
       topEle.position({ x: mainPos.x, y: mainPos.y - (mainBB.h / 2) - (topBB.h / 2) - gap });
       bottomEle.position({ x: mainPos.x, y: mainPos.y + (mainBB.h / 2) + (topBB.h / 2) + gap });
+      try { topEle.lock(); bottomEle.lock(); } catch (e) {}
     } catch (err) {
       // ignore
     }
