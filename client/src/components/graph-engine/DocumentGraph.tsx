@@ -141,36 +141,44 @@ const createCyInstance = (
         selector: 'node[type="letter_no"]',
         style: {
           'background-color': 'transparent',
-          'border-width': 0,
-          'width': '120px',
-          'height': '28px',
-          'shape': 'roundrectangle',
+          'background-opacity': 0,
+          'border-width': '0px',
+          'border-color': 'transparent',
+          'border-opacity': 0,
+          'width': '100px',
+          'height': '20px',
+          'shape': 'rectangle',
           'content': function(ele: cytoscape.NodeSingular) {
             return ele.data('letterNo') || ele.data('letter_no') || '';
           },
           'text-valign': 'center',
           'text-halign': 'center',
-          'font-size': '10px',
-          'color': '#0f172a',
-          'z-index': 20
+          'font-size': '8px',
+          'color': '#6B7280',
+          'events': 'no',
+          'z-index': -1
         }
       },
       {
         selector: 'node[type="letter_date"]',
         style: {
           'background-color': 'transparent',
-          'border-width': 0,
-          'width': '120px',
-          'height': '28px',
-          'shape': 'roundrectangle',
+          'background-opacity': 0,
+          'border-width': '0px',
+          'border-color': 'transparent',
+          'border-opacity': 0,
+          'width': '100px',
+          'height': '20px',
+          'shape': 'rectangle',
           'content': function(ele: cytoscape.NodeSingular) {
             return ele.data('letterDate') || ele.data('letter_date') || '';
           },
           'text-valign': 'center',
           'text-halign': 'center',
-          'font-size': '10px',
-          'color': '#0f172a',
-          'z-index': 20
+          'font-size': '8px',
+          'color': '#6B7280',
+          'events': 'no',
+          'z-index': -1
         }
       },
       {
@@ -178,16 +186,16 @@ const createCyInstance = (
         style: {
           'background-color': 'transparent',
           'background-opacity': 0,
-          'border-width': 0,
+          'border-width': '0px',
           'border-color': 'transparent',
-          'padding': '2px',
-          'width': '120px',
-          'height': '28px',
-          'color': '#0b1220',
-          'font-size': '10px',
-          // disable pointer events so clones aren't directly draggable/selectable
+          'border-opacity': 0,
+          'padding': '1px',
+          'width': '100px',
+          'height': '20px',
+          'color': '#6B7280',
+          'font-size': '8px',
           'events': 'no',
-          'z-index': 25
+          'z-index': -1
         }
       }
     ],
@@ -225,15 +233,14 @@ const createCyInstance = (
         if (!mainEle || !topEle || !bottomEle) return;
 
         const mainPos = mainEle.position();
-        const mainWidth = mainEle.width();
-        const mainHeight = mainEle.height();
-        const cloneHeight = topEle.height();
-        const gap = 8; // pixels gap between main and clones
+        const mainBB = mainEle.renderedBoundingBox();
+        const topBB = topEle.renderedBoundingBox();
+        const gap = 1; // almost zero gap for tight positioning
 
         // place top clone above main
-        topEle.position({ x: mainPos.x, y: mainPos.y - (mainHeight / 2) - (cloneHeight / 2) - gap });
+        topEle.position({ x: mainPos.x, y: mainPos.y - (mainBB.h / 2) - (topBB.h / 2) - gap });
         // place bottom clone below main
-        bottomEle.position({ x: mainPos.x, y: mainPos.y + (mainHeight / 2) + (cloneHeight / 2) + gap });
+        bottomEle.position({ x: mainPos.x, y: mainPos.y + (mainBB.h / 2) + (topBB.h / 2) + gap });
 
         // Do not lock clones; instead keep them non-interactive and let position handlers
         // move them together with their main node when the main node moves.
@@ -255,12 +262,12 @@ const createCyInstance = (
       if (!topEle || !bottomEle) return;
 
       const mainPos = main.position();
-      const mainHeight = main.height();
-      const cloneHeight = topEle.height();
-      const gap = 8;
+      const mainBB = main.renderedBoundingBox();
+      const topBB = topEle.renderedBoundingBox();
+      const gap = 1; // almost zero gap for tight positioning
 
-      topEle.position({ x: mainPos.x, y: mainPos.y - (mainHeight / 2) - (cloneHeight / 2) - gap });
-      bottomEle.position({ x: mainPos.x, y: mainPos.y + (mainHeight / 2) + (cloneHeight / 2) + gap });
+      topEle.position({ x: mainPos.x, y: mainPos.y - (mainBB.h / 2) - (topBB.h / 2) - gap });
+      bottomEle.position({ x: mainPos.x, y: mainPos.y + (mainBB.h / 2) + (topBB.h / 2) + gap });
     } catch (err) {
       // ignore
     }
