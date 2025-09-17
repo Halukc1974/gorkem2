@@ -11,6 +11,7 @@ import DocumentSearchPage from "./pages/document-search";
 import AISearchPage from "./pages/ai-search";
 import InfoCenterPage from "./pages/info-center";
 import Login from "./pages/login";
+import AdisIndexPage from "./pages/adis_index";
 import Sidebar from "./components/sidebar";
 import LoadingOverlay from "./components/loading-overlay";
 import { useState, useEffect } from "react";
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/projects" component={ProjectsPage} />
       <Route path="/projects/info-center" component={InfoCenterPage} />
+      <Route path="/ai-search/adis_index" component={AdisIndexPage} />
       <Route path="/financial" component={FinancialPage} />
       <Route path="/document-search" component={DocumentSearchPage} />
       <Route path="/ai-search" component={AISearchPage} />

@@ -158,6 +158,19 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
           Yapay Zeka İle Ara
         </button>
         
+        {/* Nested links for AI Search */}
+        <div className="ml-6 mt-1 space-y-1">
+          <button
+            onClick={() => handleNavigation('/ai-search/adis_index')}
+            className={`w-full flex items-center px-3 py-2 text-sm rounded-md transition-colors ${
+              location === '/ai-search/adis_index' ? 'bg-accent text-accent-foreground' : 'text-foreground hover:bg-accent hover:text-accent-foreground'
+            }`}
+            data-testid="nav-ai-adis"
+          >
+            📤 Belge Yükle
+          </button>
+        </div>
+
         {/* Info Center link (replaces Google Sheets list) */}
         <div className="mt-6">
           <h3 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
