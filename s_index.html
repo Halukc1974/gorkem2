@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>INFO CENTER LETTER REGISTRATION FORM</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .container { max-width: 800px; margin: auto; }
+    .form-section { margin-bottom: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 10px; }
+    label { display: block; margin-top: 10px; font-weight: bold; }
+
+    /* Apply form field styling only to text-like inputs */
+    input[type="text"],
+    input[type="date"],
+    input[type="file"],
+    input[type="number"],
+    input[type="email"],
+    select,
+    textarea {
+      width: 100%; padding: 8px; margin-top: 5px;
+      border: 1px solid #ccc; border-radius: 6px;
+    }
+
+    /* Radios/checkboxes should not inherit generic input styling */
+    input[type="radio"],
+    input[type="checkbox"] {
+      width: auto; padding: 0; margin: 0 8px 0 0; border: none;
+    }
+
+    /* Layout for the two mode options */
+    .mode-options { display: flex; gap: 16px; align-items: center; }
+    .mode-options label { display: inline-flex; align-items: center; margin-top: 0; font-weight: normal; }
+
+    /* Style only our UI buttons, not Select2's internal buttons */
+    .btn {
+      margin-top: 10px; padding: 8px 12px; border-radius: 8px;
+      border: none; background-color: #007bff; color: white;
+      cursor: pointer;
+    }
+    .btn:disabled { background-color: #aaa; cursor: not-allowed; }
+    #status { margin-top: 10px; font-weight: bold; }
+    /* Ensure Select2 remove “x” looks correct */
+    .select2-selection__choice__remove {
+      background: transparent !important;
+      border: none !important;
+      padding: 0 !important;
+      margin: 0 6px 0 2px !important;
+      color: #666 !important;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+    }
+    .select2-selection__choice__remove:hover { color: #d00 !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>INFO CENTER LETTER REGISTRATION FORM</h2>
+
+    <!-- MODE SWITCH -->
+    <div class="form-section">
+      <h3>Mode</h3>
+      <div class="mode-options">
+        <label>
+          <input type="radio" name="formMode" value="new" checked> Register new letter
+        </label>
+        <label>
+          <input type="radio" name="formMode" value="edit"> Edit existing letter
+        </label>
+      </div>
+
+      <div id="editSection" style="display: none; margin-top: 10px;">
+        <label>Letter No to edit:</label>
+        <input type="text" id="editLetterNo" style="max-width: 95%; width: 100%;" placeholder="Enter existing Letter No">
+        <button class="btn" id="loadLetterBtn">Load Letter</button>
+        <div id="loadStatus"></div>
+      </div>
+    </div>
+
+    <!-- 1) DOSYA YÜKLEME ALANI -->
+    <div class="form-section" id="uploadSection">
+      <h3>PDF Letter Upload</h3>
+      <input type="file" style="max-width: 95%; width: 100%;" id="pdfInput" accept="application/pdf">
+      <button class="btn" id="uploadBtn">Upload Doc & Wait for the Processing</button>
+      <div id="uploadStatus"></div>
+    </div>
+
+    <!-- 2) META VERİ FORMU -->
+    <div class="form-section">
+      <h3>Informations about the Letter</h3>
+
+      <div style="display: flex; gap: 1px;">
+        <div style="flex: 1;">
+          <label>Incoming/Outgoing:</label>      
+          <select id="direction" style="width: 200px; font-size: medium;">
+            <option value="incoming">Incoming</option>
+            <option value="outgoing">Outgoing</option>
+          </select>
+        </div>
+        <div style="flex: 2;">
+          <label>Letter Class:</label>
+          <select id="letterClass" style="width: 200px; font-size: medium;">
+            <option value="CORRESPONDENCE">CORRESPONDENCE</option>
+            <option value="SUBMITTALS">SUBMITTALS</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 1px;">
+        <div style="flex: 1;">
+          <label>Letter No:</label>
+          <input type="text" id="letterNo" style="width: 184px; font-size: medium;" placeholder="Enter Letter No">
+        </div>
+        <div style="flex: 1;">
+          <label>Letter Date:</label>
+          <input type="date" id="letterDate" style="width: 184px; font-size: medium;" placeholder="Select Letter Date">
+        </div>
+        <div style="flex: 1;">
+          <label>Response Status:</label>
+          <select id="responseStatus" style="width: 200px; font-size: medium;">
+            <option value="Cevap Bekliyor">Pending Reply</option>
+            <option value="Cevap Gerekmiyor">No need for Reply</option>
+          </select>
+        </div>
+      </div>
+
+      <label>Konu:</label>
+      <textarea id="subject" style="width: 95%; max-width: 95%; font-size: small;" placeholder="Enter Subject"></textarea>
+
+      <label>Content of the Letter:</label>
+      <textarea id="letterContent" style="width: 95%; height: 200px; max-width: 95%; font-size: small;" placeholder="Enter Content of the Letter"></textarea>
+
+      <div style="display: flex; max-width: 100%; gap: 5px;">
+        <div style="flex: 1;">
+          <label>Group:</label>
+          <select id="groupCheckboxes" multiple style="max-width: 100%; height: 130px;">
+            <option value="İdari">Management</option>
+            <option value="Finansal">Financial</option>
+            <option value="İnşaat">Construction</option>
+            <option value="Mimari">Architectural</option>
+            <option value="Mekanik">Mechanical</option>
+            <option value="Elektrik">Electrical</option>
+            <option value="Hukuk">Legal</option>
+          </select>
+        </div>
+        <div style="flex: 1;">
+          <label>Counter Party:</label>
+          <select id="counterpartyCheckboxes" multiple style="max-width: 100%; height: 130px;">
+            <option value="İdare">Client/RE Office</option>
+            <option value="Müşavir">Legal Consultant</option>
+            <option value="Taşeron">Subcontractor</option>
+            <option value="Şirket içi">In-House</option>
+            <option value="Şirket dışı">Outside</option>
+            <option value="Danışman">Other Consultant</option>
+            <option value="Diğer">Other</option>
+          </select>
+        </div>
+        <div style="flex: 1;">
+          <label>Key Subject:</label>
+          <select id="keysubjectCheckboxes" multiple style="max-width: 100%; height: 130px;">
+            <option value="LG Related">L/G or L/C Related</option>
+            <option value="Time Ext. Related">Time Ext. Related</option>
+            <option value="VO Related">VO Related</option>
+            <option value="Payment Related">Payment Related</option>
+          </select>
+        </div>
+        <div style="flex: 1;">
+          <label>Letter Type:</label>
+          <select id="letterTypeCheckboxes" multiple style="max-width: 100%; height: 130px;">
+            <option value="Normal">Normal</option>
+            <option value="Test Result">Test Result/Request</option>
+            <option value="RE to Consultant">RE to Consultant</option>
+            <option value="CAN">CAN</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUBMITTAL CLASS LETTERS SECTION -->
+    <div class="form-section" id="submittalSection" style="display: none;">
+      <h3>Submittal Details</h3>
+
+      <div style="display: flex; gap: 1px;">
+        <div style="flex: 1;">
+          <label>Submittal Type:</label>
+          <select id="submittalType" multiple style="width: 200px; height: 150px; font-size: small;">
+            <option value="Material">Material</option>
+            <option value="Equipment">Equipment</option>
+            <option value="Drawing">Drawing</option>
+            <option value="Report & MS">Report & MS</option>
+            <option value="Variation Order">Variation Order</option>
+            <option value="Check Request">Check Request</option>
+            <option value="Work Schedule">Work Schedule</option>
+          </select>
+        </div>
+        
+        <div style="flex: 2; align-self: first baseline;">
+          <label>Submittal Status:</label>
+          <select id="submittalStatus" style="width: 240px; font-size: medium;">
+            <option value="Draft">Draft</option>
+            <option value="Submitted">Submitted</option>
+            <option value="Approved">Approved</option>
+            <option value="Approved with Commends">Approved with Commends</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Revise and resubmit">Revise and resubmit</option>
+          </select>
+
+          <label>Approve/Reject Date:</label>
+          <input type="date" id="DecisionDate" style="width: 222px; font-size: medium;">
+
+        </div>
+      </div>
+
+      <div id="manufacturerFields" style="display: none; margin-top: 10px;">
+        <label>Manufacturer:</label>
+        <input type="text" id="manufacturer" style="width: 95%; font-size: medium;" placeholder="Enter Manufacturer Company Name">
+      </div>
+
+    </div>
+
+    <script>
+      function toggleSubmittalSection() {
+        const letterClass = document.getElementById("letterClass").value;
+        document.getElementById("submittalSection").style.display =
+          letterClass === "SUBMITTALS" ? "block" : "none";
+      }
+      document.getElementById("letterClass").addEventListener("change", toggleSubmittalSection);
+      // On page load, ensure correct visibility
+      toggleSubmittalSection();
+      // Show/hide Manufacturer field based on Submittal Type selection
+      document.getElementById("submittalType").addEventListener("change", function() {
+        const selected = Array.from(this.selectedOptions).map(opt => opt.value);
+        document.getElementById("manufacturerFields").style.display =
+          (selected.includes("Material") || selected.includes("Equipment")) ? "block" : "none";
+      });
+    </script>
+
+
+    <!-- 3) REFERANS YAZI SEÇİMİ -->
+    <div class="form-section">
+      <h3>Referenced Letters</h3>
+      <button class="btn" id="fetchBtn">Get List</button>
+      <div id="status"></div>
+      <select id="yazismaSelect" multiple style="width: 100%; margin-top: 10px;"></select>
+    </div>
+
+    <!-- 4) FORM GÖNDERME -->
+    <div class="form-section">
+      <button class="btn" id="submitBtn" disabled>Save</button>
+    </div>
+  </div>
+
+  <script>
+    const selectEl = $("#yazismaSelect");
+    selectEl.select2({ placeholder: "Select Referenced Letters", allowClear: true });
+
+    // Helper: populate all fields from API payload (used by upload + edit)
+    function populateFormFromData(data) {
+      document.getElementById("letterClass").value = data.letter_class || "";
+      document.getElementById("letterClass").dispatchEvent(new Event('change'));
+      document.getElementById("direction").value = data.direction || "";
+      document.getElementById("letterNo").value = data.letter_no || "";
+      document.getElementById("letterDate").value = data.date || "";
+      document.getElementById("subject").value = data.subject || "";
+      document.getElementById("letterContent").value = data.letterContent || "";
+      document.getElementById("manufacturer").value = data.Manufac || "";
+      document.getElementById("responseStatus").value = data.response_status || "";
+
+      $('#groupCheckboxes').val(data.groups || []).trigger('change');
+      $('#counterpartyCheckboxes').val(data.counterparty || []).trigger('change');
+      $('#keysubjectCheckboxes').val(data.key_subject || []).trigger('change');
+      $('#letterTypeCheckboxes').val(data.letter_type || []).trigger('change');
+
+      setTimeout(() => {
+        $('#submittalType').val(data.subm_type || []).trigger('change');
+        document.getElementById("submittalStatus").value = data.onay_durumu || "";
+        document.getElementById("DecisionDate").value = data.onay_tarih || "";
+      }, 0);
+    }
+
+    // MODE: New vs Edit
+    function updateModeUI() {
+      const mode = document.querySelector('input[name="formMode"]:checked').value;
+      const showEdit = mode === 'edit';
+      document.getElementById('uploadSection').style.display = showEdit ? 'none' : 'block';
+      document.getElementById('editSection').style.display = showEdit ? 'block' : 'none';
+
+      // Require either a successful upload or a loaded letter before saving
+      document.getElementById("submitBtn").disabled = true;
+      if (!showEdit) {
+        document.getElementById("loadStatus").textContent = "";
+      } else {
+        document.getElementById("uploadStatus").textContent = "";
+      }
+    }
+    document.querySelectorAll('input[name="formMode"]').forEach(r => r.addEventListener('change', updateModeUI));
+    updateModeUI();
+
+    // EDIT: Load existing letter by number
+    document.getElementById("loadLetterBtn").addEventListener("click", async () => {
+      const letterNo = document.getElementById("editLetterNo").value.trim();
+      if (!letterNo) {
+        alert("Please enter a Letter No to load.");
+        return;
+      }
+      document.getElementById("loadStatus").textContent = "Loading letter...";
+      try {
+        const response = await fetch("https://oz5ctrkt.rpcld.com/webhook/get_letter", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ letter_no: letterNo })
+        });
+        if (!response.ok) throw new Error("Failed to load letter");
+        const data = await response.json();
+
+        populateFormFromData(data);
+
+        document.getElementById("loadStatus").textContent = "Letter loaded.";
+        document.getElementById("submitBtn").disabled = false;
+      } catch (err) {
+        console.error(err);
+        document.getElementById("loadStatus").textContent = "Letter could not be loaded.";
+      }
+    });
+
+    // PDF YÜKLEME & WEBHOOK
+    document.getElementById("uploadBtn").addEventListener("click", async () => {
+      const file = document.getElementById("pdfInput").files[0];
+      if (!file) {
+        alert("Lütfen bir PDF seçiniz!");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      document.getElementById("uploadStatus").textContent = "Yükleniyor...";
+
+      try {
+        const response = await fetch("https://oz5ctrkt.rpcld.com/webhook/upload_pdf", {
+          method: "POST",
+          body: formData
+        });
+        const data = await response.json();
+
+        populateFormFromData(data);
+
+        document.getElementById("uploadStatus").textContent = "Letter information loaded!";
+        document.getElementById("submitBtn").disabled = false;
+      } catch (err) {
+        console.error(err);
+        document.getElementById("uploadStatus").textContent = "Loading Failed!";
+      }
+    });
+
+    // REFERANS LİSTESİ ÇEK
+    ["fetchBtn", "uploadBtn"].forEach(id => {
+      document.getElementById(id).addEventListener("click", async () => {
+      document.getElementById("status").textContent = "Getting list...";
+      selectEl.empty();
+
+      try {
+        const response = await fetch("https://oz5ctrkt.rpcld.com/webhook/yazisma-list");
+        const data = await response.json();
+
+        data.list.forEach(item => {
+          const option = new Option(item.yazisma_no, item.id);
+          selectEl.append(option);
+        });
+
+        selectEl.trigger("change");
+        document.getElementById("status").textContent = `${data.list.length} number of letters found.`;
+      } catch (err) {
+        console.error(err);
+        document.getElementById("status").textContent = "Error during getting list!";
+      }
+    });
+  });
+
+    // FORM GÖNDER
+    document.getElementById("submitBtn").addEventListener("click", async () => {
+      const payload = {
+        direction: document.getElementById("direction").value,
+        letter_no: document.getElementById("letterNo").value,
+        date: document.getElementById("letterDate").value,
+        subject: document.getElementById("subject").value,
+        references: selectEl.val() // sadece ID'ler
+      };
+
+      try {
+        const response = await fetch("https://oz5ctrkt.rpcld.com/webhook-test/submit_letter", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          alert("Document saved!");
+        } else {
+          alert("Error occurred while saving!");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Connection error!");
+      }
+    });
+  </script>
+</body>
+</html>
