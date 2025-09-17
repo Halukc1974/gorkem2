@@ -20,34 +20,43 @@ interface DocumentGraphProps {
 
 const createCyInstance = (
   container: HTMLDivElement,
-  data: DocumentGraphProps['data'],
-  onNodeClick: (nodeId: string) => void,
-  onContextMenu: (position: { x: number; y: number }, nodeId: string | null) => void,
+  data: { nodes: GraphNode[]; edges: GraphEdge[] },
+  onNodeClick: (id: string) => void,
+  onContextMenu: (pos: { x: number; y: number }, nodeId: string | null) => void,
   onBackgroundClick: () => void
-) => {
+): cytoscape.Core => {
+  // Build elements: original nodes + small top/bottom clones
+  const builtNodes: any[] = [];
+  const builtEdges: any[] = [];
+
+  data.nodes.forEach(node => {
+    // main node (mark as type 'main' so styling targets it)
+    builtNodes.push({ data: { id: node.id, label: '', type: 'main', keywords: node.data.keywords || '', ...node.data } });
+
+    // top clone (letter_no)
+    const topId = `${node.id}__top`;
+    builtNodes.push({ data: { id: topId, label: '', type: 'letter_no', letterNo: (node.data as any).letterNo || (node.data as any).letter_no || '', _originalId: node.id }, classes: 'clone' });
+
+    // bottom clone (letter_date)
+    const bottomId = `${node.id}__bottom`;
+    builtNodes.push({ data: { id: bottomId, label: '', type: 'letter_date', letterDate: (node.data as any).date || (node.data as any).letter_date || '', _originalId: node.id }, classes: 'clone' });
+
+    // invisible stack edges
+    builtEdges.push({ data: { id: `${topId}->${node.id}`, source: topId, target: node.id, type: 'stack' }, classes: 'stack' });
+    builtEdges.push({ data: { id: `${node.id}->${bottomId}`, source: node.id, target: bottomId, type: 'stack' }, classes: 'stack' });
+  });
+
+  data.edges.forEach(edge => builtEdges.push({ data: { id: edge.id, source: edge.source, target: edge.target, type: edge.type } }));
+
   const instance = cytoscape({
     container,
     elements: {
-      nodes: data.nodes.map(node => ({
-        data: { 
-          id: node.id,
-          label: '',
-          keywords: node.data.keywords || '',
-          ...node.data
-        }
-      })),
-      edges: data.edges.map(edge => ({
-        data: {
-          id: edge.id,
-          source: edge.source,
-          target: edge.target,
-          type: edge.type
-        }
-      }))
+      nodes: builtNodes,
+      edges: builtEdges
     },
     style: [
       {
-        selector: 'node',
+        selector: 'node[type="main"]',
         style: {
           'background-color': '#22c55e',
           'border-width': 2,
@@ -63,22 +72,21 @@ const createCyInstance = (
             } else if (keywords) {
               text = String(keywords).split(',').slice(0, 5).join(', ');
             }
-            
-            // Kelime bölme olmadan metin sığdırma
+
             const maxLength = 120; // Toplam karakter sınırı
             const maxLines = 4; // Maksimum satır sayısı
-            
+
             if (text.length > maxLength) {
               const words = text.split(' ');
               let result = '';
               let currentLine = '';
               let lineCount = 0;
-              
+
               for (const word of words) {
                 if (lineCount >= maxLines) {
                   break;
                 }
-                
+
                 if ((currentLine + ' ' + word).length > 30) { // Her satır için yaklaşık 30 karakter
                   result += (result ? '\\n' : '') + currentLine;
                   currentLine = word;
@@ -87,17 +95,17 @@ const createCyInstance = (
                   currentLine += (currentLine ? ' ' : '') + word;
                 }
               }
-              
+
               if (currentLine && lineCount < maxLines) {
                 result += (result ? '\\n' : '') + currentLine;
               }
-              
+
               return result + (text.length > maxLength ? '...' : '');
             }
-            
+
             return text;
           },
-                    'text-wrap': 'wrap',
+          'text-wrap': 'wrap',
           'text-max-width': '120px',
           'text-overflow-wrap': 'anywhere',
           'text-valign': 'center',
@@ -119,6 +127,76 @@ const createCyInstance = (
         style: {
           'curve-style': 'bezier'
         }
+      },
+      {
+        selector: 'edge.stack',
+        style: {
+          'line-color': 'transparent',
+          'opacity': 0,
+          'width': 1,
+          'target-arrow-shape': 'none'
+        }
+      },
+      {
+        selector: 'node[type="letter_no"]',
+        style: {
+          'background-color': 'transparent',
+          'background-opacity': 0,
+          'border-width': '0px',
+          'border-color': 'transparent',
+          'border-opacity': 0,
+          'width': '100px',
+          'height': '20px',
+          'shape': 'rectangle',
+          'content': function(ele: cytoscape.NodeSingular) {
+            return ele.data('letterNo') || ele.data('letter_no') || '';
+          },
+          'text-valign': 'center',
+          'text-halign': 'center',
+          'font-size': '8px',
+          'color': '#6B7280',
+          'events': 'no',
+          'z-index': -1
+        }
+      },
+      {
+        selector: 'node[type="letter_date"]',
+        style: {
+          'background-color': 'transparent',
+          'background-opacity': 0,
+          'border-width': '0px',
+          'border-color': 'transparent',
+          'border-opacity': 0,
+          'width': '100px',
+          'height': '20px',
+          'shape': 'rectangle',
+          'content': function(ele: cytoscape.NodeSingular) {
+            return ele.data('letterDate') || ele.data('letter_date') || '';
+          },
+          'text-valign': 'center',
+          'text-halign': 'center',
+          'font-size': '8px',
+          'color': '#6B7280',
+          'events': 'no',
+          'z-index': -1
+        }
+      },
+      {
+        selector: 'node.clone',
+        style: {
+          'background-color': 'transparent',
+          'background-opacity': 0,
+          'border-width': '0px',
+          'border-color': 'transparent',
+          'border-opacity': 0,
+          'padding': '1px',
+          'width': '100px',
+          'height': '20px',
+          'color': '#6B7280',
+          'font-size': '8px',
+          'events': 'no',
+          'z-index': -1
+        }
       }
     ],
     layout: {
@@ -138,6 +216,61 @@ const createCyInstance = (
     autoungrabify: false,
     userZoomingEnabled: true,
     userPanningEnabled: true
+  });
+
+  // After layout completes, position clones relative to their main node and lock them
+  instance.on('layoutstop', () => {
+    try {
+      data.nodes.forEach(node => {
+        const mainId = node.id;
+        const topId = `${mainId}__top`;
+        const bottomId = `${mainId}__bottom`;
+
+        const mainEle = instance.getElementById(mainId);
+        const topEle = instance.getElementById(topId);
+        const bottomEle = instance.getElementById(bottomId);
+
+        if (!mainEle || !topEle || !bottomEle) return;
+
+        const mainPos = mainEle.position();
+        const mainBB = mainEle.renderedBoundingBox();
+        const topBB = topEle.renderedBoundingBox();
+        const gap = 1; // almost zero gap for tight positioning
+
+        // place top clone above main
+        topEle.position({ x: mainPos.x, y: mainPos.y - (mainBB.h / 2) - (topBB.h / 2) - gap });
+        // place bottom clone below main
+        bottomEle.position({ x: mainPos.x, y: mainPos.y + (mainBB.h / 2) + (topBB.h / 2) + gap });
+
+        // Do not lock clones; instead keep them non-interactive and let position handlers
+        // move them together with their main node when the main node moves.
+        // (clones are non-interactive via 'events': 'no' style)
+      });
+    } catch (err) {
+      // ignore positioning errors
+      // console.warn('layoutstop clone positioning failed', err);
+    }
+  });
+
+  // Whenever a main node's position changes (e.g. user drags it), update its clones
+  instance.on('position', 'node[type="main"]', (evt: any) => {
+    try {
+      const main = evt.target as cytoscape.NodeSingular;
+      const mainId = main.id();
+      const topEle = instance.getElementById(`${mainId}__top`);
+      const bottomEle = instance.getElementById(`${mainId}__bottom`);
+      if (!topEle || !bottomEle) return;
+
+      const mainPos = main.position();
+      const mainBB = main.renderedBoundingBox();
+      const topBB = topEle.renderedBoundingBox();
+      const gap = 1; // almost zero gap for tight positioning
+
+      topEle.position({ x: mainPos.x, y: mainPos.y - (mainBB.h / 2) - (topBB.h / 2) - gap });
+      bottomEle.position({ x: mainPos.x, y: mainPos.y + (mainBB.h / 2) + (topBB.h / 2) + gap });
+    } catch (err) {
+      // ignore
+    }
   });
 
   instance.on('tap', 'node', evt => {
@@ -244,7 +377,6 @@ export function DocumentGraph({ data, onNodeClick }: DocumentGraphProps) {
         setSelectedNodeId(null);
       }
     );
-
     setPreviousCy(instance);
 
     return () => {

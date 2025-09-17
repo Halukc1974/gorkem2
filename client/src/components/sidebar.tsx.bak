@@ -1,0 +1,158 @@
+import { useLocation } from "wouter";
+import { useState, useRef } from "react";
+import { useToast } from "../hooks/use-toast";
+import { Brain } from "lucide-react";
+import CreateSheetModal from "./create-sheet-modal";
+import RenameSheetModal from "./rename-sheet-modal";
+
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+  isMobile: boolean;
+  width?: number;
+  isVisible?: boolean;
+}
+
+export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, width = 320 }: SidebarProps) {
+  const [location, setLocation] = useLocation();
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const { toast } = useToast();
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleNavigation = (path: string) => {
+    setLocation(path);
+    if (isMobile) onClose();
+  };
+
+  const sidebarContent = (
+    <div className="flex h-full flex-col bg-card border-r border-border">
+      <div className="flex h-16 flex-shrink-0 items-center px-6 border-b border-border">
+        <div className="flex items-center">
+          <i className="fas fa-building text-primary text-2xl mr-3" />
+          <div>
+            <h1 className="text-lg font-semibold text-foreground">Görkem İnşaat</h1>
+            <p className="text-sm text-muted-foreground">Proje Takip Sistemi</p>
+          </div>
+        </div>
+      </div>
+
+      <nav className="flex-1 px-4 py-6 space-y-2">
+        <button
+          onClick={() => handleNavigation("/")}
+          className={`w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+            location === "/" ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-accent hover:text-accent-foreground"
+          }`}
+          data-testid="nav-dashboard"
+        >
+          <i className="fas fa-chart-line mr-3 h-5 w-5" />
+          📊 Dashboard
+        </button>
+
+        <button
+          onClick={() => handleNavigation("/document-search")}
+          className={`w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+            location === "/document-search" ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-accent hover:text-accent-foreground"
+          }`}
+          data-testid="nav-document-search"
+        >
+          <i className="fas fa-search mr-3 h-5 w-5" />
+          🔍 Belge Arama
+        </button>
+
+        <button
+          onClick={() => handleNavigation("/ai-search")}
+          className={`w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+            location === "/ai-search" ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-accent hover:text-accent-foreground"
+          }`}
+          data-testid="nav-ai-search"
+        >
+          <Brain className="mr-3 h-5 w-5 stroke-2" strokeLinejoin="round" />
+          Yapay Zeka İle Ara
+        </button>
+
+        {/* Belge Yükle: main button navigates to /document-upload, small folder button opens file picker */}
+        <div className="mt-2">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                handleNavigation("/document-upload");
+              }}
+              className="flex-1 group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors text-foreground hover:bg-accent hover:text-accent-foreground"
+              data-testid="nav-upload-document"
+            >
+              <i className="fas fa-upload mr-3 h-5 w-5" />
+              Belge Yükle
+            </button>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                fileInputRef.current?.click();
+              }}
+              className="px-3 py-2 rounded-md bg-muted text-muted-foreground text-sm"
+              title="Dosya seç"
+            >
+              📁
+            </button>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="*/*"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              try {
+                toast({ title: "Dosya seçildi", description: file.name });
+              } catch (err) {
+                toast({ title: "Upload Hatası", description: "Dosya seçilirken bir hata oluştu", variant: "destructive" });
+              }
+              e.currentTarget.value = "";
+            }}
+          />
+        </div>
+      </nav>
+
+      {showCreateModal && <CreateSheetModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} onSuccess={() => setShowCreateModal(false)} />}
+
+      {showRenameModal && (
+        <RenameSheetModal
+          isOpen={showRenameModal}
+          onClose={() => setShowRenameModal(false)}
+          sheetId={null}
+          currentName={""}
+          onSuccess={() => setShowRenameModal(false)}
+        />
+      )}
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <>
+        {isOpen && (
+          <div className="fixed inset-0 z-40 md:hidden">
+            <div className="fixed inset-0 bg-black bg-opacity-50" onClick={onClose} data-testid="overlay-mobile-sidebar" />
+            <div className="fixed inset-y-0 left-0 w-80">{sidebarContent}</div>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  if (!isVisible) return null;
+
+  return (
+    <div className="hidden md:flex md:flex-col" style={{ width: width || 320 }}>
+      {sidebarContent}
+    </div>
+  );
+}
