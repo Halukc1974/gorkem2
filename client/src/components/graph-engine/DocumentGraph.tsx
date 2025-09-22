@@ -429,7 +429,7 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
       ],
       layout: { name: 'cose', animate: true, fit: true },
       minZoom: 0.1,
-      maxZoom: 4
+      maxZoom: 10
     });
     setStarMapCy(instance);
     // Attach tooltip handlers
@@ -634,9 +634,9 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
       onValueChange={setActiveTab}
     >
       <TabsList className="mb-4">
-        <TabsTrigger value="previous">Önceki Yazışmalar</TabsTrigger>
+        {/* <TabsTrigger value="previous">Önceki Yazışmalar</TabsTrigger>
         <TabsTrigger value="next">Sonraki Yazışmalar</TabsTrigger>
-        <TabsTrigger value="all">Tüm Yazışmalar</TabsTrigger>
+        <TabsTrigger value="all">Tüm Yazışmalar</TabsTrigger> */}
   {/* internal star-map trigger removed; top-level tab will provide the star-map */}
       </TabsList>
       {/* Star-map container (no internal tab trigger). This allows the component to mount

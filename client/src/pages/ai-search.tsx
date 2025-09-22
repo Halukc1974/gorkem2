@@ -249,7 +249,7 @@ export default function AISearchPage() {
             <CardContent>
               <div className="space-y-4">
                 <div className="flex gap-2">
-                  <Button
+                  {/* <Button
                     onClick={async () => {
                       try {
                         const records = await supabaseService.getAllDocumentRelations();
@@ -261,7 +261,7 @@ export default function AISearchPage() {
                     }}
                   >
                     Haritayı Yükle
-                  </Button>
+                  </Button> */}
                 </div>
                 <GraphCustomizationProvider>
                   <DocumentGraph 

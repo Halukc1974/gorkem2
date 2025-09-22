@@ -521,14 +521,6 @@ export default function DocumentSearchPage() {
               )}
               Ara
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => setShowFilters(!showFilters)}
-              className="h-12"
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              Filtreler
-            </Button>
           </div>
 
           {/* Filters Panel */}
@@ -1227,7 +1219,7 @@ export default function DocumentSearchPage() {
                   <Button variant="outline" onClick={() => setShowSettings(false)}>
                     İptal
                   </Button>
-                  <Button onClick={handleConfigSave}>
+                  <Button onClick={() => handleConfigSave()}>
                     Kaydet ve Senkronize Et
                   </Button>
                 </div>
