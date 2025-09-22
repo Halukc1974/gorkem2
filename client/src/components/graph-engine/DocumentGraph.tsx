@@ -333,6 +333,14 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
   const [starMapError, setStarMapError] = useState<string | null>(null);
   const [starMapData, setStarMapData] = useState<{ nodes: any[]; edges: any[] }>({ nodes: [], edges: [] });
   const [starMapCy, setStarMapCy] = useState<cytoscape.Core | null>(null);
+  // Tooltip state for star-map nodes
+  const [starTooltip, setStarTooltip] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    title?: string;
+    body?: string;
+  }>({ visible: false, x: 0, y: 0, title: undefined, body: undefined });
   // Refs for graph containers
   const previousCyRef = useRef<HTMLDivElement>(null);
   const nextCyRef = useRef<HTMLDivElement>(null);
@@ -410,7 +418,8 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
     const instance = cytoscape({
       container: starMapCyRef.current,
       elements: {
-        nodes: starMapData.nodes.map(n => ({ data: { id: n.id } })),
+        // include useful metadata on nodes so hover can show readable content
+        nodes: starMapData.nodes.map(n => ({ data: { id: n.id, letter_date: n.letter_date, letter_no: n.letter_no, ref_letters: n.ref_letters, content: n.content, title: n.title || n.id } })),
         edges: starMapData.edges.map(e => ({ data: { source: e.source, target: e.target } }))
       },
       style: [
@@ -423,7 +432,47 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
       maxZoom: 4
     });
     setStarMapCy(instance);
-    return () => { instance.destroy(); setStarMapCy(null); };
+    // Attach tooltip handlers
+    const onMouseOver = (evt: any) => {
+      try {
+        const node = evt.target;
+        if (!node || !node.isNode || !node.isNode()) return;
+
+        const renderedPosition = evt.renderedPosition || node.renderedPosition();
+        const containerBounds = starMapCyRef.current?.getBoundingClientRect();
+        const pageX = containerBounds ? renderedPosition.x + containerBounds.left : renderedPosition.x;
+        const pageY = containerBounds ? renderedPosition.y + containerBounds.top : renderedPosition.y;
+
+  const data = node.data() || {};
+  // Prefer showing content as the title/preview when available
+  const contentSnippet = data.content ? String(data.content).slice(0, 300) + (String(data.content).length > 300 ? '...' : '') : undefined;
+  const title = contentSnippet || data.title || data.id || '';
+  // Build a small body with requested fields (content is shown in title/preview)
+  const parts: string[] = [];
+  if (data.letter_date) parts.push(`Tarih: ${data.letter_date}`);
+  if (data.ref_letters) parts.push(`Referanslar: ${Array.isArray(data.ref_letters) ? data.ref_letters.join(', ') : data.ref_letters}`);
+  // include full content (truncated to 1000) in the body as well if present
+  if (data.content) parts.push(`${String(data.content).slice(0, 1000)}${String(data.content).length > 1000 ? '...' : ''}`);
+
+  setStarTooltip({ visible: true, x: pageX + 12, y: pageY + 12, title, body: parts.join('\n\n') });
+      } catch (e) {
+        // ignore hover errors
+      }
+    };
+
+    const onMouseOut = () => {
+      setStarTooltip(prev => ({ ...prev, visible: false }));
+    };
+
+    instance.on('mouseover', 'node', onMouseOver);
+    instance.on('mouseout', 'node', onMouseOut);
+    return () => { 
+      try {
+        instance.off('mouseover');
+        instance.off('mouseout');
+      } catch (e) {}
+      instance.destroy(); setStarMapCy(null); 
+    };
   }, [activeTab, starMapData]);
 
   // Graph customization
@@ -734,6 +783,30 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
             onClose={() => setContextMenuPosition(null)}
             selectedNodeId={selectedNodeId}
           />
+        </div>
+      )}
+      {/* Star-map tooltip rendered via React so we can style it easily */}
+      {starTooltip.visible && (
+        <div
+          role="tooltip"
+          style={{
+            position: 'fixed',
+            top: starTooltip.y,
+            left: starTooltip.x,
+            zIndex: 2000,
+            background: 'white',
+            padding: '10px',
+            borderRadius: 8,
+            boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
+            maxWidth: 420,
+            fontSize: 13,
+            color: '#0f172a',
+            whiteSpace: 'pre-wrap',
+            pointerEvents: 'none'
+          }}
+        >
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>{starTooltip.title}</div>
+          <div style={{ lineHeight: 1.4 }}>{starTooltip.body}</div>
         </div>
       )}
     </Tabs>

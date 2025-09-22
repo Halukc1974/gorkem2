@@ -17,6 +17,7 @@ export interface InfoCenterDocument {
   severity_rate: string;
   keywords: string;
   web_url: string | null;
+  content: string; // Eklenen alan: tooltip'te gösterilecek içerik
 }
 
 export interface InfoCenterPageOptions {
@@ -70,7 +71,8 @@ export function useInfoCenterPage(opts: InfoCenterPageOptions) {
           ref_letters: doc.ref_letters ?? '',
           severity_rate: doc.severity_rate ?? '',
           keywords: doc.keywords ?? '',
-          web_url: doc.weburl ?? null
+          web_url: doc.weburl ?? null,
+          content: doc.content ?? doc.content ?? '' // Ekliyoruz: tooltip'te gösterilecek içerik alanı
         }));
 
         // Return total from database for accurate count
