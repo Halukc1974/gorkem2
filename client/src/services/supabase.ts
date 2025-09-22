@@ -1,4 +1,7 @@
 // Supabase Database Service
+// import { createClient, SupabaseClient } from '@supabase/supabase-js'; // Duplicate import removed
+// ...existing code...
+// Supabase Database Service
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 interface SupabaseConfig {
@@ -70,6 +73,19 @@ interface HybridSearchOptions {
 }
 
 class SupabaseService {
+  // Tüm belgelerin ilişkilerini (letter_no ve ref_letters) çek
+  async getAllDocumentRelations(): Promise<Array<{ letter_no: string; ref_letters: string }>> {
+    if (!this.client) throw new Error('Supabase istemcisi başlatılmamış');
+    const { data, error } = await this.client
+      .from('documents')
+      .select('letter_no, ref_letters');
+    if (error) throw error;
+    // letter_no ve ref_letters alanlarını normalize et
+    return (data || []).map((row: any) => ({
+      letter_no: row.letter_no,
+      ref_letters: row.ref_letters
+    }));
+  }
   private client: SupabaseClient | null = null;
   private config: SupabaseConfig | null = null;
   private currentUserId: string | null = null;

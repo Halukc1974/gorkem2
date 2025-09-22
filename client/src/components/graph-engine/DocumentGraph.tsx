@@ -6,6 +6,9 @@ import { useGraphCustomizationManager } from './hooks/useGraphCustomizationManag
 import { GraphContextMenu } from './components/GraphContextMenu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { filterPreviousCorrespondence, filterNextCorrespondence, filterAllCorrespondence } from './utils/filterData';
+import { buildStarMapGraph } from '../../utils/documentGraphStarMap';
+import { supabaseService } from '../../services/supabase';
+// import { useSupabaseService } from '../../services/supabase'; // Kaldırıldı, kullanılmıyor
 
 // Register dagre layout plugin
 cytoscape.use(dagre);
@@ -16,6 +19,12 @@ interface DocumentGraphProps {
     edges: GraphEdge[];
   };
   onNodeClick: (nodeId: string) => void;
+  // Optional prop to open a specific internal tab on mount (e.g. 'star-map')
+  initialActiveTab?: string;
+  // When true, force the internal tab to switch to 'star-map' (used by parent tabs)
+  openStarMap?: boolean;
+  // If provided, use this preloaded star-map data instead of fetching from supabase
+  preloadedStarMap?: { nodes: any[]; edges: any[] } | null;
 }
 
 const createCyInstance = (
@@ -146,7 +155,7 @@ const createCyInstance = (
           'border-color': 'transparent',
           'border-opacity': 0,
           'width': '100px',
-          'height': '20px',
+          'height': '1px',
           'shape': 'rectangle',
           'content': function(ele: cytoscape.NodeSingular) {
             return ele.data('letterNo') || ele.data('letter_no') || '';
@@ -168,7 +177,7 @@ const createCyInstance = (
           'border-color': 'transparent',
           'border-opacity': 0,
           'width': '100px',
-          'height': '20px',
+          'height': '1px',
           'shape': 'rectangle',
           'content': function(ele: cytoscape.NodeSingular) {
             return ele.data('letterDate') || ele.data('letter_date') || '';
@@ -191,7 +200,7 @@ const createCyInstance = (
           'border-opacity': 0,
           'padding': '1px',
           'width': '100px',
-          'height': '20px',
+          'height': '1px',
           'color': '#6B7280',
           'font-size': '8px',
           'events': 'no',
@@ -222,7 +231,7 @@ const createCyInstance = (
   instance.on('layoutstop', () => {
     try {
       // We'll attempt to position clones and then watch for stabilization for a few frames.
-      const gap = 2; // small gap for clarity
+      const gap = 1; // small gap for clarity
 
       const positionClonesOnce = () => {
         data.nodes.forEach(node => {
@@ -242,8 +251,8 @@ const createCyInstance = (
           const topBB = (typeof topEle.boundingBox === 'function') ? topEle.boundingBox() : topEle.renderedBoundingBox();
 
           // set positions relative to main node
-          topEle.position({ x: mainPos.x, y: mainPos.y - (mainBB.h / 2) - (topBB.h / 2) - gap });
-          bottomEle.position({ x: mainPos.x, y: mainPos.y + (mainBB.h / 2) + (topBB.h / 2) + gap });
+          topEle.position({ x: mainPos.x, y: mainPos.y - (mainBB.h / 2) - (topBB.h / 5) - gap });
+          bottomEle.position({ x: mainPos.x, y: mainPos.y + (mainBB.h / 2) + (topBB.h / 5) + gap });
 
           // lock clones so they move only when main node moves programmatically
           try { topEle.lock(); bottomEle.lock(); } catch (e) { /* ignore if already locked */ }
@@ -277,12 +286,12 @@ const createCyInstance = (
       const mainPos = main.position();
       const mainBB = (typeof main.boundingBox === 'function') ? main.boundingBox() : main.renderedBoundingBox();
       const topBB = (typeof topEle.boundingBox === 'function') ? topEle.boundingBox() : topEle.renderedBoundingBox();
-      const gap = 2;
+      const gap = 1;
 
       // Unlock briefly so position can be set, then re-lock
       try { topEle.unlock(); bottomEle.unlock(); } catch (e) {}
-      topEle.position({ x: mainPos.x, y: mainPos.y - (mainBB.h / 2) - (topBB.h / 2) - gap });
-      bottomEle.position({ x: mainPos.x, y: mainPos.y + (mainBB.h / 2) + (topBB.h / 2) + gap });
+      topEle.position({ x: mainPos.x, y: mainPos.y - (mainBB.h / 2) - (topBB.h / 5) - gap });
+      bottomEle.position({ x: mainPos.x, y: mainPos.y + (mainBB.h / 2) + (topBB.h / 5) + gap });
       try { topEle.lock(); bottomEle.lock(); } catch (e) {}
     } catch (err) {
       // ignore
@@ -317,7 +326,13 @@ const createCyInstance = (
   return instance;
 };
 
-export function DocumentGraph({ data, onNodeClick }: DocumentGraphProps) {
+export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap, preloadedStarMap }: DocumentGraphProps) {
+  // Belge haritası için state
+  const starMapCyRef = useRef<HTMLDivElement>(null);
+  const [starMapLoading, setStarMapLoading] = useState(false);
+  const [starMapError, setStarMapError] = useState<string | null>(null);
+  const [starMapData, setStarMapData] = useState<{ nodes: any[]; edges: any[] }>({ nodes: [], edges: [] });
+  const [starMapCy, setStarMapCy] = useState<cytoscape.Core | null>(null);
   // Refs for graph containers
   const previousCyRef = useRef<HTMLDivElement>(null);
   const nextCyRef = useRef<HTMLDivElement>(null);
@@ -354,7 +369,62 @@ export function DocumentGraph({ data, onNodeClick }: DocumentGraphProps) {
   // UI state
   const [contextMenuPosition, setContextMenuPosition] = useState<{x: number, y: number} | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>("previous");
+  const [activeTab, setActiveTab] = useState<string>(initialActiveTab || "previous");
+
+  // If parent asks to open the star map, switch internal tab to 'star-map'
+  useEffect(() => {
+    if (openStarMap) {
+      setActiveTab('star-map');
+    }
+  }, [openStarMap]);
+  // Belge haritası verisini Supabase'den çek veya preloaded veriyi kullan
+  useEffect(() => {
+    if (activeTab !== 'star-map') return;
+    setStarMapLoading(true);
+    setStarMapError(null);
+
+    const load = async () => {
+      try {
+        if (preloadedStarMap && preloadedStarMap.nodes && preloadedStarMap.edges) {
+          setStarMapData({ nodes: preloadedStarMap.nodes, edges: preloadedStarMap.edges });
+          setStarMapLoading(false);
+          return;
+        }
+
+        const records = await supabaseService.getAllDocumentRelations();
+        const graph = buildStarMapGraph(records);
+        setStarMapData({ nodes: graph.nodes, edges: graph.edges });
+        setStarMapLoading(false);
+      } catch (err: any) {
+        setStarMapError(String(err));
+        setStarMapLoading(false);
+      }
+    };
+
+    load();
+  }, [activeTab, preloadedStarMap]);
+  // Belge haritası cytoscape instance'ı oluştur
+  useEffect(() => {
+    if (activeTab !== 'star-map' || !starMapCyRef.current || !starMapData.nodes.length) return;
+    // Cytoscape force-directed layout
+    const instance = cytoscape({
+      container: starMapCyRef.current,
+      elements: {
+        nodes: starMapData.nodes.map(n => ({ data: { id: n.id } })),
+        edges: starMapData.edges.map(e => ({ data: { source: e.source, target: e.target } }))
+      },
+      style: [
+        // Improved node style for readability: white background, dark text, blue border
+  { selector: 'node', style: { 'background-color': '#ffffff', 'width': 28, 'height': 28, 'label': 'data(id)', 'color': '#0f172a', 'font-size': 10, 'font-weight': 'bold', 'text-valign': 'center', 'text-halign': 'center', 'border-width': 2, 'border-color': '#0ea5e9' } },
+        { selector: 'edge', style: { 'line-color': '#facc15', 'width': 2 } }
+      ],
+      layout: { name: 'cose', animate: true, fit: true },
+      minZoom: 0.1,
+      maxZoom: 4
+    });
+    setStarMapCy(instance);
+    return () => { instance.destroy(); setStarMapCy(null); };
+  }, [activeTab, starMapData]);
 
   // Graph customization
   const { 
@@ -518,7 +588,42 @@ export function DocumentGraph({ data, onNodeClick }: DocumentGraphProps) {
         <TabsTrigger value="previous">Önceki Yazışmalar</TabsTrigger>
         <TabsTrigger value="next">Sonraki Yazışmalar</TabsTrigger>
         <TabsTrigger value="all">Tüm Yazışmalar</TabsTrigger>
+  {/* internal star-map trigger removed; top-level tab will provide the star-map */}
       </TabsList>
+      {/* Star-map container (no internal tab trigger). This allows the component to mount
+          the cytoscape star-map when `initialActiveTab="star-map"` is passed from above.
+          It's hidden unless internal activeTab === 'star-map'. */}
+      <div style={{ position: 'relative', display: activeTab === 'star-map' ? 'block' : 'none' }}>
+        <div 
+          ref={starMapCyRef}
+          style={{ 
+            width: '100%', 
+            height: '600px',
+            backgroundColor: '#f6fafcff',
+            borderRadius: '0.5rem',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+            position: 'relative',
+            overflow: 'hidden'
+          }} 
+        >
+          {starMapLoading && (
+            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', color: '#64748b' }}>
+              Belge haritası yükleniyor...
+            </div>
+          )}
+          {starMapError && (
+            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', color: 'red' }}>
+              {starMapError}
+            </div>
+          )}
+          {!starMapLoading && !starMapError && !starMapData.nodes.length && (
+            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', color: '#64748b' }}>
+              Hiç belge ilişkisi bulunamadı
+            </div>
+          )}
+        </div>
+      </div>
 
       <TabsContent value="previous" className="mt-0" forceMount>
         <div style={{ position: 'relative', display: activeTab === 'previous' ? 'block' : 'none' }}>

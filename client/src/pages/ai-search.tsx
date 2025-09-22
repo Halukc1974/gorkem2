@@ -8,6 +8,8 @@ import {
   Search, Network, Brain, Cpu, CircuitBoard, Sparkles 
 } from 'lucide-react';
 import { DocumentGraph } from '../components/graph-engine/DocumentGraph';
+import { supabaseService } from '../services/supabase';
+import { buildStarMapGraph } from '../utils/documentGraphStarMap';
 import { useDocumentGraph } from '../hooks/use-document-graph';
 import { GraphCustomizationProvider } from '../components/graph-engine/context/GraphCustomizationContext';
 import { useDocumentSearch } from '../hooks/use-document-search';
@@ -50,6 +52,7 @@ export default function AISearchPage() {
     loadGraph, 
     handleNodeClick 
   } = useDocumentGraph();
+  const [preloadedStarMap, setPreloadedStarMap] = useState<{ nodes: any[]; edges: any[] } | null>(null);
     
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -68,7 +71,7 @@ export default function AISearchPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full md:w-auto grid-cols-2">
+    <TabsList className="grid w-full md:w-auto grid-cols-3">
           <TabsTrigger value="search" className="flex items-center gap-2">
             <Brain className="h-4 w-4 text-current stroke-2" strokeLinejoin="round" />
             AI Arama
@@ -76,6 +79,10 @@ export default function AISearchPage() {
           <TabsTrigger value="graph" className="flex items-center gap-2">
             <Network className="h-4 w-4" />
             Belge Grafiği
+          </TabsTrigger>
+          <TabsTrigger value="star-map-top" className="flex items-center gap-2">
+            <Network className="h-4 w-4" />
+            Belge Haritası
           </TabsTrigger>
         </TabsList>
         
@@ -227,6 +234,44 @@ export default function AISearchPage() {
                     />
                   </GraphCustomizationProvider>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="star-map-top">
+          <Card>
+            <CardHeader>
+              <CardTitle>Belge Haritası</CardTitle>
+              <CardDescription>
+                Tüm belgeler arasındaki ilişki haritası
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <Button
+                    onClick={async () => {
+                      try {
+                        const records = await supabaseService.getAllDocumentRelations();
+                        const graph = buildStarMapGraph(records);
+                        setPreloadedStarMap({ nodes: graph.nodes, edges: graph.edges });
+                      } catch (err) {
+                        console.error('Star map preload failed', err);
+                      }
+                    }}
+                  >
+                    Haritayı Yükle
+                  </Button>
+                </div>
+                <GraphCustomizationProvider>
+                  <DocumentGraph 
+                    data={graphData || { nodes: [], edges: [] }}
+                    onNodeClick={handleNodeClick}
+                    initialActiveTab="star-map"
+                    openStarMap={activeTab === 'star-map-top'}
+                    preloadedStarMap={preloadedStarMap}
+                  />
+                </GraphCustomizationProvider>
               </div>
             </CardContent>
           </Card>
