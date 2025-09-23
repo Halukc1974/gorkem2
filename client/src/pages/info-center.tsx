@@ -12,6 +12,10 @@ import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
 import { Calendar } from 'primereact/calendar';
 import { ProgressBar } from 'primereact/progressbar';
+import { Dialog } from 'primereact/dialog';
+import { Button as PButton } from 'primereact/button';
+import type { SortableFields } from '../hooks/useInfoCenterPage';
+import { useUserSettings } from '../hooks/useUserSettingsFirebase';
 
 // Local styles for filter layout (from user)
 const filterStyles = `
@@ -29,6 +33,21 @@ function WebUrlBody(rowData: any) {
     </a>
   ) : (
     ''
+  );
+}
+
+function ContentPreviewBody(rowData: any, { onPreview }: any) {
+  // render a small magnifier/icon button
+  return (
+    <button
+      type="button"
+      className="p-button p-button-text"
+      onClick={() => onPreview(rowData)}
+      title="İçeriği önizle"
+      style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}
+    >
+      <i className="pi pi-search" style={{ fontSize: '1.1rem', color: '#0b5cff' }} aria-hidden />
+    </button>
   );
 }
 
@@ -55,8 +74,6 @@ function SeverityBody(rowData: any) {
   );
 }
 
-import type { SortableFields } from '../hooks/useInfoCenterPage';
-
 interface PageQuery {
   pageIndex: number;
   pageSize: number;
@@ -66,6 +83,16 @@ interface PageQuery {
 }
 
 export default function InfoCenterPage(): JSX.Element {
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewContent, setPreviewContent] = useState<string>('');
+
+  const handlePreview = (row: any) => {
+    // prefer content field, fall back to short_desc
+    const c = row?.content ?? row?.short_desc ?? '';
+    setPreviewContent(String(c));
+    setPreviewOpen(true);
+  };
+
   const [globalFilter, setGlobalFilter] = useState<string>('');
   const [filters, setFilters] = useState<any>(null);
   const [globalFilterOnly, setGlobalFilterOnly] = useState<boolean>(false);
@@ -92,6 +119,47 @@ export default function InfoCenterPage(): JSX.Element {
   });
   const data = pageResult?.rows || [];
   const totalRecords = pageResult?.total ?? 0;
+
+  // User settings (Firestore) - used to persist visible columns
+  const { config, updateConfig } = useUserSettings();
+
+  // default visibility map
+  const DEFAULT_COLUMN_VISIBILITY: Record<string, boolean> = {
+    inc_out: true,
+    letter_no: true,
+    letter_date: true,
+    short_desc: true,
+    ref_letters: true,
+    severity_rate: true,
+    keywords: true,
+    preview: true,
+    web_url: true
+  };
+
+  const visibleColumns = (config as any)?.infoCenter?.columns || DEFAULT_COLUMN_VISIBILITY;
+
+  // modal state for editing columns
+  const [columnsModalOpen, setColumnsModalOpen] = useState(false);
+  const [editingColumns, setEditingColumns] = useState<Record<string, boolean>>(visibleColumns);
+
+  useEffect(() => {
+    // keep editing copy in sync when config changes
+    setEditingColumns((config as any)?.infoCenter?.columns || DEFAULT_COLUMN_VISIBILITY);
+  }, [config]);
+
+  const openColumnsModal = () => setColumnsModalOpen(true);
+  const closeColumnsModal = () => setColumnsModalOpen(false);
+
+  const saveColumns = async () => {
+    try {
+      // persist under infoCenter.columns in user config
+      await updateConfig({ infoCenter: { columns: editingColumns } } as any);
+      setColumnsModalOpen(false);
+    } catch (err) {
+      console.error('Failed to save column settings', err);
+      // keep modal open so user can retry
+    }
+  };
 
   useEffect(() => {
     if (error) console.error('Info Center error', error);
@@ -154,10 +222,10 @@ export default function InfoCenterPage(): JSX.Element {
       <Card>
         <CardHeader>
             <div className="flex justify-between items-center w-full">
-              <CardTitle>INFO CENTER</CardTitle>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <span style={{ marginRight: 8 }}>
-                  <InputText
+                <CardTitle>INFO CENTER</CardTitle>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ marginRight: 8 }}>
+                    <InputText
                       placeholder="Anahtar kelime ara..."
                       value={globalFilter}
                       onChange={(e) => {
@@ -171,24 +239,26 @@ export default function InfoCenterPage(): JSX.Element {
                       }}
                       className="w-48 border-2 border-black rounded px-2 py-1"
                     />
-                </span>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => {
-                    if (!globalFilterOnly) {
-                      setSavedFilters(filters);
-                      setFilters({ global: { value: globalFilter || null, matchMode: 'contains' } });
-                      setGlobalFilterOnly(true);
-                    } else {
-                      setFilters(savedFilters || filters);
-                      setGlobalFilterOnly(false);
-                    }
-                  }}
-                >
-                  Aranacak kelimeyi giriniz..
-                </button>
-              </div>
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => {
+                      if (!globalFilterOnly) {
+                        setSavedFilters(filters);
+                        setFilters({ global: { value: globalFilter || null, matchMode: 'contains' } });
+                        setGlobalFilterOnly(true);
+                      } else {
+                        setFilters(savedFilters || filters);
+                        setGlobalFilterOnly(false);
+                      }
+                    }}
+                  >
+                    Aranacak kelimeyi giriniz..
+                  </button>
+                  {/* Gear / columns settings button */}
+                  <PButton icon="pi pi-cog" className="p-button-text" onClick={openColumnsModal} aria-label="Sütun ayarları" />
+                </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -233,82 +303,104 @@ export default function InfoCenterPage(): JSX.Element {
                 emptyMessage="No records found"
                 className="p-datatable-gridlines"
               >
-                <Column 
-                  field="letter_no" 
-                  header="letter_no" 
-                  sortable 
-                  /* filter 
-                  showFilterMenu={false}
-                  filterPlaceholder="Search letter_no" */
-                />
-                <Column 
-                  field="letter_date" 
-                  header="letter_date" 
-                  sortable 
-                  /* filter 
-                  showFilterMenu={false}
-                  filterElement={
-                    <Calendar 
-                      dateFormat="yy-mm-dd" 
-                      selectionMode="range" 
-                      onChange={(e) => setFilters((prev: any) => ({
-                        ...prev,
-                        letter_date: { value: e.value, matchMode: 'dateRange' }
-                      }))}
-                      className="w-full"
-                    />
-                  } */
-                  body={DateBody}
-                />
-                <Column 
-                  field="short_desc" 
-                  header="short_desc" 
-                  sortable 
-                  /* filter 
-                  showFilterMenu={false}
-                  filterPlaceholder="Search short_desc" */
-                />
-                <Column 
-                  field="ref_letters" 
-                  header="ref_letters" 
-                  sortable 
-                  /* filter 
-                  showFilterMenu={false}
-                  filterPlaceholder="Search ref_letters" */
-                />
-                <Column 
-                  field="severity_rate" 
-                  header="severity_rate" 
-                  sortable 
-                  /* filter 
-                  showFilterMenu={false}
-                  filterElement={
-                    <Dropdown 
-                      options={severityOptions} 
-                      onChange={(e) => setFilters((prev: any) => ({
-                        ...prev,
-                        severity_rate: { value: e.value, matchMode: 'equals' }
-                      }))}
-                      placeholder="All"
-                      className="w-full"
-                    />
-                  } */
-                  body={SeverityBody}
-                />
-                <Column 
-                  field="keywords" 
-                  header="keywords" 
-                  sortable 
-                  /* filter 
-                  showFilterMenu={false}
-                  filterPlaceholder="Search keywords" */
-                />
-                <Column 
-                  field="web_url" 
-                  header="web_url" 
-                  body={WebUrlBody} 
-                />
+                {visibleColumns.inc_out && (
+                  <Column
+                    header="Tip"
+                    body={(rowData: any) => {
+                      const v = (rowData?.inc_out ?? rowData?.['inc-out'] ?? rowData?.inc_out)?.toString().toLowerCase();
+                      const isIncoming = v === 'incoming' || v === 'gelen' || v === 'in';
+                      const label = isIncoming ? 'Gelen' : (v ? 'Giden' : '—');
+                      const color = isIncoming ? '#10b981' : (v ? '#ef4444' : '#9ca3af');
+                      return (
+                        <span style={{ display: 'inline-block', padding: '4px 8px', borderRadius: 12, background: color, color: 'white', fontSize: 12 }}>
+                          {label}
+                        </span>
+                      );
+                    }}
+                    style={{ width: '6rem', textAlign: 'center' }}
+                  />
+                )}
+                {visibleColumns.letter_no && (
+                  <Column
+                    field="letter_no"
+                    header="letter_no"
+                    sortable
+                  />
+                )}
+                {visibleColumns.letter_date && (
+                  <Column
+                    field="letter_date"
+                    header="letter_date"
+                    sortable
+                    body={DateBody}
+                  />
+                )}
+                {visibleColumns.short_desc && (
+                  <Column
+                    field="short_desc"
+                    header="short_desc"
+                    sortable
+                  />
+                )}
+                {visibleColumns.ref_letters && (
+                  <Column
+                    field="ref_letters"
+                    header="ref_letters"
+                    sortable
+                  />
+                )}
+                {visibleColumns.severity_rate && (
+                  <Column
+                    field="severity_rate"
+                    header="severity_rate"
+                    sortable
+                    body={SeverityBody}
+                  />
+                )}
+                {visibleColumns.keywords && (
+                  <Column
+                    field="keywords"
+                    header="keywords"
+                    sortable
+                  />
+                )}
+                {visibleColumns.preview && (
+                  <Column
+                    header="Önizle"
+                    body={(rowData: any) => ContentPreviewBody(rowData, { onPreview: handlePreview })}
+                    style={{ width: '3.5rem', textAlign: 'center' }}
+                  />
+                )}
+                {visibleColumns.web_url && (
+                  <Column
+                    field="web_url"
+                    header="web_url"
+                    body={WebUrlBody}
+                  />
+                )}
               </DataTable>
+              {/* Preview dialog */}
+              <Dialog header="Belge İçeriği" visible={previewOpen} style={{ width: '60vw' }} onHide={() => setPreviewOpen(false)}>
+                <div style={{ maxHeight: '60vh', overflow: 'auto', whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
+                  {previewContent || <i>İçerik bulunamadı</i>}
+                </div>
+              </Dialog>
+              {/* Columns settings dialog */}
+              <Dialog header="Sütun Ayarları" visible={columnsModalOpen} style={{ width: '28vw' }} onHide={closeColumnsModal} footer={(
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                  <PButton label="İptal" className="p-button-text" onClick={closeColumnsModal} />
+                  <PButton label="Kaydet" icon="pi pi-check" onClick={saveColumns} />
+                </div>
+              )}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {Object.keys(DEFAULT_COLUMN_VISIBILITY).map((key) => (
+                    <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <input type="checkbox" checked={!!editingColumns[key]} onChange={(e) => setEditingColumns(prev => ({ ...prev, [key]: e.target.checked }))} />
+                      <span style={{ textTransform: 'capitalize' }}>{key.replace('_', ' ')}</span>
+                    </label>
+                  ))}
+                </div>
+              </Dialog>
             </div>
           )}
           </CardContent>

@@ -53,7 +53,112 @@ export default function AISearchPage() {
     handleNodeClick 
   } = useDocumentGraph();
   const [preloadedStarMap, setPreloadedStarMap] = useState<{ nodes: any[]; edges: any[] } | null>(null);
-    
+
+  // Star-map adası arama (Belge Haritası sekmesi için)
+  const [starQuery, setStarQuery] = useState('');
+  const [starLoading, setStarLoading] = useState(false);
+  const [starError, setStarError] = useState<string | null>(null);
+ 
+  const handleFindIsland = async (query: string) => {
+    if (!query || !query.trim()) return;
+    setStarLoading(true);
+    setStarError(null);
+    try {
+      // Ensure we have full star map data (use cached preloadedStarMap if present)
+      let fullGraph = preloadedStarMap;
+      if (!fullGraph) {
+        const records = await supabaseService.getAllDocumentRelations();
+        const built = buildStarMapGraph(records);
+        fullGraph = { nodes: built.nodes, edges: built.edges };
+      }
+
+      // Helper: extract canonical id from node/edge shapes the util may produce
+      const getNodeId = (n: any) => {
+        if (!n) return '';
+        if (typeof n === 'string') return n;
+        if (n.id) return String(n.id);
+        if (n.data?.id) return String(n.data.id);
+        if (n.data?.letter_no) return String(n.data.letter_no);
+        return '';
+      };
+
+      const normalize = (s: any) => String(s ?? '').trim().toUpperCase();
+
+      // Map normalized id -> original id (to handle case/whitespace differences)
+      const normToOriginal = new Map<string, string>();
+      fullGraph.nodes.forEach((n: any) => {
+        const orig = getNodeId(n);
+        if (!orig) return;
+        normToOriginal.set(normalize(orig), orig);
+      });
+
+      const qNorm = normalize(query);
+      const startId = normToOriginal.get(qNorm) || null;
+      if (!startId) {
+        setStarError('Aranan letter_no haritada bulunamadı.');
+        setStarLoading(false);
+        return;
+      }
+
+      // build adjacency and BFS to get connected component (undirected)
+      const adj = new Map<string, Set<string>>();
+      // initialize adjacency for all known original ids
+      fullGraph.nodes.forEach((n: any) => {
+        const id = getNodeId(n);
+        if (!adj.has(id)) adj.set(id, new Set());
+      });
+      // add edges (handle shapes where edge may be {source,target} or {data:{source,target}})
+      fullGraph.edges.forEach((e: any) => {
+        const s = e.source ?? e.data?.source ?? e.data?.from ?? '';
+        const t = e.target ?? e.data?.target ?? e.data?.to ?? '';
+        const sId = String(s);
+        const tId = String(t);
+        if (!adj.has(sId)) adj.set(sId, new Set());
+        if (!adj.has(tId)) adj.set(tId, new Set());
+        adj.get(sId)!.add(tId);
+        adj.get(tId)!.add(sId);
+      });
+
+      const queue: string[] = [startId];
+      const seen = new Set<string>([startId]);
+      while (queue.length) {
+        const cur = queue.shift()!;
+        const neighbors = adj.get(cur);
+        if (!neighbors) continue;
+        for (const nb of neighbors) {
+          if (!seen.has(nb)) {
+            seen.add(nb);
+            queue.push(nb);
+          }
+        }
+      }
+
+      // filter nodes/edges to the island
+    const islandNodes = fullGraph.nodes.filter((n: any) => seen.has(getNodeId(n)));
+    const islandNodeIds = new Set(islandNodes.map((n: any) => getNodeId(n)));
+      const getEdgeEndpoints = (e: any) => {
+        const s = e.source ?? e.data?.source ?? e.data?.from ?? e[0] ?? undefined;
+        const t = e.target ?? e.data?.target ?? e.data?.to ?? e[1] ?? undefined;
+        return { s: s !== undefined ? String(s) : undefined, t: t !== undefined ? String(t) : undefined };
+      };
+
+      const islandEdges = fullGraph.edges.filter((e: any) => {
+        const { s, t } = getEdgeEndpoints(e);
+        if (!s || !t) return false;
+        return islandNodeIds.has(s) && islandNodeIds.has(t);
+      });
+
+      setPreloadedStarMap({ nodes: islandNodes, edges: islandEdges });
+      // ensure UI shows star-map tab (optional)
+      setActiveTab('star-map-top');
+    } catch (err: any) {
+      console.error('Ada bulma hatası', err);
+      setStarError(String(err?.message ?? err));
+    } finally {
+      setStarLoading(false);
+    }
+  };
+ 
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -200,40 +305,32 @@ export default function AISearchPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex gap-4">
+                {/* Arama kutusu: letter_no girin -> sadece o belgenin bulunduğu ada getirilsin */}
+                <div className="flex gap-2 items-center">
                   <Input
-                    placeholder="Belge ID veya Numarası"
-                    value={rootDoc}
-                    onChange={(e) => setRootDoc(e.target.value)}
+                    placeholder="Ada için letter_no girin (ör. IC-HQ-975)"
+                    value={starQuery}
+                    onChange={(e) => setStarQuery(e.target.value)}
+                    className="w-full max-w-md"
                   />
-                  <Button 
-                    onClick={() => loadGraph(rootDoc)}
-                    disabled={!rootDoc.trim() || graphLoading || !isAnyDatabaseConnected}
-                  >
-                    {graphLoading ? 'Yükleniyor...' : !isAnyDatabaseConnected ? 'Bağlantı Bekleniyor...' : 'Grafiği Oluştur'}
+                  <Button onClick={() => handleFindIsland(starQuery)} disabled={starLoading}>
+                    {starLoading ? 'Bulunuyor...' : 'Ada Getir'}
+                  </Button>
+                  <Button variant="ghost" onClick={() => { setPreloadedStarMap(null); setStarQuery(''); }}>
+                    Sıfırla
                   </Button>
                 </div>
+                {starError && <div className="text-sm text-red-600">{starError}</div>}
 
-                {error && (
-                  <div className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg">
-                    <div className="font-medium">Hata oluştu:</div>
-                    <div>{error}</div>
-                    {!isAnyDatabaseConnected && (
-                      <div className="mt-2">
-                        Veritabanı bağlantısı kurulamadı. Lütfen ayarlarınızı kontrol edin.
-                      </div>
-                    )}
-                  </div>
-                )}
-                
-                {graphData && (
-                  <GraphCustomizationProvider>
-                    <DocumentGraph 
-                      data={graphData}
-                      onNodeClick={handleNodeClick}
-                    />
-                  </GraphCustomizationProvider>
-                )}
+                <GraphCustomizationProvider>
+                  <DocumentGraph 
+                    data={graphData || { nodes: [], edges: [] }}
+                    onNodeClick={handleNodeClick}
+                    initialActiveTab="previous"
+                    openStarMap={false}
+                    preloadedStarMap={preloadedStarMap}
+                  />
+                </GraphCustomizationProvider>
               </div>
             </CardContent>
           </Card>
@@ -248,34 +345,35 @@ export default function AISearchPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex gap-2">
-                  {/* <Button
-                    onClick={async () => {
-                      try {
-                        const records = await supabaseService.getAllDocumentRelations();
-                        const graph = buildStarMapGraph(records);
-                        setPreloadedStarMap({ nodes: graph.nodes, edges: graph.edges });
-                      } catch (err) {
-                        console.error('Star map preload failed', err);
-                      }
-                    }}
-                  >
-                    Haritayı Yükle
-                  </Button> */}
-                </div>
-                <GraphCustomizationProvider>
-                  <DocumentGraph 
-                    data={graphData || { nodes: [], edges: [] }}
-                    onNodeClick={handleNodeClick}
-                    initialActiveTab="star-map"
-                    openStarMap={activeTab === 'star-map-top'}
-                    preloadedStarMap={preloadedStarMap}
+                {/* Arama kutusu: letter_no girin -> sadece o belgenin bulunduğu ada getirilsin */}
+                <div className="flex gap-2 items-center">
+                  <Input
+                    placeholder="Ada için letter_no girin (ör. IC-HQ-975)"
+                    value={starQuery}
+                    onChange={(e) => setStarQuery(e.target.value)}
+                    className="w-full max-w-md"
                   />
-                </GraphCustomizationProvider>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                  <Button onClick={() => handleFindIsland(starQuery)} disabled={starLoading}>
+                    {starLoading ? 'Bulunuyor...' : 'Ada Getir'}
+                  </Button>
+                  <Button variant="ghost" onClick={() => { setPreloadedStarMap(null); setStarQuery(''); }}>
+                    Sıfırla
+                  </Button>
+                </div>
+                {starError && <div className="text-sm text-red-600">{starError}</div>}
+                 <GraphCustomizationProvider>
+                   <DocumentGraph 
+                     data={graphData || { nodes: [], edges: [] }}
+                     onNodeClick={handleNodeClick}
+                     initialActiveTab="star-map"
+                     openStarMap={activeTab === 'star-map-top'}
+                     preloadedStarMap={preloadedStarMap}
+                   />
+                 </GraphCustomizationProvider>
+               </div>
+             </CardContent>
+           </Card>
+         </TabsContent>
       </Tabs>
     </div>
   );

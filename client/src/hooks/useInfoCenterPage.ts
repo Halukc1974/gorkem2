@@ -18,6 +18,7 @@ export interface InfoCenterDocument {
   keywords: string;
   web_url: string | null;
   content: string; // Eklenen alan: tooltip'te gösterilecek içerik
+  inc_out?: string; // 'Gelen' veya 'Giden' bilgisi
 }
 
 export interface InfoCenterPageOptions {
@@ -72,7 +73,8 @@ export function useInfoCenterPage(opts: InfoCenterPageOptions) {
           severity_rate: doc.severity_rate ?? '',
           keywords: doc.keywords ?? '',
           web_url: doc.weburl ?? null,
-          content: doc.content ?? doc.content ?? '' // Ekliyoruz: tooltip'te gösterilecek içerik alanı
+          content: (doc as any).content ?? (doc as any).letterContent ?? '', // Ekliyoruz: tooltip'te gösterilecek içerik alanı
+          inc_out: (doc as any)['inc-out'] ?? (doc as any).inc_out ?? ''
         }));
 
         // Return total from database for accurate count
