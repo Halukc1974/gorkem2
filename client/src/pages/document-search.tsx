@@ -374,6 +374,15 @@ export default function DocumentSearchPage() {
     return parts.join(' • ') || 'Detay bilgisi yok';
   };
 
+  // Quick preview state for Supabase results (Öz İzle)
+  const [quickPreviewOpen, setQuickPreviewOpen] = useState(false);
+  const [quickPreviewData, setQuickPreviewData] = useState<any>(null);
+
+  const openQuickPreview = (r: any) => {
+    setQuickPreviewData(r);
+    setQuickPreviewOpen(true);
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       
@@ -706,16 +715,12 @@ export default function DocumentSearchPage() {
       {(hasResults || activeTab === 'config') && (
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="flex items-center justify-between">
-            <TabsList className={`grid w-auto ${activeTab === 'config' ? 'grid-cols-1' : 'grid-cols-3'}`}>
+            <TabsList className={`grid w-auto ${activeTab === 'config' ? 'grid-cols-1' : 'grid-cols-2'}`}>
               {activeTab !== 'config' && (
                 <>
                   <TabsTrigger value="search" className="flex items-center gap-2">
                     <Search className="h-4 w-4" />
                     Sonuçlar ({totalResults})
-                  </TabsTrigger>
-                  <TabsTrigger value="supabase" className="flex items-center gap-2">
-                    <Database className="h-4 w-4" />
-                    Database ({supabaseResults.length})
                   </TabsTrigger>
                 </>
               )}
@@ -854,6 +859,18 @@ export default function DocumentSearchPage() {
                         <CardTitle className="text-lg">{getDocumentTitle(result)}</CardTitle>
                         <CardDescription className="mt-1">{getDocumentSubtitle(result)}</CardDescription>
                         <div className="flex items-center gap-2 mt-2">
+                          {/* Öz İzle (quick preview) button - green magnifier before Database badge */}
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white border"
+                            onClick={() => openQuickPreview(result)}
+                            title="Öz İzle"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-green-600">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 15l5 5M21 21l-5-5M10 14a4 4 0 100-8 4 4 0 000 8z" />
+                            </svg>
+                            <span className="text-xs text-green-600">Öz İzle</span>
+                          </button>
                           <Badge variant="outline" className="text-green-600">
                             <Database className="h-3 w-3 mr-1" />
                             Database
@@ -954,6 +971,29 @@ export default function DocumentSearchPage() {
               ))}
             </div>
           </TabsContent>
+
+          {/* Quick preview dialog for Supabase result (Öz İzle) */}
+          <Dialog open={quickPreviewOpen} onOpenChange={setQuickPreviewOpen}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Belge Önizlemesi</DialogTitle>
+              </DialogHeader>
+              <div className="p-4 text-sm">
+                {quickPreviewData ? (
+                  <div className="space-y-3">
+                    <div><strong>{quickPreviewData.letter_no || '—'}</strong></div>
+                    <div className="text-xs text-gray-600">{quickPreviewData.ref_letters || ''}</div>
+                    <div className="text-xs text-gray-600">{quickPreviewData.letter_date ? new Date(quickPreviewData.letter_date).toLocaleDateString() : ''}</div>
+                    <div style={{ height: 8 }} />
+                    <div className="font-medium">{quickPreviewData.subject || ''}</div>
+                    <div className="whitespace-pre-wrap text-gray-800">{quickPreviewData.content || ''}</div>
+                  </div>
+                ) : (
+                  <div>Yükleniyor...</div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* Supabase Tab */}
           <TabsContent value="supabase" className="space-y-4">

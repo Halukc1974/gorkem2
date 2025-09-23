@@ -254,7 +254,7 @@ export default function InfoCenterPage(): JSX.Element {
                       }
                     }}
                   >
-                    Aranacak kelimeyi giriniz..
+                    
                   </button>
                   {/* Gear / columns settings button */}
                   <PButton icon="pi pi-cog" className="p-button-text" onClick={openColumnsModal} aria-label="Sütun ayarları" />
