@@ -13,6 +13,7 @@ import { Dropdown } from 'primereact/dropdown';
 import { Calendar } from 'primereact/calendar';
 import { ProgressBar } from 'primereact/progressbar';
 import { Dialog } from 'primereact/dialog';
+import ColumnSettings from '../components/settings/ColumnSettings'
 import { Button as PButton } from 'primereact/button';
 import type { SortableFields } from '../hooks/useInfoCenterPage';
 import { useUserSettings } from '../hooks/useUserSettingsFirebase';
@@ -138,28 +139,10 @@ export default function InfoCenterPage(): JSX.Element {
 
   const visibleColumns = (config as any)?.infoCenter?.columns || DEFAULT_COLUMN_VISIBILITY;
 
-  // modal state for editing columns
+  // modal state for editing columns (kept, but implementation extracted)
   const [columnsModalOpen, setColumnsModalOpen] = useState(false);
-  const [editingColumns, setEditingColumns] = useState<Record<string, boolean>>(visibleColumns);
-
-  useEffect(() => {
-    // keep editing copy in sync when config changes
-    setEditingColumns((config as any)?.infoCenter?.columns || DEFAULT_COLUMN_VISIBILITY);
-  }, [config]);
-
   const openColumnsModal = () => setColumnsModalOpen(true);
   const closeColumnsModal = () => setColumnsModalOpen(false);
-
-  const saveColumns = async () => {
-    try {
-      // persist under infoCenter.columns in user config
-      await updateConfig({ infoCenter: { columns: editingColumns } } as any);
-      setColumnsModalOpen(false);
-    } catch (err) {
-      console.error('Failed to save column settings', err);
-      // keep modal open so user can retry
-    }
-  };
 
   useEffect(() => {
     if (error) console.error('Info Center error', error);
@@ -385,22 +368,8 @@ export default function InfoCenterPage(): JSX.Element {
                   {previewContent || <i>İçerik bulunamadı</i>}
                 </div>
               </Dialog>
-              {/* Columns settings dialog */}
-              <Dialog header="Sütun Ayarları" visible={columnsModalOpen} style={{ width: '28vw' }} onHide={closeColumnsModal} footer={(
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                  <PButton label="İptal" className="p-button-text" onClick={closeColumnsModal} />
-                  <PButton label="Kaydet" icon="pi pi-check" onClick={saveColumns} />
-                </div>
-              )}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {Object.keys(DEFAULT_COLUMN_VISIBILITY).map((key) => (
-                    <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <input type="checkbox" checked={!!editingColumns[key]} onChange={(e) => setEditingColumns(prev => ({ ...prev, [key]: e.target.checked }))} />
-                      <span style={{ textTransform: 'capitalize' }}>{key.replace('_', ' ')}</span>
-                    </label>
-                  ))}
-                </div>
-              </Dialog>
+              {/* Columns settings dialog (extracted to reusable component) */}
+              <ColumnSettings open={columnsModalOpen} onClose={closeColumnsModal} />
             </div>
           )}
           </CardContent>

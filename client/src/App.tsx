@@ -10,6 +10,7 @@ import ProjectsPage from "./pages/projects";
 import DocumentSearchPage from "./pages/document-search";
 import AISearchPage from "./pages/ai-search";
 import InfoCenterPage from "./pages/info-center";
+import SettingsPage from "./pages/settings";
 import Login from "./pages/login";
 import AdisIndexPage from "./pages/adis_index";
 import Sidebar from "./components/sidebar";
@@ -32,6 +33,7 @@ function Router() {
       <Route path="/financial" component={FinancialPage} />
       <Route path="/document-search" component={DocumentSearchPage} />
       <Route path="/ai-search" component={AISearchPage} />
+  <Route path="/settings" component={SettingsPage} />
       <Route path="/sheets/:id" component={SheetView} />
       <Route component={Dashboard} />
     </Switch>

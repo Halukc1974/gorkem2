@@ -87,6 +87,20 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
 
       {/* Navigation */}
       <nav className="flex-1 px-4 py-6 space-y-2">
+        {/* Top-most settings entry */}
+        <button
+          onClick={() => handleNavigation('/settings')}
+          className={`w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+            location === "/settings"
+              ? "bg-primary text-primary-foreground"
+              : "text-foreground hover:bg-accent hover:text-accent-foreground"
+          }`}
+          data-testid="nav-settings"
+        >
+          <i className="fas fa-cog mr-3 h-5 w-5"></i>
+          Ayarlar
+        </button>
+
         {!hideSidebarItems.includes("projects-summary") && (
           <button
             onClick={() => handleNavigation("/projects")}

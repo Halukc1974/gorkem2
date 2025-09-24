@@ -46,6 +46,7 @@ import { useDocumentSearch } from '../hooks/useDocumentSearch';
 import { useAuth } from '../hooks/useAuth';
 import { useUserSettingsLegacy } from '../hooks/useUserSettings';
 import ConfigManagement from '../components/ConfigManagement';
+import ConfigSettings from '../components/settings/ConfigSettings';
 import { performSecurityCheck } from '../utils/security';
 import { UserSettings } from '../services/supabase';
 
@@ -467,6 +468,7 @@ export default function DocumentSearchPage() {
             </div>
           </div>
           
+          {/*
           <Button
             variant="outline"
             size="sm"
@@ -485,6 +487,7 @@ export default function DocumentSearchPage() {
             <User className="h-4 w-4 mr-2" />
             Gelişmiş Ayarlar
           </Button>
+          */}
         </div>
       </div>
 
@@ -1166,105 +1169,9 @@ export default function DocumentSearchPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
-            <div className="text-sm text-gray-600">
-              Supabase, DeepSeek ve OpenAI API bağlantı bilgilerini girin
-            </div>
-              
-              {/* Supabase Config */}
-              <div className="space-y-3">
-                <h3 className="font-medium flex items-center gap-2">
-                  <Database className="h-4 w-4" />
-                  Supabase PostgreSQL
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <Input
-                    placeholder="https://your-project.supabase.co"
-                    value={configs.supabase.url}
-                    onChange={(e) => setConfigs(prev => ({
-                      ...prev,
-                      supabase: { ...prev.supabase, url: e.target.value }
-                    }))}
-                  />
-                  <Input
-                    type="password"
-                    placeholder="Anon Key"
-                    value={configs.supabase.anonKey}
-                    onChange={(e) => setConfigs(prev => ({
-                      ...prev,
-                      supabase: { ...prev.supabase, anonKey: e.target.value }
-                    }))}
-                  />
-                </div>
-              </div>
-
-              {/* DeepSeek Config */}
-              <div className="space-y-3">
-                <h3 className="font-medium flex items-center gap-2">
-                  <Brain className="h-4 w-4" />
-                  DeepSeek AI API
-                </h3>
-                <Input
-                  type="password"
-                  placeholder="sk-..."
-                  value={configs.deepseek.apiKey}
-                  onChange={(e) => setConfigs(prev => ({
-                    ...prev,
-                    deepseek: { ...prev.deepseek, apiKey: e.target.value }
-                  }))}
-                />
-              </div>
-
-              {/* OpenAI Config */}
-              <div className="space-y-3">
-                <h3 className="font-medium flex items-center gap-2">
-                  <Zap className="h-4 w-4" />
-                  OpenAI API (Vector Search)
-                </h3>
-                <Input
-                  type="password"
-                  placeholder="sk-..."
-                  value={configs.openai.apiKey}
-                  onChange={(e) => setConfigs(prev => ({
-                    ...prev,
-                    openai: { ...prev.openai, apiKey: e.target.value }
-                  }))}
-                />
-              </div>
-
-              <div className="flex justify-between">
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    const appConfig = (window as any).__APP_CONFIG__;
-                    if (appConfig) {
-                      setConfigs({
-                        supabase: { 
-                          url: appConfig.SUPABASE_URL || '', 
-                          anonKey: appConfig.SUPABASE_ANON_KEY || '' 
-                        },
-                        deepseek: { 
-                          apiKey: appConfig.DEEPSEEK_API_KEY || '' 
-                        },
-                        openai: {
-                          apiKey: appConfig.OPENAI_API_KEY || ''
-                        }
-                      });
-                    }
-                  }}
-                >
-                  🔄 Varsayılan Değerleri Yükle
-                </Button>
-                
-                <div className="flex gap-3">
-                  <Button variant="outline" onClick={() => setShowSettings(false)}>
-                    İptal
-                  </Button>
-                  <Button onClick={() => handleConfigSave()}>
-                    Kaydet ve Senkronize Et
-                  </Button>
-                </div>
-              </div>
-            </div>
+            <div className="text-sm text-gray-600">Supabase, DeepSeek ve OpenAI API bağlantı bilgilerini girin</div>
+            <ConfigSettings />
+          </div>
         </DialogContent>
       </Dialog>
     </div>

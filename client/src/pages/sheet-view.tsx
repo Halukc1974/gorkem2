@@ -108,7 +108,7 @@ export default function SheetView() {
               <i className="fas fa-exclamation-triangle text-4xl"></i>
             </div>
             <h3 className="text-lg font-semibold text-foreground mb-2">Hata Oluştu</h3>
-            <p className="text-muted-foreground">{error.message}</p>
+            <p className="text-muted-foreground">{(error as any)?.message ?? String(error)}</p>
           </div>
         </Card>
       </div>
