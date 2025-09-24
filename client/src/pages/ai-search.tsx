@@ -165,9 +165,9 @@ export default function AISearchPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
             <span className="inline-flex items-center justify-center p-2 bg-blue-100 rounded-lg">
-              <Brain className="h-8 w-8 text-blue-600 stroke-2" strokeLinejoin="round" />
+              {/* <Brain className="h-8 w-8 text-blue-600 stroke-2" strokeLinejoin="round" /> */}
             </span>
-            Yapay Zeka ile Ara
+           Belge Referans Grafikleri
           </h1>
           <p className="text-gray-600 mt-1">
             AI destekli arama ve belge ilişkileri görselleştirme
@@ -177,123 +177,21 @@ export default function AISearchPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
     <TabsList className="grid w-full md:w-auto grid-cols-3">
-          <TabsTrigger value="search" className="flex items-center gap-2">
+          {/* <TabsTrigger value="search" className="flex items-center gap-2">
             <Brain className="h-4 w-4 text-current stroke-2" strokeLinejoin="round" />
             AI Arama
-          </TabsTrigger>
+          </TabsTrigger> */}
           <TabsTrigger value="graph" className="flex items-center gap-2">
             <Network className="h-4 w-4" />
-            Belge Grafiği
+            Belge Referans Grafiği
           </TabsTrigger>
           <TabsTrigger value="star-map-top" className="flex items-center gap-2">
             <Network className="h-4 w-4" />
-            Belge Haritası
+            Tüm Belge Ağı
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="search">
-          <Card>
-            <CardHeader>
-              <CardTitle>AI Destekli Arama</CardTitle>
-              <CardDescription>
-                Yapay zeka ile gelişmiş belge araması yapın
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <Input
-                      placeholder="Arama yapmak için doğal dil kullanın..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full"
-                    />
-                  </div>
-                  <Button 
-                    onClick={() => search(searchQuery)}
-                    disabled={!isAnyDatabaseConnected || !searchQuery.trim()}
-                  >
-                    {searchLoading ? 'Aranıyor...' : 'Ara'}
-                  </Button>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowFilters(!showFilters)}
-                    >
-                      Filtreler {showFilters ? '▼' : '▶'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowSettings(!showSettings)}
-                    >
-                      Ayarlar {showSettings ? '▼' : '▶'}
-                    </Button>
-                  </div>
-                  
-                  {hasResults && (
-                    <Button 
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearResults}
-                    >
-                      Sonuçları Temizle
-                    </Button>
-                  )}
-                </div>
-
-                {showSettings && (
-                  <Card className="mt-4">
-                    <CardContent className="pt-6">
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="font-medium">AI Özelliğini Etkinleştir</h3>
-                            <p className="text-sm text-gray-500">
-                              AI destekli arama ve belge ilişkileri analizi
-                            </p>
-                          </div>
-                          <Switch
-                            checked={enableAI}
-                            onCheckedChange={(value) => {
-                              setEnableAI(value);
-                              localStorage.setItem('doc_search_enable_ai', value.toString());
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {showFilters && (
-                  <Card className="mt-4">
-                    <CardContent className="pt-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Filtre seçenekleri buraya eklenecek */}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Arama sonuçları */}
-                {hasResults && totalResults > 0 ? (
-                  <div className="mt-6">
-                    <h3 className="text-lg font-semibold mb-4">
-                      Sonuçlar ({totalResults})
-                    </h3>
-                    {/* Sonuç kartları buraya eklenecek */}
-                  </div>
-                ) : null}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+        
 
         <TabsContent value="graph">
           <Card>

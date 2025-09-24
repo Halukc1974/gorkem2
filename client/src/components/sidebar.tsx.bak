@@ -68,7 +68,7 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
           data-testid="nav-ai-search"
         >
           <Brain className="mr-3 h-5 w-5 stroke-2" strokeLinejoin="round" />
-          Yapay Zeka İle Ara
+          Belge Referans Grafikleri
         </button>
 
         {/* Belge Yükle: main button navigates to /document-upload, small folder button opens file picker */}

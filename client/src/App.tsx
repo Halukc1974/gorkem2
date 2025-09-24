@@ -13,6 +13,7 @@ import InfoCenterPage from "./pages/info-center";
 import SettingsPage from "./pages/settings";
 import Login from "./pages/login";
 import AdisIndexPage from "./pages/adis_index";
+import N8NVectorSearch from './pages/n8n-vector-search';
 import Sidebar from "./components/sidebar";
 import LoadingOverlay from "./components/loading-overlay";
 import { useState, useEffect } from "react";
@@ -33,6 +34,7 @@ function Router() {
       <Route path="/financial" component={FinancialPage} />
       <Route path="/document-search" component={DocumentSearchPage} />
       <Route path="/ai-search" component={AISearchPage} />
+  <Route path="/n8n-vector-search" component={N8NVectorSearch} />
   <Route path="/settings" component={SettingsPage} />
       <Route path="/sheets/:id" component={SheetView} />
       <Route component={Dashboard} />

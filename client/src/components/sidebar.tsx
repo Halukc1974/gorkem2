@@ -160,6 +160,23 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
         </button>
 
         <button
+          onClick={() => handleNavigation('/n8n-vector-search')}
+          className={`w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+            location === "/n8n-vector-search"
+              ? "bg-primary text-primary-foreground"
+              : "text-foreground hover:bg-accent hover:text-accent-foreground"
+          }`}
+          data-testid="nav-n8n-vector-search"
+        >
+          {/* Red magnifier icon for N-starting item */}
+          <i className="fas fa-search mr-3 h-5 w-5 text-destructive"></i>
+          <span className="truncate inline-flex items-center">
+  <span className="text-red-500 mr-1">🔍</span>
+  N8N Vektör Arama
+</span>
+        </button>
+
+        <button
           onClick={() => handleNavigation("/ai-search")}
           className={`w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
             location === "/ai-search" 
@@ -168,8 +185,8 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
           }`}
           data-testid="nav-ai-search"
         >
-          <Brain className="mr-3 h-5 w-5 stroke-2" strokeLinejoin="round" />
-          Yapay Zeka İle Ara
+          <i className="fas fa-sitemap mr-3 h-5 w-5"></i>
+          <span className="truncate">Belge Referans Ağı</span>
         </button>
         
         {/* Nested links for AI Search */}

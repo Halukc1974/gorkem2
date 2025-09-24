@@ -17,7 +17,7 @@ export default function SettingsPage() {
           <TabsTrigger value="config">Konfigürasyonlar</TabsTrigger>
           <TabsTrigger value="vector">Vector Arama</TabsTrigger>
           <TabsTrigger value="advanced">Gelişmiş</TabsTrigger>
-          <TabsTrigger value="user">Kullanıcı</TabsTrigger>
+          {/* <TabsTrigger value="user">Kullanıcı</TabsTrigger> */}
         </TabsList>
         <TabsContent value="vector">
           <VectorSearchSettings />
