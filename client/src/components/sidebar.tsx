@@ -6,6 +6,7 @@ import { useToast } from "../hooks/use-toast";
 import { Brain } from "lucide-react";
 // Google Sheets integration removed for Info Center migration
 import { apiRequest } from "../lib/queryClient";
+import firebaseConfigService from '../services/firebaseConfig';
 import RenameSheetModal from "./rename-sheet-modal";
 
 interface SidebarProps {
@@ -85,24 +86,15 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
       if (perm && typeof perm === 'object') {
         // Case A: whole perm is a boolean map (legacy or direct map)
         const maybeMap = perm as Record<string, any>;
-        const isDirectBooleanMap = Object.values(maybeMap).some(v => typeof v === 'boolean');
-        if (isDirectBooleanMap) {
-          const hide = Object.keys(maybeMap).filter(k => !maybeMap[k]);
-          if (mounted) setHideSidebarItems(hide.length ? hide : defaultHideList);
-          return;
-        }
+        const knownKeys = [
+          'settings','projects-summary','dashboard','financial-dashboard','document-search','n8n-vector-search','ai-search','projects/info-center'
+        ];
 
-        if (perm.sidebar && typeof perm.sidebar === 'object') {
-          const map = perm.sidebar as Record<string, boolean>;
-          const hide = Object.keys(map).filter(k => !map[k]);
-          if (mounted) setHideSidebarItems(hide.length ? hide : defaultHideList);
-          return;
-        }
-
-        // Support legacy or simple shape: permission document itself is a boolean map
-        if (typeof perm === 'object' && Object.values(perm).every(v => typeof v === 'boolean')) {
-          const map = perm as Record<string, boolean>;
-          const hide = Object.keys(map).filter(k => !map[k]);
+        // If it's a direct boolean map or contains a sidebar boolean map, treat missing keys as false
+        const mapSource = (perm.sidebar && typeof perm.sidebar === 'object') ? perm.sidebar : (typeof perm === 'object' ? perm : null) as Record<string, boolean> | null;
+        if (mapSource && Object.values(mapSource).some(v => typeof v === 'boolean')) {
+          // Build hide list from knownKeys: if key exists and is falsy OR key missing => hide
+          const hide = knownKeys.filter(k => !(k in mapSource) || !mapSource[k]);
           if (mounted) setHideSidebarItems(hide.length ? hide : defaultHideList);
           return;
         }
@@ -125,6 +117,24 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
 
     const load = async () => {
       try {
+        // First, try client-side Firestore read of the centralized permissions document (if configured)
+        try {
+          const appConfig = (window as any).__APP_CONFIG__ || {};
+          const docId = appConfig?.PERMISSIONS_DOC_ID || null;
+          const coll = appConfig?.PERMISSIONS_COLLECTION || 'userConfigs';
+          if (docId) {
+            const doc = await firebaseConfigService.getPermissionsDoc(docId, coll).catch(() => null);
+            if (doc) {
+              // If doc contains a users map, prefer that map for current user
+              computeAndSet(doc.users && typeof doc.users === 'object' ? doc.users : doc);
+              return;
+            }
+          }
+        } catch (e) {
+          // ignore and fall back to server endpoint
+        }
+
+        // Fallback to server endpoint which requires a server session
         const res = await fetch('/api/permissions/me', { credentials: 'include' });
         if (!res.ok) {
           computeAndSet(null);
@@ -218,35 +228,39 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
           </button>
         )}
 
-        <button
-          onClick={() => handleNavigation("/document-search")}
-          className={`w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-            location === "/document-search" 
-              ? "bg-primary text-primary-foreground" 
-              : "text-foreground hover:bg-accent hover:text-accent-foreground"
-          }`}
-          data-testid="nav-document-search"
-        >
-          <i className="fas fa-search mr-3 h-5 w-5"></i>
-          🔍 Belge Arama
-        </button>
+        {!hideSidebarItems.includes("document-search") && (
+          <button
+            onClick={() => handleNavigation("/document-search")}
+            className={`w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+              location === "/document-search" 
+                ? "bg-primary text-primary-foreground" 
+                : "text-foreground hover:bg-accent hover:text-accent-foreground"
+            }`}
+            data-testid="nav-document-search"
+          >
+            <i className="fas fa-search mr-3 h-5 w-5"></i>
+            🔍 Belge Arama
+          </button>
+        )}
 
-        <button
-          onClick={() => handleNavigation('/n8n-vector-search')}
-          className={`w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-            location === "/n8n-vector-search"
-              ? "bg-primary text-primary-foreground"
-              : "text-foreground hover:bg-accent hover:text-accent-foreground"
-          }`}
-          data-testid="nav-n8n-vector-search"
-        >
-          {/* Red magnifier icon for N-starting item */}
-          <i className="fas fa-search mr-3 h-5 w-5 text-destructive"></i>
-          <span className="truncate inline-flex items-center">
-  <span className="text-red-500 mr-1">🔍</span>
-  N8N Vektör Arama
-</span>
-        </button>
+        {!hideSidebarItems.includes('n8n-vector-search') && (
+          <button
+            onClick={() => handleNavigation('/n8n-vector-search')}
+            className={`w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+              location === "/n8n-vector-search"
+                ? "bg-primary text-primary-foreground"
+                : "text-foreground hover:bg-accent hover:text-accent-foreground"
+            }`}
+            data-testid="nav-n8n-vector-search"
+          >
+            {/* Red magnifier icon for N-starting item */}
+            <i className="fas fa-search mr-3 h-5 w-5 text-destructive"></i>
+            <span className="truncate inline-flex items-center">
+      <span className="text-red-500 mr-1">🔍</span>
+      N8N Vektör Arama
+    </span>
+          </button>
+        )}
 
         <button
           onClick={() => handleNavigation("/ai-search")}
