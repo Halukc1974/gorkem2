@@ -6,6 +6,7 @@ import ConfigManagement from '../components/ConfigManagement'
 import GraphSettings from '../components/settings/GraphSettings'
 import { GraphCustomizationProvider } from '../components/graph-engine/context/GraphCustomizationContext'
 import VectorSearchSettings from '../components/settings/VectorSearchSettings'
+import UserPermissions from '../components/settings/UserPermissions'
 
 export default function SettingsPage() {
   return (
@@ -17,7 +18,8 @@ export default function SettingsPage() {
           <TabsTrigger value="config">Konfigürasyonlar</TabsTrigger>
           <TabsTrigger value="vector">Vector Arama</TabsTrigger>
           <TabsTrigger value="advanced">Gelişmiş</TabsTrigger>
-          {/* <TabsTrigger value="user">Kullanıcı</TabsTrigger> */}
+          <TabsTrigger value="user">Kullanıcı</TabsTrigger>
+          <TabsTrigger value="yetkileri">Kullanıcı Yetkileri</TabsTrigger>
         </TabsList>
         <TabsContent value="vector">
           <VectorSearchSettings />
@@ -47,6 +49,11 @@ export default function SettingsPage() {
         <TabsContent value="user">
           <h3 className="text-lg font-medium mb-2">Kullanıcı Ayarları</h3>
           <ColumnSettings open={false} onClose={() => { }} dialogWidth="100%" embedded={true} />
+        </TabsContent>
+
+        <TabsContent value="yetkileri">
+          <h3 className="text-lg font-medium mb-2">Kullanıcı Yetkileri</h3>
+          <UserPermissions />
         </TabsContent>
       </Tabs>
     </div>

@@ -48,31 +48,36 @@ export async function setupAuth(app: Express) {
   app.use(passport.session());
 
   // Google OAuth Strategy
-  passport.use(
-    new GoogleStrategy(
-      {
-        clientID: GOOGLE_CLIENT_ID,
-        clientSecret: GOOGLE_CLIENT_SECRET,
-        callbackURL: "/api/auth/google/callback",
-      },
-      async (accessToken, refreshToken, profile, done) => {
-        try {
-          // Upsert user
-          const user = await storage.upsertUser({
-            googleId: profile.id,
-            email: profile.emails?.[0]?.value || '',
-            name: profile.displayName || '',
-            picture: profile.photos?.[0]?.value,
-            role: "user"
-          });
-          
-          return done(null, user);
-        } catch (error) {
-          return done(error as Error, undefined);
+  // Google OAuth Strategy: only register if credentials are provided
+  if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET) {
+    passport.use(
+      new GoogleStrategy(
+        {
+          clientID: GOOGLE_CLIENT_ID,
+          clientSecret: GOOGLE_CLIENT_SECRET,
+          callbackURL: "/api/auth/google/callback",
+        },
+        async (accessToken, refreshToken, profile, done) => {
+          try {
+            // Upsert user
+            const user = await storage.upsertUser({
+              googleId: profile.id,
+              email: profile.emails?.[0]?.value || '',
+              name: profile.displayName || '',
+              picture: profile.photos?.[0]?.value,
+              role: "user"
+            });
+            
+            return done(null, user);
+          } catch (error) {
+            return done(error as Error, undefined);
+          }
         }
-      }
-    )
-  );
+      )
+    );
+  } else {
+    console.warn('GOOGLE_CLIENT_ID/SECRET not set — skipping Google OAuth strategy registration');
+  }
 
   passport.serializeUser((user: any, done) => {
     done(null, user.id);
@@ -112,11 +117,17 @@ export async function setupAuth(app: Express) {
       // Verify ID token with Firebase Admin (lazy init)
       let decoded: any = null;
       try {
+        console.log('🔧 [DEBUG] Importing Firebase Admin...');
         const { getFirebaseAdmin } = await import('./firebaseAdmin');
+        console.log('🔧 [DEBUG] getFirebaseAdmin type:', typeof getFirebaseAdmin);
+        console.log('🔧 [DEBUG] Calling getFirebaseAdmin...');
         const admin = getFirebaseAdmin();
+        console.log('🔧 [DEBUG] Firebase Admin initialized, verifying token...');
         decoded = await admin.auth().verifyIdToken(idToken);
+        console.log('✅ [DEBUG] Firebase token verified successfully');
       } catch (err) {
         console.error('Firebase Admin not configured or token verification failed:', err);
+        console.error('Error details:', err.stack);
         return res.status(500).json({ message: 'Server side Firebase Admin not configured' });
       }
 
@@ -154,9 +165,17 @@ export async function setupAuth(app: Express) {
 }
 
 export const requireAuth: RequestHandler = (req, res, next) => {
+  console.log('🔐 [DEBUG] requireAuth check:', {
+    isAuthenticated: req.isAuthenticated(),
+    userExists: !!(req as any).user,
+    userEmail: ((req as any).user as any)?.email,
+    sessionID: req.sessionID?.substring(0, 10) + '...'
+  });
+  
   if (req.isAuthenticated()) {
     return next();
   }
+  console.log('❌ [DEBUG] Authentication failed - sending 401');
   res.status(401).json({ message: "Authentication required" });
 };
 

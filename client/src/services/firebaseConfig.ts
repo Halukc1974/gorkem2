@@ -6,7 +6,9 @@ import {
   setDoc, 
   updateDoc, 
   onSnapshot,
-  Timestamp 
+  Timestamp,
+  collection,
+  getDocs
 } from 'firebase/firestore';
 import app from '../lib/firebase';
 
@@ -152,6 +154,7 @@ export const DEFAULT_USER_CONFIG: Omit<UserConfig, 'meta'> = {
       pannable: true
     }
   }
+
 };
 
 class FirebaseConfigService {
@@ -165,6 +168,70 @@ class FirebaseConfigService {
       throw new Error('Firebase app is not initialized');
     }
     this.db = getFirestore(app);
+  }
+
+  // Liste: tüm userConfigs koleksiyonundaki dokümanları getir (uid, data)
+  async listUserConfigs(): Promise<Array<{ id: string; data: UserConfig }>> {
+    try {
+      const colRef = collection(this.db, this.COLLECTION_NAME);
+      const snap = await getDocs(colRef);
+      const results: Array<{ id: string; data: UserConfig }> = [];
+      snap.forEach(d => {
+        results.push({ id: d.id, data: d.data() as UserConfig });
+      });
+      return results;
+    } catch (err) {
+      console.error('❌ listUserConfigs hatası:', err);
+      return [];
+    }
+  }
+
+  // Liste: tüm userPermissions koleksiyonundaki dokümanları getir (id, data)
+  // Bu koleksiyon her kullanıcının email / sidebar map'ini tuttuğunuz yer olmalı
+  async listUserPermissions(): Promise<Array<{ id: string; data: any }>> {
+    try {
+      const colRef = collection(this.db, 'userPermissions');
+      const snap = await getDocs(colRef);
+      const results: Array<{ id: string; data: any }> = [];
+      snap.forEach(d => {
+        results.push({ id: d.id, data: d.data() });
+      });
+      return results;
+    } catch (err) {
+      console.error('❌ listUserPermissions hatası:', err);
+      return [];
+    }
+  }
+  
+  // Read a single document which contains a map keyed by email (or arbitrary keys) -> permission maps
+  // Useful when you store all user sidebar maps under one doc (as in the provided screenshot).
+  async getPermissionsDoc(docId: string, collectionName = 'userPermissions'): Promise<Record<string, any> | null> {
+    try {
+      const docRef = doc(this.db, collectionName, docId);
+      const snap = await getDoc(docRef);
+      if (!snap.exists()) return null;
+      return snap.data() as Record<string, any>;
+    } catch (err) {
+      console.error('⚠️ getPermissionsDoc error:', err);
+      return null;
+    }
+  }
+
+  // Write a single user's entry into a permissions document's `users` map.
+  // This mirrors the server-side behavior of writing into userConfigs/{docId}.users[email]
+  async setPermissionsDocEntry(docId: string, email: string, userData: any, collectionName = 'userConfigs'): Promise<void> {
+    try {
+      const docRef = doc(this.db, collectionName, docId);
+      const snap = await getDoc(docRef);
+      const existing = snap.exists() ? (snap.data() || {}) : {};
+      const usersMap = existing.users && typeof existing.users === 'object' ? existing.users : {};
+      usersMap[email] = userData;
+      await setDoc(docRef, { users: usersMap }, { merge: true });
+      console.log('✅ setPermissionsDocEntry: wrote user entry', { docId, email });
+    } catch (err) {
+      console.error('❌ setPermissionsDocEntry error:', err);
+      throw err;
+    }
   }
 
   // Kullanıcı config dokümanının referansını al

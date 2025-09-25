@@ -264,6 +264,7 @@ export default function N8NVectorSearch() {
                 doPost(VECTOR_SEARCH_URL, { search_text: searchText, threshold: t });
               }} disabled={loading}>{loading ? 'Aranıyor...' : 'Ara (POST)'}</Button>
             </div>
+            // Vector search extension point: add custom logic or debug output here if needed.
           </div>
         )}
 

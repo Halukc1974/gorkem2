@@ -1,7 +1,7 @@
 import { useLocation } from "wouter";
 import { Button } from "../components/ui/button";
 import CreateSheetModal from "./create-sheet-modal";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "../hooks/use-toast";
 import { Brain } from "lucide-react";
 // Google Sheets integration removed for Info Center migration
@@ -67,10 +67,82 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
     setContextMenu({ ...contextMenu, visible: false });
   };
 
-  // Read runtime hide-list from `window.__APP_CONFIG__` (set in client/public/app-config.js)
-  // This allows hiding sidebar items without deleting pages.
-  const hideSidebarItems: string[] =
-    (typeof window !== "undefined" && (window as any).__APP_CONFIG__?.HIDE_SIDEBAR_ITEMS) || [];
+  // Runtime hide-list (default from runtime config)
+  // This value can be augmented by per-user permissions fetched from the server.
+  const defaultHideList: string[] = (typeof window !== "undefined" && (window as any).__APP_CONFIG__?.HIDE_SIDEBAR_ITEMS) || [];
+  const [hideSidebarItems, setHideSidebarItems] = useState<string[]>(defaultHideList);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const computeAndSet = (perm: any | null) => {
+      if (!perm) {
+        if (mounted) setHideSidebarItems(defaultHideList);
+        return;
+      }
+
+      // If server returned a boolean map under `sidebar`, compute hidden items as keys that are falsy
+      if (perm && typeof perm === 'object') {
+        // Case A: whole perm is a boolean map (legacy or direct map)
+        const maybeMap = perm as Record<string, any>;
+        const isDirectBooleanMap = Object.values(maybeMap).some(v => typeof v === 'boolean');
+        if (isDirectBooleanMap) {
+          const hide = Object.keys(maybeMap).filter(k => !maybeMap[k]);
+          if (mounted) setHideSidebarItems(hide.length ? hide : defaultHideList);
+          return;
+        }
+
+        if (perm.sidebar && typeof perm.sidebar === 'object') {
+          const map = perm.sidebar as Record<string, boolean>;
+          const hide = Object.keys(map).filter(k => !map[k]);
+          if (mounted) setHideSidebarItems(hide.length ? hide : defaultHideList);
+          return;
+        }
+
+        // Support legacy or simple shape: permission document itself is a boolean map
+        if (typeof perm === 'object' && Object.values(perm).every(v => typeof v === 'boolean')) {
+          const map = perm as Record<string, boolean>;
+          const hide = Object.keys(map).filter(k => !map[k]);
+          if (mounted) setHideSidebarItems(hide.length ? hide : defaultHideList);
+          return;
+        }
+      }
+
+      // Backward-compatible: if server returned ui.sidebarVisible array (visible items), hide the rest
+      if (perm.ui && Array.isArray(perm.ui.sidebarVisible)) {
+        const visible = perm.ui.sidebarVisible as string[];
+        const known = [
+          'settings','projects-summary','dashboard','financial-dashboard','document-search','n8n-vector-search','ai-search','projects/info-center'
+        ];
+        const hide = known.filter(k => !visible.includes(k));
+        if (mounted) setHideSidebarItems(hide.length ? hide : defaultHideList);
+        return;
+      }
+
+      // Otherwise fall back to default hide list
+      if (mounted) setHideSidebarItems(defaultHideList);
+    };
+
+    const load = async () => {
+      try {
+        const res = await fetch('/api/permissions/me', { credentials: 'include' });
+        if (!res.ok) {
+          computeAndSet(null);
+          return;
+        }
+        const data = await res.json();
+        computeAndSet(data);
+      } catch (err) {
+        computeAndSet(null);
+      }
+    };
+
+    load();
+
+    const listener = () => load();
+    window.addEventListener('permissions:changed', listener);
+    return () => { mounted = false; window.removeEventListener('permissions:changed', listener); };
+  }, [defaultHideList]);
 
   const sidebarContent = (
     <div className="flex h-full flex-col bg-card border-r border-border">
