@@ -227,7 +227,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const admin = getFirebaseAdmin();
         // Allow if session user is admin, is gorkeminsaat1@gmail.com, or if session user's email matches target email
         const sessionUser: any = (req as any).user;
-        const isSuperAdmin = sessionUser && sessionUser.email === 'gorkeminsaat1@gmail.com';
+        // check env driven ADMIN_EMAILS (case-insensitive); fall back to exact match if env not set
+        const adminEmailsEnv = (process.env.ADMIN_EMAILS || '');
+        const adminEmails = adminEmailsEnv.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+        const isSuperAdmin = sessionUser && sessionUser.email && adminEmails.includes((sessionUser.email || '').toLowerCase());
         if (!(sessionUser && (sessionUser.role === 'admin' || isSuperAdmin || sessionUser.email === email))) {
           return res.status(403).json({ message: 'Admin access required or can only modify your own settings' });
         }
@@ -270,8 +273,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           role: sessionUser2?.role,
           id: sessionUser2?.id
         });
-        
-        const isSuperAdmin2 = sessionUser2 && sessionUser2.email === 'gorkeminsaat1@gmail.com';
+
+        const adminEmailsEnv2 = (process.env.ADMIN_EMAILS || '');
+        const adminEmails2 = adminEmailsEnv2.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+        const isSuperAdmin2 = sessionUser2 && sessionUser2.email && adminEmails2.includes((sessionUser2.email || '').toLowerCase());
         const hasPermission = sessionUser2 && (sessionUser2.role === 'admin' || isSuperAdmin2 || sessionUser2.email === email);
         
         console.log('🔍 [DEBUG] Permission check:', {

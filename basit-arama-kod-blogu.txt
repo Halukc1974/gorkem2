@@ -50,7 +50,7 @@ async searchDocuments(
     }
 
     if (filters?.inc_out) {
-      queryBuilder = queryBuilder.eq('inc-out', filters.inc_out);
+      queryBuilder = queryBuilder.eq('incout', filters.inc_out);
     }
 
     if (filters?.internal_no) {
@@ -128,7 +128,7 @@ const filterFields = {
   'letter_date': 'Mektup tarihi (tarih aralığı)',
   'type_of_corr': 'Yazışma türü',
   'severity_rate': 'Önem derecesi',
-  'inc-out': 'Gelen/Giden',
+  'incout': 'Gelen/Giden',
   'internal_no': 'Dahili numara (kısmi eşleşme)',
   'keywords': 'Anahtar kelimeler (dizi)'
 };

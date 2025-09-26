@@ -7,6 +7,8 @@ import { Brain } from "lucide-react";
 // Google Sheets integration removed for Info Center migration
 import { apiRequest } from "../lib/queryClient";
 import firebaseConfigService from '../services/firebaseConfig';
+import { auth } from '../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import RenameSheetModal from "./rename-sheet-modal";
 
 interface SidebarProps {
@@ -125,16 +127,139 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
           if (docId) {
             const doc = await firebaseConfigService.getPermissionsDoc(docId, coll).catch(() => null);
             if (doc) {
-              // If doc contains a users map, prefer that map for current user
-              computeAndSet(doc.users && typeof doc.users === 'object' ? doc.users : doc);
-              return;
+              // If doc contains a users map, prefer that map for the currently logged-in user
+              if (doc.users && typeof doc.users === 'object') {
+                const usersMap = doc.users as Record<string, any>;
+
+                // Try to obtain the current user's email from client-side auth. If auth isn't
+                // initialized yet, wait briefly (up to 2s) for onAuthStateChanged to fire.
+                const getEmail = () => new Promise<string | null>(async (resolve) => {
+                  try {
+                    const cur = auth && (auth.currentUser as any);
+                    if (cur && cur.email) return resolve(cur.email);
+
+                    // Wait briefly for client-side auth state to initialize (up to 4s)
+                    let unsub: (() => void) | null = null;
+                    const waited = new Promise<string | null>((res) => {
+                      try {
+                        unsub = onAuthStateChanged(auth as any, (u) => {
+                          if (unsub) unsub();
+                          res((u as any)?.email || null);
+                        });
+                      } catch (e) {
+                        res(null);
+                      }
+                    });
+
+                    const timeout = new Promise<string | null>((res) => setTimeout(() => { if (unsub) unsub(); res(null); }, 4000));
+                    const fromClient = await Promise.race([waited, timeout]);
+                    if (fromClient) return resolve(fromClient);
+
+                    // If client-side auth not available, try server session endpoint as a fallback
+                    try {
+                      const r = await fetch('/api/auth/user', { credentials: 'include' });
+                      if (r.ok) {
+                        const j = await r.json().catch(() => null) as any;
+                        // Try common shapes: { email } or { user: { email } }
+                        const maybe = j?.email || j?.user?.email || null;
+                        if (maybe) return resolve(maybe);
+                      }
+                    } catch (e) {
+                      // ignore and return null
+                    }
+
+                    return resolve(null);
+                  } catch (e) { resolve(null); }
+                });
+
+                const email = await getEmail();
+                let entry = null as any;
+                // Try direct email key
+                if (email && usersMap[email]) entry = usersMap[email];
+                // Try direct uid key (some docs may store by uid)
+                const cur = auth && (auth.currentUser as any);
+                const uid = cur?.uid || null;
+                if (!entry && uid && usersMap[uid]) entry = usersMap[uid];
+                // Try case-insensitive match
+                if (!entry && email) {
+                  const lower = email.toLowerCase().trim();
+                  const foundKey = Object.keys(usersMap).find(k => String(k).toLowerCase().trim() === lower);
+                  if (foundKey) entry = usersMap[foundKey];
+                }
+                // Try normalized gmail local-part (remove dots and +suffix)
+                if (!entry && email && email.includes('@')) {
+                  const [local, domain] = email.split('@');
+                  if (domain && domain.toLowerCase().includes('gmail')) {
+                    const normalized = local.split('+')[0].replace(/\./g, '').toLowerCase();
+                    const foundKey = Object.keys(usersMap).find(k => {
+                      try {
+                        const kk = String(k).toLowerCase();
+                        return kk.includes(normalized) && kk.includes(domain.toLowerCase());
+                      } catch (e) { return false; }
+                    });
+                    if (foundKey) entry = usersMap[foundKey];
+                  }
+                }
+                // Last resort: try any key whose value looks like a per-user object (has boolean sidebar or ui)
+                if (!entry) {
+                  for (const k of Object.keys(usersMap)) {
+                    const v = usersMap[k];
+                    if (v && typeof v === 'object' && (v.sidebar || v.ui)) {
+                      // Skip if the key obviously is an email different than current email
+                      if (email && String(k).toLowerCase().trim() === String(email).toLowerCase().trim()) { entry = v; break; }
+                    }
+                  }
+                }
+                // Guard: ensure we didn't accidentally pick the entire users map as the entry
+                if (entry && typeof entry === 'object') {
+                  // If entry looks like a users map (many keys that look like emails), ignore it
+                  const entryKeys = Object.keys(entry || {});
+                  const looksLikeUsersMap = entryKeys.length > 5 && entryKeys.every(ek => ek.includes('@'));
+                  if (looksLikeUsersMap) entry = null;
+                }
+                if (entry) {
+                  // Found per-user entry in the users map — emit a focused debug log and compute using that
+                  try {
+                    const knownKeys = [
+                      'settings','projects-summary','dashboard','financial-dashboard','document-search','n8n-vector-search','ai-search','projects/info-center'
+                    ];
+                    let expectedHide: string[] = defaultHideList;
+                    try {
+                      const mapSrc = (entry.sidebar && typeof entry.sidebar === 'object') ? entry.sidebar : (typeof entry === 'object' ? entry : null);
+                      if (mapSrc && Object.values(mapSrc).some(v => typeof v === 'boolean')) {
+                        expectedHide = knownKeys.filter(k => !(k in mapSrc) || !mapSrc[k]);
+                      } else if (entry.ui && Array.isArray(entry.ui.sidebarVisible)) {
+                        const visible = entry.ui.sidebarVisible as string[];
+                        expectedHide = knownKeys.filter(k => !visible.includes(k));
+                      }
+                    } catch (e) {
+                      expectedHide = defaultHideList;
+                    }
+                    // Compact entry preview to avoid flooding logs
+                    const preview = (obj: any) => {
+                      try { return JSON.stringify(obj, Object.keys(obj).slice(0,10)); } catch (e) { return String(obj); }
+                    };
+                    // eslint-disable-next-line no-console
+                    console.log('[SIDEBAR DEBUG] email=', email, 'entryPreview=', preview(entry), 'expectedHide=', expectedHide);
+                  } catch (e) {
+                    // swallow logging errors
+                  }
+                  computeAndSet(entry);
+                  return;
+                }
+                // If we couldn't resolve client-side email or no entry exists, fall back to server endpoint.
+              } else {
+                // Document is already the per-user map or a flat permissions object
+                computeAndSet(doc);
+                return;
+              }
             }
           }
         } catch (e) {
           // ignore and fall back to server endpoint
         }
 
-        // Fallback to server endpoint which requires a server session
+  // Fallback to server endpoint which requires a server session
         const res = await fetch('/api/permissions/me', { credentials: 'include' });
         if (!res.ok) {
           computeAndSet(null);
@@ -149,9 +274,17 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
 
     load();
 
+    // Re-run loading when permissions change and when Firebase auth state changes (so client-side email becomes available)
     const listener = () => load();
     window.addEventListener('permissions:changed', listener);
-    return () => { mounted = false; window.removeEventListener('permissions:changed', listener); };
+    let unsubAuth: (() => void) | null = null;
+    try {
+      unsubAuth = onAuthStateChanged(auth as any, () => load());
+    } catch (e) {
+      // ignore if auth not available
+    }
+
+    return () => { mounted = false; window.removeEventListener('permissions:changed', listener); if (unsubAuth) unsubAuth(); };
   }, [defaultHideList]);
 
   const sidebarContent = (

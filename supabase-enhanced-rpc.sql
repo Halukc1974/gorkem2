@@ -29,7 +29,7 @@ RETURNS TABLE (
   reply_letter text,
   severity_rate text,
   letter_no text,
-  "inc-out" text,
+  "incout" text,
   keywords text,
   weburl text,
   similarity float
@@ -69,7 +69,7 @@ BEGIN
       d.reply_letter,
       d.severity_rate,
       d.letter_no,
-      d."inc-out",
+      d."incout",
       d.keywords,
       d.weburl,
       (d.embedding <#> $1) * -1 as similarity
@@ -80,7 +80,7 @@ BEGIN
       AND ($4 IS NULL OR d.letter_date <= $4)
       AND ($5 IS NULL OR d.type_of_corr = $5)
       AND ($6 IS NULL OR d.severity_rate = $6)
-      AND ($7 IS NULL OR d."inc-out" = $7)
+      AND ($7 IS NULL OR d."incout" = $7)
       AND ($8 IS NULL OR d.internal_no ILIKE ''%%'' || $8 || ''%%'')
       AND (
         $9 IS NULL 

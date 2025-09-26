@@ -8,6 +8,8 @@ import { storage } from "./storage";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
+// Comma-separated list of admin emails (case-insensitive). Example: "me@x.com, admin@x.com"
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
@@ -131,12 +133,13 @@ export async function setupAuth(app: Express) {
         return res.status(500).json({ message: 'Server side Firebase Admin not configured' });
       }
 
-      // Upsert user by email (or use uid field)
+      // Upsert user by Firebase UID (googleId) and email.
       const email = decoded.email || '';
       const uid = decoded.uid;
 
       const user = await storage.upsertUser({
-        googleId: '',
+        // link the storage user by Firebase UID so uid-based lookups work
+        googleId: uid || '',
         email,
         name: decoded.name || '',
         picture: decoded.picture || '',
@@ -180,8 +183,13 @@ export const requireAuth: RequestHandler = (req, res, next) => {
 };
 
 export const requireAdmin: RequestHandler = (req, res, next) => {
-  if (req.isAuthenticated() && (req.user as any)?.role === "admin") {
+  const sessionUser: any = (req as any).user;
+  const isAdminRole = req.isAuthenticated() && sessionUser && sessionUser.role === 'admin';
+  const isAdminEmail = req.isAuthenticated() && sessionUser && sessionUser.email && ADMIN_EMAILS.includes(sessionUser.email.toLowerCase());
+
+  if (isAdminRole || isAdminEmail) {
     return next();
   }
+
   res.status(403).json({ message: "Admin access required" });
 };

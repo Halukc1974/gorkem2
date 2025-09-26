@@ -375,7 +375,7 @@ export default function DocumentSearchPage() {
     return parts.join(' • ') || 'Detay bilgisi yok';
   };
 
-  // Quick preview state for Supabase results (Öz İzle)
+  // Quick preview state for Supabase results (Ön İzle)
   const [quickPreviewOpen, setQuickPreviewOpen] = useState(false);
   const [quickPreviewData, setQuickPreviewData] = useState<any>(null);
 
@@ -862,17 +862,17 @@ export default function DocumentSearchPage() {
                         <CardTitle className="text-lg">{getDocumentTitle(result)}</CardTitle>
                         <CardDescription className="mt-1">{getDocumentSubtitle(result)}</CardDescription>
                         <div className="flex items-center gap-2 mt-2">
-                          {/* Öz İzle (quick preview) button - green magnifier before Database badge */}
+                          {/* Ön İzle (quick preview) button - green magnifier before Database badge */}
                           <button
                             type="button"
                             className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white border"
                             onClick={() => openQuickPreview(result)}
-                            title="Öz İzle"
+                            title="Ön İzle"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-green-600">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 15l5 5M21 21l-5-5M10 14a4 4 0 100-8 4 4 0 000 8z" />
                             </svg>
-                            <span className="text-xs text-green-600">Öz İzle</span>
+                            <span className="text-xs text-green-600">Ön İzle</span>
                           </button>
                           <Badge variant="outline" className="text-green-600">
                             <Database className="h-3 w-3 mr-1" />
@@ -901,9 +901,9 @@ export default function DocumentSearchPage() {
                               {result.severity_rate}
                             </Badge>
                           )}
-                          {result["inc-out"] && (
+                          {result["incout"] && (
                             <Badge variant="secondary">
-                              {result["inc-out"] === 'Gelen' ? '📨 Gelen' : '📤 Giden'}
+                              {result["incout"] === 'Gelen' ? '📨 Gelen' : '📤 Giden'}
                             </Badge>
                           )}
                         </div>
@@ -1050,7 +1050,7 @@ export default function DocumentSearchPage() {
                           </div>
                           <div>
                             <span className="font-medium text-gray-700">Gelen/Giden:</span>
-                            <div className="text-gray-600">{result["inc-out"] || 'Belirtilmemiş'}</div>
+                            <div className="text-gray-600">{result["incout"] || 'Belirtilmemiş'}</div>
                           </div>
                           <div>
                             <span className="font-medium text-gray-700">Dahili No:</span>

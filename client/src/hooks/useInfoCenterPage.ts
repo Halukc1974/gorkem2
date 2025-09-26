@@ -74,7 +74,7 @@ export function useInfoCenterPage(opts: InfoCenterPageOptions) {
           keywords: doc.keywords ?? '',
           web_url: doc.weburl ?? null,
           content: (doc as any).content ?? (doc as any).letterContent ?? '', // Ekliyoruz: tooltip'te gösterilecek içerik alanı
-          inc_out: (doc as any)['inc-out'] ?? (doc as any).inc_out ?? ''
+          inc_out: (doc as any)['incout'] ?? (doc as any).inc_out ?? ''
         }));
 
         // Return total from database for accurate count

@@ -290,7 +290,7 @@ export default function InfoCenterPage(): JSX.Element {
                   <Column
                     header="Tip"
                     body={(rowData: any) => {
-                      const v = (rowData?.inc_out ?? rowData?.['inc-out'] ?? rowData?.inc_out)?.toString().toLowerCase();
+                      const v = (rowData?.inc_out ?? rowData?.['incout'] ?? rowData?.inc_out)?.toString().toLowerCase();
                       const isIncoming = v === 'incoming' || v === 'gelen' || v === 'in';
                       const label = isIncoming ? 'Gelen' : (v ? 'Giden' : '—');
                       const color = isIncoming ? '#10b981' : (v ? '#ef4444' : '#9ca3af');

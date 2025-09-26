@@ -715,9 +715,9 @@ export default function DocumentSearchPage() {
                               {result.severity_rate}
                             </Badge>
                           )}
-                          {result["inc-out"] && (
+                          {result["incout"] && (
                             <Badge variant="secondary">
-                              {result["inc-out"] === 'Gelen' ? '📨 Gelen' : '📤 Giden'}
+                              {result["incout"] === 'Gelen' ? '📨 Gelen' : '📤 Giden'}
                             </Badge>
                           )}
                         </div>
@@ -884,7 +884,7 @@ export default function DocumentSearchPage() {
                           </div>
                           <div>
                             <span className="font-medium text-gray-700">Gelen/Giden:</span>
-                            <div className="text-gray-600">{result["inc-out"] || 'Belirtilmemiş'}</div>
+                            <div className="text-gray-600">{result["incout"] || 'Belirtilmemiş'}</div>
                           </div>
                           <div>
                             <span className="font-medium text-gray-700">Dahili No:</span>

@@ -35,7 +35,7 @@ interface DocumentRecord {
   reply_letter?: string;         // text - cevap mektubu
   severity_rate?: string;        // text - önem derecesi
   letter_no?: string;            // text - mektup numarası
-  "inc-out"?: string;           // text - gelen/giden (özel field name)
+  "incout"?: string;           // text - gelen/giden (özel field name)
   keywords?: string;             // text - anahtar kelimeler
   weburl?: string;              // text - web URL
 }
@@ -280,7 +280,7 @@ class SupabaseService {
       }
 
       if (filters?.inc_out) {
-        queryBuilder = queryBuilder.eq('inc-out', filters.inc_out);
+        queryBuilder = queryBuilder.eq('incout', filters.inc_out);
       }
 
       if (filters?.internal_no) {
@@ -531,11 +531,11 @@ class SupabaseService {
       // Gelen/Giden istatistikleri
       const { data: incOutData } = await this.client
         .from('documents')
-        .select('inc-out')
-        .not('inc-out', 'is', null);
+        .select('incout')
+        .not('incout', 'is', null);
 
       const incomingOutgoing = incOutData?.reduce((acc: any, item: any) => {
-        const direction = item['inc-out'];
+        const direction = item['incout'];
         acc[direction] = (acc[direction] || 0) + 1;
         return acc;
       }, {}) || {};
@@ -646,7 +646,7 @@ class SupabaseService {
         if (filters.dateTo) query = query.lte('letter_date', filters.dateTo);
         if (filters.type_of_corr) query = query.eq('type_of_corr', filters.type_of_corr);
         if (filters.severity_rate) query = query.eq('severity_rate', filters.severity_rate);
-        if (filters.inc_out) query = query.eq('inc-out', filters.inc_out);
+        if (filters.inc_out) query = query.eq('incout', filters.inc_out);
         if (filters.internal_no) query = query.ilike('internal_no', `%${filters.internal_no}%`);
         if (filters.keywords && filters.keywords.length > 0) {
           const keywordSearch = filters.keywords.map(keyword => 
