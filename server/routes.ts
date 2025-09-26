@@ -405,7 +405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (snap.exists) {
               const data = snap.data() || {};
               const usersMap = data.users && typeof data.users === 'object' ? data.users : null;
-              if (usersMap && usersMap[email]) {
+              if (email && usersMap && Object.prototype.hasOwnProperty.call(usersMap, email)) {
                 return res.json(usersMap[email]);
               }
             }
@@ -450,12 +450,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const permSnap = await permRef.get();
         if (permSnap.exists) {
           const permData = permSnap.data() || {};
-          // First check users wrapper
-          if (permData.users && typeof permData.users === 'object' && permData.users[email]) {
+          // First check users wrapper (guard email before indexing)
+          if (email && permData.users && typeof permData.users === 'object' && Object.prototype.hasOwnProperty.call(permData.users, email)) {
             return res.json(permData.users[email]);
           }
-          // Then check flat email keys at top-level
-          if (permData[email]) {
+          // Then check flat email keys at top-level (guard email)
+          if (email && Object.prototype.hasOwnProperty.call(permData, email)) {
             return res.json(permData[email]);
           }
         }
@@ -482,7 +482,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (singleSnap.exists) {
           const data = singleSnap.data() || {};
           const usersMap = data.users && typeof data.users === 'object' ? data.users : null;
-          if (usersMap && email && usersMap[email]) {
+          if (email && usersMap && Object.prototype.hasOwnProperty.call(usersMap, email)) {
             return res.json(usersMap[email]);
           }
         }

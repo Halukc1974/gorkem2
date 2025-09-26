@@ -1,5 +1,5 @@
 // Firebase-first User Settings Hook
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './useAuth';
 import firebaseConfigService, { UserConfig } from '../services/firebaseConfig';
 
@@ -176,12 +176,28 @@ export function useUserSettings(): UseUserSettingsReturn {
   // Real-time Firebase listener - sadece gerektiğinde
   useEffect(() => {
     if (!user?.uid || !config) return; // Config yüklenmeden listener başlatma
-    
     let unsubscribe: (() => void) | null = null;
-    
-    // Firebase erişilebilir mi kontrol et
+
+    // Allow pausing remote sync while user edits locally
+    const pausedRef = (useRef as any)('_unused_paused_ref');
+    // If firebaseConfigService exposes an on-change subscribe, we'll use a local paused flag
     try {
+      // create a pausedRef on module-level (memoized via ref stored on this hook instance)
+      const localPausedRef = (useRef as any)({ current: false });
+
+      // attach to firebaseConfigService if not present (back-compat)
+      (firebaseConfigService as any)._pausedRef = localPausedRef;
+
       unsubscribe = firebaseConfigService.onUserConfigChange(user.uid, (updatedConfig) => {
+        try {
+          if ((firebaseConfigService as any)._pausedRef?.current) {
+            // skip applying remote updates while paused
+            return;
+          }
+        } catch (e) {
+          // ignore
+        }
+
         if (updatedConfig) {
           setConfig(prev => {
             // Sadece gerçekten değişmişse güncelle
@@ -205,6 +221,23 @@ export function useUserSettings(): UseUserSettingsReturn {
     };
   }, [user?.uid]); // Sadece user ID'ye bağlı
 
+  // Expose functions to pause/resume remote sync (useful while editing forms)
+  const suspendRemoteSync = useCallback(() => {
+    try {
+      if ((firebaseConfigService as any)._pausedRef) (firebaseConfigService as any)._pausedRef.current = true;
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  const resumeRemoteSync = useCallback(() => {
+    try {
+      if ((firebaseConfigService as any)._pausedRef) (firebaseConfigService as any)._pausedRef.current = false;
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
   // Computed properties
   const isConfigured = Boolean(config);
   const hasValidSupabase = Boolean(config?.supabase.url && config?.supabase.anonKey);
@@ -223,8 +256,11 @@ export function useUserSettings(): UseUserSettingsReturn {
     hasValidSupabase,
     hasValidApis,
     hasValidFirebase,
-    hasValidGoogleSheets
-  };
+    hasValidGoogleSheets,
+    // Controls for pausing/resuming remote sync
+    suspendRemoteSync,
+    resumeRemoteSync
+  } as any;
 }
 
 // Convenience hook - sadece değerlere erişim için

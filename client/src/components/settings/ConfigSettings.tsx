@@ -7,7 +7,7 @@ import { useUserSettingsLegacy } from '../../hooks/useUserSettings'
 import { useDocumentSearch } from '../../hooks/use-document-search'
 
 export default function ConfigSettings() {
-  const { settings, isLoading, saveUserSettings } = useUserSettingsLegacy();
+  const { settings, isLoading, saveUserSettings, suspendRemoteSync, resumeRemoteSync } = (useUserSettingsLegacy() as any);
   const { configureServices } = useDocumentSearch();
 
   const [configs, setConfigs] = useState({
@@ -15,16 +15,19 @@ export default function ConfigSettings() {
     deepseek: { apiKey: '' },
     openai: { apiKey: '' }
   });
+  const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
-    if (settings) {
+    // Only sync settings into the form if the user is not actively editing
+    if (settings && !isDirty) {
       setConfigs({
         supabase: { url: settings.supabase?.url || '', anonKey: settings.supabase?.anonKey || '' },
         deepseek: { apiKey: settings.deepseek?.apiKey || '' },
         openai: { apiKey: settings.openai?.apiKey || '' }
       });
+      setIsDirty(false);
     }
-  }, [settings]);
+  }, [settings, isDirty]);
 
   const handleSave = async () => {
     try {
@@ -42,6 +45,8 @@ export default function ConfigSettings() {
       }
       // Reconfigure runtime services to pick up new keys
       try { await configureServices(); } catch (e) { /* ignore */ }
+      // Clear dirty flag after successful save so external updates can sync again
+      setIsDirty(false);
       alert('Konfigürasyon kaydedildi');
     } catch (err) {
       console.error('Config save failed', err);
@@ -55,19 +60,19 @@ export default function ConfigSettings() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="space-y-2">
             <Label>Supabase URL</Label>
-            <Input value={configs.supabase.url} onChange={(e: any) => setConfigs(prev => ({ ...prev, supabase: { ...prev.supabase, url: e.target.value } }))} />
+            <Input value={configs.supabase.url} onFocus={() => suspendRemoteSync?.()} onBlur={() => resumeRemoteSync?.()} onChange={(e: any) => { setIsDirty(true); setConfigs(prev => ({ ...prev, supabase: { ...prev.supabase, url: e.target.value } })); }} />
           </div>
           <div className="space-y-2">
             <Label>Supabase Anon Key</Label>
-            <Input type="password" value={configs.supabase.anonKey} onChange={(e: any) => setConfigs(prev => ({ ...prev, supabase: { ...prev.supabase, anonKey: e.target.value } }))} />
+            <Input type="password" value={configs.supabase.anonKey} onFocus={() => suspendRemoteSync?.()} onBlur={() => resumeRemoteSync?.()} onChange={(e: any) => { setIsDirty(true); setConfigs(prev => ({ ...prev, supabase: { ...prev.supabase, anonKey: e.target.value } })); }} />
           </div>
           <div className="space-y-2">
             <Label>DeepSeek API Key</Label>
-            <Input type="password" value={configs.deepseek.apiKey} onChange={(e: any) => setConfigs(prev => ({ ...prev, deepseek: { apiKey: e.target.value } }))} />
+            <Input type="password" value={configs.deepseek.apiKey} onFocus={() => suspendRemoteSync?.()} onBlur={() => resumeRemoteSync?.()} onChange={(e: any) => { setIsDirty(true); setConfigs(prev => ({ ...prev, deepseek: { apiKey: e.target.value } })); }} />
           </div>
           <div className="space-y-2">
             <Label>OpenAI API Key</Label>
-            <Input type="password" value={configs.openai.apiKey} onChange={(e: any) => setConfigs(prev => ({ ...prev, openai: { apiKey: e.target.value } }))} />
+            <Input type="password" value={configs.openai.apiKey} onFocus={() => suspendRemoteSync?.()} onBlur={() => resumeRemoteSync?.()} onChange={(e: any) => { setIsDirty(true); setConfigs(prev => ({ ...prev, openai: { apiKey: e.target.value } })); }} />
           </div>
         </div>
 

@@ -182,14 +182,11 @@ export const requireAuth: RequestHandler = (req, res, next) => {
   res.status(401).json({ message: "Authentication required" });
 };
 
+// NOTE: Per request, treat any authenticated user as having admin access.
+// This removes admin gating so all logged-in users can access admin endpoints.
+// Keep ADMIN_EMAILS available for backward compatibility in other code paths.
 export const requireAdmin: RequestHandler = (req, res, next) => {
-  const sessionUser: any = (req as any).user;
-  const isAdminRole = req.isAuthenticated() && sessionUser && sessionUser.role === 'admin';
-  const isAdminEmail = req.isAuthenticated() && sessionUser && sessionUser.email && ADMIN_EMAILS.includes(sessionUser.email.toLowerCase());
-
-  if (isAdminRole || isAdminEmail) {
-    return next();
-  }
-
-  res.status(403).json({ message: "Admin access required" });
+  console.log('⚙️ [DEBUG] requireAdmin (relaxed) check - allowing any authenticated user');
+  if (req.isAuthenticated()) return next();
+  res.status(401).json({ message: "Authentication required" });
 };
