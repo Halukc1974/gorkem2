@@ -191,51 +191,66 @@ export class DecisionSupportService {
         .limit(1);
 
       if (!sampleData || sampleData.length === 0) {
-        // Embedding yok, text arama kullan
-        console.log('⚠️ Veritabanında embedding bulunamadı, text arama kullanılıyor');
-        return this.searchCorrespondence(query, filters, limit, offset);
+        // Embedding yok, gelişmiş text arama kullan
+        console.log('⚠️ Veritabanında embedding bulunamadı, gelişmiş text arama kullanılıyor');
+        return this.advancedTextSearch(query, filters, limit, offset);
       }
 
       // Embedding var, vector search dene
       const queryEmbedding = await this.generateEmbedding(query);
       console.log('📊 Oluşturulan embedding uzunluğu:', queryEmbedding.length);
 
-      const vectorResults = await supabaseService.vectorSearch(queryEmbedding, {
-        maxResults: limit,
-        filters: {
-          dateFrom: filters.dateFrom,
-          dateTo: filters.dateTo,
-          type_of_corr: filters.type_of_corr,
-          severity_rate: filters.severity_rate,
-          inc_out: filters.inc_out,
-          internal_no: filters.letter_no,
-          keywords: filters.keywords
+      // Hybrid search kullan - hem vector hem text
+      const hybridResults = await supabaseService.hybridSearch(
+        query,
+        queryEmbedding,
+        {
+          vectorThreshold: 0.1, // Daha düşük threshold
+          vectorWeight: 0.4,    // Vector ağırlığını azalttık
+          textWeight: 0.6,      // Text ağırlığını artırdık
+          maxResults: limit * 2, // Daha fazla sonuç al
+          filters: {
+            dateFrom: filters.dateFrom,
+            dateTo: filters.dateTo,
+            type_of_corr: filters.type_of_corr,
+            severity_rate: filters.severity_rate,
+            inc_out: filters.inc_out,
+            internal_no: filters.letter_no,
+            keywords: filters.keywords
+          }
+        },
+        {
+          textScoreMethod: 'overlap' // Token overlap ile daha iyi skorlama
         }
-      });
+      );
 
-      if (vectorResults.length > 0) {
-        console.log('✅ Vektör arama başarılı:', vectorResults.length, 'sonuç');
-        // VectorSearchResult'u CorrespondenceMetadata'ya dönüştür
-        const convertedResults: CorrespondenceMetadata[] = vectorResults.map(result => ({
-          id: result.id,
-          content: result.content || '',
-          metadata: result.metadata || {},
-          embedding: Array.isArray(result.embedding) ? JSON.stringify(result.embedding) : result.embedding || '',
-          internal_no: result.internal_no || '',
-          letter_date: result.letter_date || '',
-          type_of_corr: result.type_of_corr || '',
-          short_desc: result.short_desc || '',
-          sp_id: result.sp_id || '',
-          ref_letters: result.ref_letters || '',
-          reply_letter: result.reply_letter || '',
-          severity_rate: result.severity_rate || '',
-          letter_no: result.letter_no || '',
-          incout: result['incout'] || '',
-          keywords: result.keywords || '',
-          weburl: result.weburl || '',
-          created: result.created || new Date().toISOString(),
-          last_modified: result.last_modified || new Date().toISOString()
-        }));
+      if (hybridResults.length > 0) {
+        console.log('✅ Hybrid arama başarılı:', hybridResults.length, 'sonuç');
+
+        // Hybrid sonuçları CorrespondenceMetadata'ya dönüştür
+        const convertedResults: CorrespondenceMetadata[] = hybridResults
+          .slice(0, limit) // Limit uygula
+          .map(result => ({
+            id: result.id,
+            content: result.content || '',
+            metadata: result.metadata || {},
+            embedding: Array.isArray(result.embedding) ? JSON.stringify(result.embedding) : result.embedding || '',
+            internal_no: result.internal_no || '',
+            letter_date: result.letter_date || '',
+            type_of_corr: result.type_of_corr || '',
+            short_desc: result.short_desc || '',
+            sp_id: result.sp_id || '',
+            ref_letters: result.ref_letters || '',
+            reply_letter: result.reply_letter || '',
+            severity_rate: result.severity_rate || '',
+            letter_no: result.letter_no || '',
+            incout: result['incout'] || '',
+            keywords: result.keywords || '',
+            weburl: result.weburl || '',
+            created: result.created || new Date().toISOString(),
+            last_modified: result.last_modified || new Date().toISOString()
+          }));
+
         return {
           data: convertedResults,
           total: convertedResults.length,
@@ -243,15 +258,15 @@ export class DecisionSupportService {
         };
       }
 
-      // Vector search sonuç vermedi, text arama fallback
-      console.log('⚠️ Vektör arama sonuç vermedi, text arama fallback kullanılıyor');
-      return this.searchCorrespondence(query, filters, limit, offset);
+      // Hybrid arama sonuç vermedi, gelişmiş text arama fallback
+      console.log('⚠️ Hybrid arama sonuç vermedi, gelişmiş text arama fallback kullanılıyor');
+      return this.advancedTextSearch(query, filters, limit, offset);
 
     } catch (error) {
       console.error('Vector search error:', error);
-      // Hata durumunda text arama fallback
-      console.log('⚠️ Vektör arama hatası, text arama fallback kullanılıyor');
-      return this.searchCorrespondence(query, filters, limit, offset);
+      // Hata durumunda gelişmiş text arama fallback
+      console.log('⚠️ Vektör arama hatası, gelişmiş text arama fallback kullanılıyor');
+      return this.advancedTextSearch(query, filters, limit, offset);
     }
   }
 
@@ -307,28 +322,51 @@ export class DecisionSupportService {
     }
   }
 
-  // Basit hash tabanlı embedding (fallback)
+  // Gelişmiş basit embedding (TF-IDF benzerlik ile)
   private generateSimpleEmbedding(text: string): number[] {
-    const words = text.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+    const words = text.toLowerCase()
+      .replace(/[^\w\sğüşöçıİĞÜŞÖÇ]/g, ' ') // Noktalama işaretlerini kaldır
+      .split(/\s+/)
+      .filter(w => w.length > 1 && !this.isStopWord(w)); // Stop words'leri çıkar
+
     const embedding = new Array(1536).fill(0);
 
-    // Her kelime için basit bir hash değeri oluştur
-    words.forEach((word, wordIndex) => {
-      let hash = 0;
-      for (let i = 0; i < word.length; i++) {
-        hash = ((hash << 5) - hash) + word.charCodeAt(i);
-        hash = hash & hash; // 32-bit integer'a çevir
-      }
-
-      // Hash değerini embedding'e dağıt
-      const baseIndex = (Math.abs(hash) + wordIndex * 31) % 1536;
-      for (let i = 0; i < Math.min(word.length, 10); i++) {
-        const index = (baseIndex + i) % 1536;
-        embedding[index] += (word.charCodeAt(i % word.length) / 255.0) * 0.1;
-      }
+    // TF-IDF benzerlik için kelime frekanslarını hesapla
+    const wordFreq = new Map<string, number>();
+    words.forEach(word => {
+      wordFreq.set(word, (wordFreq.get(word) || 0) + 1);
     });
 
-    // Normalize et (magnitude 1 yap)
+    // Her kelime için gelişmiş embedding oluştur
+    words.forEach((word, wordIndex) => {
+      const tf = wordFreq.get(word) || 1;
+      const idf = Math.log(1000 / (this.getDocumentFrequency(word) + 1)); // Basit IDF
+      const tfidf = tf * idf;
+
+      // Kelime için çoklu hash fonksiyonları kullan
+      const hashes = this.generateMultipleHashes(word);
+
+      hashes.forEach((hash, hashIndex) => {
+        const baseIndex = (Math.abs(hash) + wordIndex * 31) % 1536;
+        const weight = tfidf * (0.5 + hashIndex * 0.1); // Farklı hash'ler için farklı ağırlıklar
+
+        for (let i = 0; i < Math.min(word.length, 8); i++) {
+          const index = (baseIndex + i * 7) % 1536;
+          const charValue = word.charCodeAt(i % word.length);
+          embedding[index] += (charValue / 255.0) * weight * 0.01;
+        }
+      });
+
+      // Semantik benzerlik için sinonim desteği
+      const synonyms = this.getSynonyms(word);
+      synonyms.forEach((synonym, synIndex) => {
+        const synHash = this.simpleHash(synonym);
+        const synEmbeddingIndex = (Math.abs(synHash) + wordIndex * 17 + synIndex * 23) % 1536;
+        embedding[synEmbeddingIndex] += tfidf * 0.3; // Sinonimler için daha düşük ağırlık
+      });
+    });
+
+    // L2 normalization
     const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
     if (magnitude > 0) {
       for (let i = 0; i < embedding.length; i++) {
@@ -339,16 +377,264 @@ export class DecisionSupportService {
     return embedding;
   }
 
-  // Belirli bir yazışmayı getir
-  async getCorrespondenceById(id: string): Promise<CorrespondenceMetadata | null> {
-    const { data, error } = await supabaseService.getClient()
-      .from(this.tableName)
-      .select('*')
-      .eq('id', id)
-      .single();
+  // Stop words listesi (Türkçe)
+  private isStopWord(word: string): boolean {
+    const stopWords = new Set([
+      've', 'veya', 'ile', 'da', 'de', 'ki', 'mi', 'mı', 'mu', 'mü',
+      'bir', 'bu', 'şu', 'o', 'için', 'gibi', 'kadar', 'sonra', 'önce',
+      'olarak', 'ise', 'ama', 'fakat', 'ancak', 'lakin', 'halbuki',
+      'yine', 'tekrar', 'yeniden', 'şimdi', 'burada', 'orada', 'şurada'
+    ]);
+    return stopWords.has(word);
+  }
 
-    if (error) throw error;
-    return data;
+  // Basit document frequency (demo amaçlı - gerçek uygulamada corpus'tan hesaplanmalı)
+  private getDocumentFrequency(word: string): number {
+    // Yaygın Türkçe kelimeler için daha yüksek DF
+    const commonWords = new Set([
+      'proje', 'izin', 'rapor', 'onay', 'ödeme', 'sözleşme', 'talep',
+      'cevap', 'yazı', 'belge', 'tarih', 'konu', 'hakkında', 'iletişim'
+    ]);
+
+    if (commonWords.has(word)) return 100;
+    return Math.max(1, word.length); // Nadir kelimeler için daha düşük DF
+  }
+
+  // Birden fazla hash fonksiyonu
+  private generateMultipleHashes(word: string): number[] {
+    const hashes = [];
+    for (let i = 0; i < 3; i++) { // 3 farklı hash
+      let hash = 0;
+      const salt = i * 31; // Farklı salt değerleri
+      for (let j = 0; j < word.length; j++) {
+        hash = ((hash << 5) - hash) + word.charCodeAt(j) + salt;
+        hash = hash & hash; // 32-bit integer'a çevir
+      }
+      hashes.push(hash);
+    }
+    return hashes;
+  }
+
+  // Basit hash fonksiyonu
+  private simpleHash(word: string): number {
+    let hash = 0;
+    for (let i = 0; i < word.length; i++) {
+      hash = ((hash << 5) - hash) + word.charCodeAt(i);
+      hash = hash & hash;
+    }
+    return hash;
+  }
+
+  // Basit sinonim desteği
+  private getSynonyms(word: string): string[] {
+    const synonymMap: { [key: string]: string[] } = {
+      'cam': ['cam', 'pencere', 'kristal', 'şeffaf'],
+      'kurşun': ['kurşun', 'mermi', 'silah', 'ateşli'],
+      'geçirmez': ['geçirmez', 'dayanıklı', 'mukavim', 'koruyucu'],
+      'marble': ['mermer', 'taş', 'mineral'],
+      'duvar': ['duvar', 'yapı', 'bina', 'yüzey'],
+      'çelik': ['çelik', 'metal', 'demir', 'alaşım'],
+      'beton': ['beton', 'çimento', 'yapı', 'malzeme']
+    };
+
+    return synonymMap[word] || [];
+  }
+
+  // Gelişmiş text arama - semantic keyword extraction ile
+  private async advancedTextSearch(
+    query: string,
+    filters: SearchFilters = {},
+    limit: number = 50,
+    offset: number = 0
+  ): Promise<SearchResult> {
+    try {
+      console.log('🔍 Gelişmiş text arama başlatılıyor:', query);
+
+      // Query'yi semantic keywords'e dönüştür
+      const semanticKeywords = this.extractSemanticKeywords(query);
+      console.log('📝 Semantic keywords:', semanticKeywords);
+
+      // Ana sorgu + semantic keywords ile arama yap
+      let queryBuilder = supabaseService.getClient()
+        .from(this.tableName)
+        .select('*', { count: 'exact' });
+
+      // Ana query ile full-text search
+      const searchConditions = [
+        `content.ilike.%${query}%`,
+        `short_desc.ilike.%${query}%`,
+        `keywords.ilike.%${query}%`,
+        `letter_no.ilike.%${query}%`,
+        `internal_no.ilike.%${query}%`
+      ];
+
+      // Semantic keywords ekle
+      semanticKeywords.forEach(keyword => {
+        if (keyword !== query.toLowerCase()) { // Ana query'yi tekrar ekleme
+          searchConditions.push(`content.ilike.%${keyword}%`);
+          searchConditions.push(`short_desc.ilike.%${keyword}%`);
+          searchConditions.push(`keywords.ilike.%${keyword}%`);
+        }
+      });
+
+      queryBuilder = queryBuilder.or(searchConditions.join(','));
+
+      // Filtreleri uygula
+      if (filters.dateFrom) {
+        queryBuilder = queryBuilder.gte('letter_date', filters.dateFrom);
+      }
+      if (filters.dateTo) {
+        queryBuilder = queryBuilder.lte('letter_date', filters.dateTo);
+      }
+      if (filters.type_of_corr) {
+        queryBuilder = queryBuilder.eq('type_of_corr', filters.type_of_corr);
+      }
+      if (filters.severity_rate) {
+        queryBuilder = queryBuilder.eq('severity_rate', filters.severity_rate);
+      }
+      if (filters.inc_out) {
+        queryBuilder = queryBuilder.eq('incout', filters.inc_out);
+      }
+      if (filters.keywords && filters.keywords.length > 0) {
+        const keywordConditions = filters.keywords.map(k => `keywords.ilike.%${k}%`).join(',');
+        queryBuilder = queryBuilder.or(keywordConditions);
+      }
+
+      // Skorlama için sıralama (semantic benzerlik)
+      queryBuilder = queryBuilder.order('letter_date', { ascending: false });
+
+      // Limit uygula
+      queryBuilder = queryBuilder.range(offset, offset + limit - 1);
+
+      const { data, error, count } = await queryBuilder;
+
+      if (error) throw error;
+
+      // Sonuçları semantic skor ile yeniden sırala
+      const scoredResults = (data || []).map(item => ({
+        ...item,
+        semanticScore: this.calculateSemanticScore(item, query, semanticKeywords)
+      }));
+
+      scoredResults.sort((a, b) => b.semanticScore - a.semanticScore);
+
+      console.log(`✅ Gelişmiş text arama: ${scoredResults.length} sonuç bulundu`);
+
+      return {
+        data: scoredResults.slice(0, limit),
+        total: count || 0,
+        hasMore: (count || 0) > offset + limit
+      };
+
+    } catch (error) {
+      console.error('Gelişmiş text arama hatası:', error);
+      // Fallback: basit text arama
+      return this.searchCorrespondence(query, filters, limit, offset);
+    }
+  }
+
+  // Semantic keyword extraction
+  private extractSemanticKeywords(query: string): string[] {
+    const keywords = new Set<string>();
+    const lowerQuery = query.toLowerCase().trim();
+
+    // Ana query'yi ekle
+    keywords.add(lowerQuery);
+
+    // Kelimelere ayır
+    const words = lowerQuery.split(/\s+/).filter(w => w.length > 1);
+
+    // Her kelime için sinonimleri ekle
+    words.forEach(word => {
+      keywords.add(word);
+
+      // Sözlükteki sinonimleri ekle
+      const synonyms = this.getSynonyms(word);
+      synonyms.forEach(syn => keywords.add(syn));
+
+      // Kelime varyasyonları
+      if (word.endsWith('lık') || word.endsWith('lik')) {
+        keywords.add(word.slice(0, -3)); // köke in
+      }
+      if (word.endsWith('li') || word.endsWith('li')) {
+        keywords.add(word.slice(0, -2)); // köke in
+      }
+    });
+
+    // Özel terimler için semantic mapping
+    const semanticMap: { [key: string]: string[] } = {
+      'kurşun': ['kurşun', 'mermi', 'silah', 'ateşli', 'güvenlik', 'korunma'],
+      'cam': ['cam', 'cam', 'pencere', 'kristal', 'şeffaf', 'koruyucu'],
+      'geçirmez': ['geçirmez', 'dayanıklı', 'mukavim', 'koruyucu', 'güçlü'],
+      'marble': ['mermer', 'taş', 'mineral', 'yapı', 'malzeme'],
+      'duvar': ['duvar', 'yapı', 'bina', 'yüzey', 'korunma'],
+      'çelik': ['çelik', 'metal', 'demir', 'alaşım', 'güçlü'],
+      'beton': ['beton', 'çimento', 'yapı', 'malzeme', 'dayanıklı'],
+      'güvenlik': ['güvenlik', 'korunma', 'koruyucu', 'emniyet'],
+      'malzeme': ['malzeme', 'hammadde', 'ürün', 'stok'],
+      'yapı': ['yapı', 'bina', 'inşaat', 'imalat']
+    };
+
+    // Query'deki kelimeler için semantic mapping uygula
+    words.forEach(word => {
+      const mapped = semanticMap[word];
+      if (mapped) {
+        mapped.forEach(term => keywords.add(term));
+      }
+    });
+
+    return Array.from(keywords);
+  }
+
+  // Semantic skor hesaplama
+  private calculateSemanticScore(
+    item: any,
+    query: string,
+    semanticKeywords: string[]
+  ): number {
+    let score = 0;
+    const lowerQuery = query.toLowerCase();
+    const content = (item.content || '').toLowerCase();
+    const shortDesc = (item.short_desc || '').toLowerCase();
+    const keywords = (item.keywords || '').toLowerCase();
+
+    // Tam eşleşme bonus
+    if (content.includes(lowerQuery) || shortDesc.includes(lowerQuery) || keywords.includes(lowerQuery)) {
+      score += 100;
+    }
+
+    // Semantic keyword eşleşmeleri
+    semanticKeywords.forEach(keyword => {
+      if (keyword !== lowerQuery) {
+        let keywordScore = 0;
+
+        if (content.includes(keyword)) keywordScore += 10;
+        if (shortDesc.includes(keyword)) keywordScore += 20; // Kısa açıklama daha önemli
+        if (keywords.includes(keyword)) keywordScore += 15;
+
+        // Keyword ne kadar nadir olursa o kadar yüksek skor
+        const rarity = Math.max(1, 20 - keyword.length);
+        keywordScore *= (rarity / 20);
+
+        score += keywordScore;
+      }
+    });
+
+    // Tarih yakınlığı bonus (daha yeni tarihler daha yüksek skor)
+    if (item.letter_date) {
+      const daysSince = (Date.now() - new Date(item.letter_date).getTime()) / (1000 * 60 * 60 * 24);
+      const recencyBonus = Math.max(0, 30 - daysSince); // 30 gün içinde bonus
+      score += recencyBonus;
+    }
+
+    // Önem derecesi bonus
+    if (item.severity_rate) {
+      const severityBonus = item.severity_rate.includes('Yüksek') ? 15 :
+                           item.severity_rate.includes('Orta') ? 10 : 5;
+      score += severityBonus;
+    }
+
+    return score;
   }
 
   // Yeni yazışma ekle
