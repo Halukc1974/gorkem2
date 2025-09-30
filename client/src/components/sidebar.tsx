@@ -419,7 +419,7 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
             data-testid="nav-decision-support-template"
           >
             <i className="fas fa-file-alt mr-3 h-5 w-5"></i>
-            📋 Karar Destek Şablonu
+            📋 Karar Destek Sistemi
           </button>
         )}
 

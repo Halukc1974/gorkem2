@@ -3,7 +3,7 @@ import { supabaseService } from './supabase';
 
 // Veri modelleri
 export interface CorrespondenceMetadata {
-  id: number;
+  id: string;
   content: string;
   metadata: any;
   embedding: string;
@@ -21,6 +21,7 @@ export interface CorrespondenceMetadata {
   weburl: string;
   created: string;
   last_modified: string;
+  aiAnalysis?: AIAnalysis;
 }
 
 export interface AIAnalysis {
@@ -52,31 +53,13 @@ export interface SearchFilters {
   letter_no?: string;
   short_desc?: string;
   sp_id?: string;
+  query?: string;
 }
 
 export interface SearchResult {
   data: CorrespondenceMetadata[];
   total: number;
   hasMore: boolean;
-}
-
-export interface AIAnalysis {
-  summary: string;
-  similar_docs: string[];
-  action_suggestions: string[];
-  template_suggestions: string[];
-  text_completion: string;
-  risk_analysis: {
-    level: string;
-    factors: string[];
-    recommendations: string[];
-  };
-  sentiment_analysis: {
-    overall: string;
-    score: number;
-    key_phrases: string[];
-  };
-  generated_at: string;
 }
 
 // Servis sınıfı
@@ -762,22 +745,131 @@ export class DecisionSupportService {
     return stats;
   }
 
-  // AI analiz fonksiyonları - Şimdilik mock implementation, API seçimi ile genişletilebilir
-  async analyzeCorrespondence(content: string, apiType: 'deepseek' | 'openai' = 'deepseek'): Promise<AIAnalysis> {
-    // Mock delay to simulate AI processing
-    await new Promise(resolve => setTimeout(resolve, 1500));
+  // AI analiz fonksiyonları - Gerçek OpenAI API entegrasyonu
+  async analyzeCorrespondence(content: string, apiType: 'deepseek' | 'openai' = 'openai'): Promise<AIAnalysis> {
+    try {
+      console.log(`🤖 AI Analiz başlatılıyor: ${apiType.toUpperCase()} API ile`);
 
-    console.log(`🤖 AI Analiz başlatılıyor: ${apiType.toUpperCase()} API ile`);
+      // Kullanıcı ayarlarından OpenAI API key'ini al
+      const userSettings = (window as any).__USER_SETTINGS__;
+      const openaiApiKey = userSettings?.openai?.apiKey;
 
-    // Basit keyword analizi
+      if (!openaiApiKey || !openaiApiKey.trim()) {
+        console.warn('⚠️ OpenAI API key bulunamadı, mock analiz kullanılıyor');
+        return this.generateMockAnalysis(content);
+      }
+
+      // Gerçek OpenAI API çağrısı - çok daha detaylı prompt
+      const analysisPrompt = `
+Aşağıdaki yazışma/yazışmaların içeriğini KAPSAMLI ve DETAYLI olarak analiz et. Analiz raporun en az 200-300 kelime olacak şekilde detaylı olmalı.
+
+YAZIŞMA İÇERİĞİ:
+${content}
+
+ANALİZ TALİMATLARI:
+1. **Detaylı Özet**: Yazışmanın konusunu, amacını, taraflarını ve önemini kapsamlı şekilde özetle (70-100 kelime)
+2. **İlişkiler ve Bağlantılar**: Belgeler arası ilişkileri, referansları ve bağlantıları belirle. Mantıksız veya tutarsız referansları temizle ve gerçek ilişkileri vurgula.
+3. **Risk Analizi**: Potansiyel riskleri, önem derecelerini ve aciliyet faktörlerini detaylı değerlendir (50-70 kelime)
+4. **Duygu ve Ton Analizi**: Belgelerin genel duygu durumunu ve iletişim tonunu derinlemesine analiz et
+5. **Önerilen Aksiyonlar**: Yapılması gereken somut, uygulanabilir adımları detaylı olarak belirt (50-70 kelime)
+6. **Zaman Çizelgesi**: Önemli tarihler, süreler ve zamanlamalar varsa belirt
+7. **Benzer Doküman Önerileri**: İçerik bazlı benzer doküman türleri öner
+8. **Şablon Önerileri**: Uygun yazışma şablonları öner
+
+JSON FORMATI:
+{
+  "summary": "Çok detaylı özet metni (70-100 kelime)",
+  "action_suggestions": ["Detaylı aksiyon 1", "Detaylı aksiyon 2", "Detaylı aksiyon 3", "Detaylı aksiyon 4"],
+  "risk_analysis": {
+    "level": "Düşük|Orta|Yüksek",
+    "factors": ["Detaylı faktör 1", "Detaylı faktör 2", "Detaylı faktör 3"],
+    "recommendations": ["Detaylı öneri 1", "Detaylı öneri 2", "Detaylı öneri 3"]
+  },
+  "sentiment_analysis": {
+    "overall": "Pozitif|Nötr|Negatif",
+    "score": 0-100,
+    "key_phrases": ["Anahtar ifade 1", "Anahtar ifade 2", "Anahtar ifade 3"]
+  },
+  "similar_docs": ["Benzer doküman türü 1", "Benzer doküman türü 2", "Benzer doküman türü 3"],
+  "template_suggestions": ["Şablon önerisi 1", "Şablon önerisi 2", "Şablon önerisi 3"],
+  "text_completion": "Detaylı tamamlanmış metin önerisi"
+}
+
+ÖNEMLİ: 
+- Türkçe yanıt ver
+- Her bölüm için detaylı ve kapsamlı açıklama yap
+- Toplam analiz 200-300 kelime arasında olmalı
+- Profesyonel kamu yönetimi perspektifinden analiz et
+- Somut, uygulanabilir öneriler ver
+      `;
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openaiApiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'Sen deneyimli bir kamu yönetimi uzmanısın. Yazışmaları kapsamlı şekilde analiz eder, risk değerlendirmesi yapar, ilişkileri belirler ve detaylı önerilerde bulunursun. Türkçe yanıt verirsin ve 200-300 kelime arası detaylı analizler yaparsın.'
+            },
+            {
+              role: 'user',
+              content: analysisPrompt
+            }
+          ],
+          temperature: 0.3,
+          max_tokens: 3000
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const aiResponse = data.choices[0]?.message?.content;
+
+      if (!aiResponse) {
+        throw new Error('OpenAI API boş yanıt döndürdü');
+      }
+
+      console.log('✅ OpenAI kapsamlı analiz yanıtı alındı');
+
+      // JSON parse etmeyi dene
+      try {
+        const parsedAnalysis = JSON.parse(aiResponse);
+        return {
+          ...parsedAnalysis,
+          generated_at: new Date().toISOString()
+        };
+      } catch (parseError) {
+        console.warn('⚠️ OpenAI yanıtı JSON parse edilemedi, mock fallback kullanılıyor');
+        return this.generateMockAnalysis(content);
+      }
+
+    } catch (error) {
+      console.error('OpenAI API hatası:', error);
+      console.log('⚠️ OpenAI API hatası nedeniyle mock analiz kullanılıyor');
+      return this.generateMockAnalysis(content);
+    }
+  }
+
+  // Mock analiz fallback fonksiyonu
+  private generateMockAnalysis(content: string): AIAnalysis {
+    console.log('🔄 Mock analiz oluşturuluyor...');
+
     const keywords = this.extractKeywords(content);
     const sentiment = this.analyzeSentiment(content);
     const riskLevel = this.assessRisk(content, keywords);
 
     return {
-      summary: this.generateSummary(content),
-      similar_docs: [], // Bu kısım findSimilarCorrespondence ile doldurulacak
-      action_suggestions: this.generateActionSuggestions(content, keywords),
+      summary: this.generateDetailedSummary(content),
+      similar_docs: this.generateSimilarDocs(content),
+      action_suggestions: this.generateDetailedActionSuggestions(content, keywords),
       template_suggestions: this.suggestTemplates(keywords),
       text_completion: this.generateTextCompletion(content),
       risk_analysis: {
@@ -792,6 +884,83 @@ export class DecisionSupportService {
       },
       generated_at: new Date().toISOString()
     };
+  }
+
+  private generateDetailedSummary(content: string): string {
+    // Daha detaylı özet oluştur - 70-100 kelime arası
+    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 10);
+    const firstSentence = sentences[0] || content.substring(0, 100);
+
+    const keywords = this.extractKeywords(content);
+    let additionalInfo = '';
+
+    if (keywords.includes('izin')) {
+      additionalInfo = 'İlgili proje için gerekli izin süreçleri ve yasal prosedürler hakkında detaylı bilgi içermektedir. ';
+    } else if (keywords.includes('ödeme')) {
+      additionalInfo = 'Mali konular, ödeme şartları ve bütçe planlaması ile ilgili önemli hususları kapsamaktadır. ';
+    } else if (keywords.includes('gecikme')) {
+      additionalInfo = 'Zaman yönetimi, gecikme nedenleri ve çözüm önerileri konusunda kritik bilgiler sunmaktadır. ';
+    }
+
+    return `${firstSentence.trim()}. ${additionalInfo}Bu yazışma, ilgili kurum/kuruluş ile yapılan yazışmaların bir parçası olup, proje süreci, izin talepleri veya resmi işlemlerle ilgili önemli hususları içermektedir. Detaylı inceleme ve ilgili departmanların koordinasyonu gerektiren konularda uzman görüşü alınması önerilir. Yazışmanın zamanında ve etkili bir şekilde ele alınması kurum içi süreçlerin verimliliğini artıracaktır.`;
+  }
+
+  private generateSimilarDocs(content: string): string[] {
+    const similar = [];
+    if (content.toLowerCase().includes('izin')) {
+      similar.push('İzin Başvuru Yazışmaları');
+      similar.push('ÇED Raporu Talepleri');
+    }
+    if (content.toLowerCase().includes('ödeme')) {
+      similar.push('Ödeme Talep Yazışmaları');
+      similar.push('Fatura Onay Süreçleri');
+    }
+    if (content.toLowerCase().includes('gecikme')) {
+      similar.push('Süre Uzatım Talepleri');
+      similar.push('Gecikme Bildirimleri');
+    }
+    return similar.length > 0 ? similar : ['Genel Yazışma Örnekleri'];
+  }
+
+  private generateDetailedActionSuggestions(content: string, keywords: string[]): string[] {
+    const suggestions = [];
+
+    if (keywords.includes('izin')) {
+      suggestions.push('İlgili izin belgelerinin eksiksiz ve mevzuata uygun olarak hazırlanması ve ilgili kuruma sunulması için zaman çizelgesi oluşturulmalı');
+      suggestions.push('Teknik raporların ve eklerinin tamamlanıp onay sürecine alınması için ilgili mühendislik birimleriyle koordinasyon sağlanmalı');
+      suggestions.push('İzin süreci boyunca düzenli takip yapılarak, eksik belgelerin zamanında tamamlanması için hatırlatma sistemi kurulmalı');
+      suggestions.push('İzin onayının alınması durumunda sonraki aşama olan uygulama izinleri için hazırlık çalışmalarına başlanmalı');
+    }
+
+    if (keywords.includes('ödeme')) {
+      suggestions.push('Muhasebe departmanıyla koordinasyon sağlanarak ödeme şartlarının ve bütçe kalemlerinin detaylı olarak incelenmesi');
+      suggestions.push('Fatura ve ödeme belgelerinin yasal gerekliliklere uygunluğu kontrol edilerek onay süreci başlatılmalı');
+      suggestions.push('Ödeme planlaması yapılırken nakit akışı ve bütçe kısıtlamaları göz önünde bulundurulmalı');
+      suggestions.push('Ödeme sonrası teslimat ve hizmet kalitesi takibi için performans kriterleri belirlenmeli');
+    }
+
+    if (keywords.includes('gecikme')) {
+      suggestions.push('Gecikme nedenlerinin detaylı olarak analiz edilerek, önlenebilir faktörler belirlenip iyileştirme planı hazırlanmalı');
+      suggestions.push('Telafi planı oluşturulurken gerçekçi zaman çizelgesi ve kaynak planlaması yapılmalı');
+      suggestions.push('İlgili taraflarla (müşteriler, tedarikçiler, yetkililer) şeffaf iletişim kurularak durum hakkında bilgilendirilmeli');
+      suggestions.push('Gecikme sonrası risk analizi yapılarak benzer durumların önüne geçmek için standart prosedürler güncellenmeli');
+    }
+
+    if (keywords.includes('şikayet') || keywords.includes('ihbar')) {
+      suggestions.push('Şikayet konusu detaylı olarak incelenerek, yasal ve teknik boyutları değerlendirilmeli');
+      suggestions.push('İlgili birimlerle koordinasyon sağlanarak, şikayetin çözümüne yönelik eylem planı hazırlanmalı');
+      suggestions.push('Şikayetçi ile iletişim kurularak, çözüm süreci hakkında bilgilendirilmeli ve takip sistemi kurulmalı');
+      suggestions.push('Benzer şikayetlerin önüne geçmek için kalite kontrol süreçleri gözden geçirilmeli');
+    }
+
+    if (suggestions.length === 0) {
+      suggestions.push('İlgili departmanlarla durumun paylaşılması ve koordinasyon sağlanması');
+      suggestions.push('Yasal gerekliliklerin ve mevzuatın kontrol edilerek uygun adımların atılması');
+      suggestions.push('Zaman çizelgesinin güncellenmesi ve takip sisteminin kurulması');
+      suggestions.push('İlgili taraflarla iletişim protokollerinin belirlenmesi ve uygulanması');
+    }
+
+    return suggestions;
   }
 
   private extractKeywords(content: string): string[] {
@@ -925,6 +1094,59 @@ export class DecisionSupportService {
     }
 
     return recommendations;
+  }
+
+  // Sepet ve referans belgelerinin özetlerini çıkar
+  async generateBasketSummaries(documents: CorrespondenceMetadata[]): Promise<Array<{
+    id: string;
+    title: string;
+    summary: string;
+    keyPoints: string[];
+    riskLevel: string;
+  }>> {
+    if (!documents || documents.length === 0) {
+      return [];
+    }
+
+    const summaries = [];
+
+    // Her belge için paralel olarak özet çıkar
+    const summaryPromises = documents.map(async (doc) => {
+      try {
+        // Belge içeriğini analiz et
+        const analysis = await this.analyzeCorrespondence(doc.content);
+
+        return {
+          id: doc.id,
+          title: doc.short_desc || 'Başlıksız',
+          summary: analysis.summary,
+          keyPoints: analysis.action_suggestions.slice(0, 3), // İlk 3 aksiyon önerisini key points olarak kullan
+          riskLevel: analysis.risk_analysis.level
+        };
+      } catch (error) {
+        console.error(`Belge özeti çıkarılamadı (${doc.id}):`, error);
+        // Fallback: basit özet
+        return {
+          id: doc.id,
+          title: doc.short_desc || 'Başlıksız',
+          summary: doc.content.substring(0, 200) + '...',
+          keyPoints: ['İçerik analiz edilemedi'],
+          riskLevel: 'Bilinmiyor'
+        };
+      }
+    });
+
+    // Tüm özetleri paralel olarak bekle
+    const results = await Promise.allSettled(summaryPromises);
+
+    // Başarılı olanları topla
+    results.forEach((result) => {
+      if (result.status === 'fulfilled') {
+        summaries.push(result.value);
+      }
+    });
+
+    return summaries;
   }
 
   private extractKeyPhrases(content: string): string[] {
