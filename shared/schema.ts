@@ -85,6 +85,36 @@ export const transactions = pgTable("transactions", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Karar Destek Sistemi - Correspondence Metadata
+export const correspondenceMetadata = pgTable("correspondence_metadata", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  letterNo: text("letter_no").notNull(),
+  letterDate: timestamp("letter_date").notNull(),
+  parties: text("parties").notNull(),
+  subject: text("subject").notNull(),
+  contentType: text("content_type").notNull(),
+  projectName: text("project_name").notNull(),
+  criticality: integer("criticality").notNull(),
+  decisionMade: boolean("decision_made").notNull().default(false),
+  decisionDate: timestamp("decision_date"),
+  relatedDocs: text("related_docs").array().default(sql`ARRAY[]::text[]`),
+  content: text("content").notNull(),
+  riskLevel: text("risk_level").notNull(),
+  sentiment: text("sentiment").notNull(),
+  keywords: text("keywords").array().default(sql`ARRAY[]::text[]`),
+  aiAnalysis: jsonb("ai_analysis"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_correspondence_metadata_letter_date").on(table.letterDate),
+  index("idx_correspondence_metadata_project_name").on(table.projectName),
+  index("idx_correspondence_metadata_content_type").on(table.contentType),
+  index("idx_correspondence_metadata_criticality").on(table.criticality),
+  index("idx_correspondence_metadata_risk_level").on(table.riskLevel),
+  index("idx_correspondence_metadata_keywords").on(table.keywords),
+  index("idx_correspondence_metadata_ai_analysis").on(table.aiAnalysis),
+]);
+
 // Insert schemas
 export const insertSheetSchema = createInsertSchema(sheets).omit({
   id: true,
@@ -110,6 +140,20 @@ export const insertTransactionSchema = createInsertSchema(transactions).omit({
   updatedAt: true,
 });
 
+// Insert schema for correspondence metadata
+export const insertCorrespondenceMetadataSchema = createInsertSchema(correspondenceMetadata, {
+  letterDate: z.coerce.date(),
+  decisionDate: z.coerce.date().optional(),
+  criticality: z.number().min(1).max(10),
+  contentType: z.enum(["Bilgilendirme", "İhtar", "Cevap", "Talep", "Başvuru", "Diğer"]),
+  riskLevel: z.enum(["Düşük", "Orta", "Yüksek"]),
+  sentiment: z.enum(["Pozitif", "Nötr", "Negatif"]),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type Sheet = typeof sheets.$inferSelect;
 export type InsertSheet = z.infer<typeof insertSheetSchema>;
@@ -124,6 +168,7 @@ export type Transaction = typeof transactions.$inferSelect;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 
 export type DashboardMetric = typeof dashboardMetrics.$inferSelect;
+export type CorrespondenceMetadata = typeof correspondenceMetadata.$inferSelect;
 
 // API response types
 export type SheetData = {

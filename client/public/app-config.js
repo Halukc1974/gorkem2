@@ -18,11 +18,9 @@ window.__APP_CONFIG__ = {
   GOOGLE_SHEETS_PROJECT_ID: "gorkeminsaat", 
   GOOGLE_SHEETS_SPREADSHEET_ID: "1gOjceZ4DxORlbD1rTiGxgxoATvmKLVsIhyeE8UPtdlU", // DEVELOPMENT ONLY
   
-  // API Keys - Kullanıcı ayarlarından yüklenecek
-  SUPABASE_URL: "",
-  SUPABASE_ANON_KEY: "",
-  DEEPSEEK_API_KEY: "",
-  OPENAI_API_KEY: "",
+  // Permissions configuration
+  PERMISSIONS_DOC_ID: "BCAwiuzRcwOMYrwS6hQiCNnFMN33",
+  PERMISSIONS_COLLECTION: "userConfigs",
   
   // Deployment Info
   VERSION: '1.0.0',

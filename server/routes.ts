@@ -398,15 +398,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If a single permissions doc is configured, try to read user's map from it first
       try {
         const docId = process.env.PERMISSIONS_DOC_ID || (global as any).__PERMISSIONS_DOC_ID || 'BCAwiuzRcwOMYrwS6hQiCNnFMN33';
-        if (docId && email) {
+        if (docId) {
           try {
             const docRef = admin.firestore().doc(`userConfigs/${docId}`);
             const snap = await docRef.get();
             if (snap.exists) {
               const data = snap.data() || {};
               const usersMap = data.users && typeof data.users === 'object' ? data.users : null;
-              if (email && usersMap && Object.prototype.hasOwnProperty.call(usersMap, email)) {
-                return res.json(usersMap[email]);
+              if (usersMap) {
+                // Check by email first
+                if (email && Object.prototype.hasOwnProperty.call(usersMap, email)) {
+                  return res.json(usersMap[email]);
+                }
+                // Check by uid
+                if (uid && Object.prototype.hasOwnProperty.call(usersMap, uid)) {
+                  return res.json(usersMap[uid]);
+                }
               }
             }
           } catch (e) {
@@ -482,8 +489,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (singleSnap.exists) {
           const data = singleSnap.data() || {};
           const usersMap = data.users && typeof data.users === 'object' ? data.users : null;
-          if (email && usersMap && Object.prototype.hasOwnProperty.call(usersMap, email)) {
-            return res.json(usersMap[email]);
+          if (usersMap) {
+            if (email && Object.prototype.hasOwnProperty.call(usersMap, email)) {
+              return res.json(usersMap[email]);
+            }
+            if (uid && Object.prototype.hasOwnProperty.call(usersMap, uid)) {
+              return res.json(usersMap[uid]);
+            }
           }
         }
       } catch (e) {

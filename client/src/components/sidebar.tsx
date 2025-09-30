@@ -78,58 +78,69 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
   useEffect(() => {
     let mounted = true;
 
-    const computeAndSet = (perm: any | null) => {
-      if (!perm) {
-        if (mounted) setHideSidebarItems(defaultHideList);
-        return;
-      }
-
-      // If server returned a boolean map under `sidebar`, compute hidden items as keys that are falsy
-      if (perm && typeof perm === 'object') {
-        // Case A: whole perm is a boolean map (legacy or direct map)
-        const maybeMap = perm as Record<string, any>;
-        const knownKeys = [
-          'settings','projects-summary','dashboard','financial-dashboard','document-search','n8n-vector-search','ai-search','projects/info-center'
-        ];
-
-        // If it's a direct boolean map or contains a sidebar boolean map, treat missing keys as false
-        const mapSource = (perm.sidebar && typeof perm.sidebar === 'object') ? perm.sidebar : (typeof perm === 'object' ? perm : null) as Record<string, boolean> | null;
-        if (mapSource && Object.values(mapSource).some(v => typeof v === 'boolean')) {
-          // Build hide list from knownKeys: if key exists and is falsy OR key missing => hide
-          const hide = knownKeys.filter(k => !(k in mapSource) || !mapSource[k]);
-          if (mounted) setHideSidebarItems(hide.length ? hide : defaultHideList);
-          return;
-        }
-      }
-
-      // Backward-compatible: if server returned ui.sidebarVisible array (visible items), hide the rest
-      if (perm.ui && Array.isArray(perm.ui.sidebarVisible)) {
-        const visible = perm.ui.sidebarVisible as string[];
-        const known = [
-          'settings','projects-summary','dashboard','financial-dashboard','document-search','n8n-vector-search','ai-search','projects/info-center'
-        ];
-        const hide = known.filter(k => !visible.includes(k));
-        if (mounted) setHideSidebarItems(hide.length ? hide : defaultHideList);
-        return;
-      }
-
-      // Otherwise fall back to default hide list
-      if (mounted) setHideSidebarItems(defaultHideList);
-    };
-
-    const load = async () => {
+    const computeAndSet = (entry: any) => {
+      console.log('[SIDEBAR DEBUG] computeAndSet called with entry:', JSON.stringify(entry, null, 2));
+      
+      const knownKeys = [
+        'settings','projects-summary','dashboard','financial-dashboard','document-search','n8n-vector-search','ai-search','projects/info-center','decision-support'
+      ];
+      console.log('[SIDEBAR DEBUG] knownKeys:', knownKeys);
+      
+      let expectedHide: string[] = defaultHideList;
+      console.log('[SIDEBAR DEBUG] defaultHideList:', defaultHideList);
+      
       try {
+        const mapSrc = (entry?.sidebar && typeof entry.sidebar === 'object') ? entry.sidebar : (typeof entry === 'object' ? entry : null);
+        console.log('[SIDEBAR DEBUG] mapSrc:', JSON.stringify(mapSrc, null, 2));
+        
+        if (mapSrc && Object.values(mapSrc).some(v => typeof v === 'boolean')) {
+          console.log('[SIDEBAR DEBUG] Using boolean map logic');
+          expectedHide = knownKeys.filter(k => {
+            const inMap = k in mapSrc;
+            const mapValue = mapSrc[k];
+            const shouldHide = !(k in mapSrc) || !mapSrc[k];
+            console.log(`[SIDEBAR DEBUG] Key '${k}': inMap=${inMap}, mapValue=${mapValue}, shouldHide=${shouldHide}`);
+            return shouldHide;
+          });
+        } else if (entry?.ui && Array.isArray(entry.ui.sidebarVisible)) {
+          console.log('[SIDEBAR DEBUG] Using sidebarVisible array logic');
+          const visible = entry.ui.sidebarVisible as string[];
+          console.log('[SIDEBAR DEBUG] sidebarVisible array:', visible);
+          expectedHide = knownKeys.filter(k => {
+            const isVisible = visible.includes(k);
+            console.log(`[SIDEBAR DEBUG] Key '${k}': isVisible=${isVisible}`);
+            return !isVisible;
+          });
+        } else {
+          console.log('[SIDEBAR DEBUG] No valid permission structure found, using default');
+        }
+      } catch (e) {
+        console.log('[SIDEBAR DEBUG] Error in computeAndSet:', e);
+        expectedHide = defaultHideList;
+      }
+      
+      console.log('[SIDEBAR DEBUG] Final expectedHide:', expectedHide);
+      setHideSidebarItems(expectedHide);
+    };    const load = async () => {
+      try {
+        console.log('[SIDEBAR DEBUG] Starting permission load...');
+        
         // First, try client-side Firestore read of the centralized permissions document (if configured)
         try {
           const appConfig = (window as any).__APP_CONFIG__ || {};
           const docId = appConfig?.PERMISSIONS_DOC_ID || null;
           const coll = appConfig?.PERMISSIONS_COLLECTION || 'userConfigs';
+          console.log('[SIDEBAR DEBUG] App config:', { docId, coll });
+          
           if (docId) {
             const doc = await firebaseConfigService.getPermissionsDoc(docId, coll).catch(() => null);
+            console.log('[SIDEBAR DEBUG] Firestore doc result:', doc ? 'found' : 'not found');
+            
             if (doc) {
               // If doc contains a users map, prefer that map for the currently logged-in user
               if (doc.users && typeof doc.users === 'object') {
                 const usersMap = doc.users as Record<string, any>;
+                console.log('[SIDEBAR DEBUG] Found users map with keys:', Object.keys(usersMap));
 
                 // Try to obtain the current user's email from client-side auth. If auth isn't
                 // initialized yet, wait briefly (up to 2s) for onAuthStateChanged to fire.
@@ -173,18 +184,31 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
                 });
 
                 const email = await getEmail();
+                console.log('[SIDEBAR DEBUG] Current user email:', email);
+                
                 let entry = null as any;
                 // Try direct email key
-                if (email && usersMap[email]) entry = usersMap[email];
-                // Try direct uid key (some docs may store by uid)
+                if (email && usersMap[email]) {
+                  entry = usersMap[email];
+                  console.log('[SIDEBAR DEBUG] Found entry by email key:', email);
+                }
+                // Try direct uid key
                 const cur = auth && (auth.currentUser as any);
                 const uid = cur?.uid || null;
-                if (!entry && uid && usersMap[uid]) entry = usersMap[uid];
+                console.log('[SIDEBAR DEBUG] Current user uid:', uid);
+                
+                if (!entry && uid && usersMap[uid]) {
+                  entry = usersMap[uid];
+                  console.log('[SIDEBAR DEBUG] Found entry by uid key:', uid);
+                }
                 // Try case-insensitive match
                 if (!entry && email) {
                   const lower = email.toLowerCase().trim();
                   const foundKey = Object.keys(usersMap).find(k => String(k).toLowerCase().trim() === lower);
-                  if (foundKey) entry = usersMap[foundKey];
+                  if (foundKey) {
+                    entry = usersMap[foundKey];
+                    console.log('[SIDEBAR DEBUG] Found entry by case-insensitive email match:', foundKey);
+                  }
                 }
                 // Try normalized gmail local-part (remove dots and +suffix)
                 if (!entry && email && email.includes('@')) {
@@ -197,7 +221,10 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
                         return kk.includes(normalized) && kk.includes(domain.toLowerCase());
                       } catch (e) { return false; }
                     });
-                    if (foundKey) entry = usersMap[foundKey];
+                    if (foundKey) {
+                      entry = usersMap[foundKey];
+                      console.log('[SIDEBAR DEBUG] Found entry by Gmail normalization:', foundKey);
+                    }
                   }
                 }
                 // Last resort: try any key whose value looks like a per-user object (has boolean sidebar or ui)
@@ -206,7 +233,11 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
                     const v = usersMap[k];
                     if (v && typeof v === 'object' && (v.sidebar || v.ui)) {
                       // Skip if the key obviously is an email different than current email
-                      if (email && String(k).toLowerCase().trim() === String(email).toLowerCase().trim()) { entry = v; break; }
+                      if (email && String(k).toLowerCase().trim() === String(email).toLowerCase().trim()) { 
+                        entry = v; 
+                        console.log('[SIDEBAR DEBUG] Found entry by last resort match:', k);
+                        break; 
+                      }
                     }
                   }
                 }
@@ -215,40 +246,21 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
                   // If entry looks like a users map (many keys that look like emails), ignore it
                   const entryKeys = Object.keys(entry || {});
                   const looksLikeUsersMap = entryKeys.length > 5 && entryKeys.every(ek => ek.includes('@'));
-                  if (looksLikeUsersMap) entry = null;
+                  if (looksLikeUsersMap) {
+                    console.log('[SIDEBAR DEBUG] Entry looks like users map, ignoring');
+                    entry = null;
+                  }
                 }
                 if (entry) {
-                  // Found per-user entry in the users map — emit a focused debug log and compute using that
-                  try {
-                    const knownKeys = [
-                      'settings','projects-summary','dashboard','financial-dashboard','document-search','n8n-vector-search','ai-search','projects/info-center'
-                    ];
-                    let expectedHide: string[] = defaultHideList;
-                    try {
-                      const mapSrc = (entry.sidebar && typeof entry.sidebar === 'object') ? entry.sidebar : (typeof entry === 'object' ? entry : null);
-                      if (mapSrc && Object.values(mapSrc).some(v => typeof v === 'boolean')) {
-                        expectedHide = knownKeys.filter(k => !(k in mapSrc) || !mapSrc[k]);
-                      } else if (entry.ui && Array.isArray(entry.ui.sidebarVisible)) {
-                        const visible = entry.ui.sidebarVisible as string[];
-                        expectedHide = knownKeys.filter(k => !visible.includes(k));
-                      }
-                    } catch (e) {
-                      expectedHide = defaultHideList;
-                    }
-                    // Compact entry preview to avoid flooding logs
-                    const preview = (obj: any) => {
-                      try { return JSON.stringify(obj, Object.keys(obj).slice(0,10)); } catch (e) { return String(obj); }
-                    };
-                    // eslint-disable-next-line no-console
-                    console.log('[SIDEBAR DEBUG] email=', email, 'entryPreview=', preview(entry), 'expectedHide=', expectedHide);
-                  } catch (e) {
-                    // swallow logging errors
-                  }
+                  console.log('[SIDEBAR DEBUG] Using entry:', JSON.stringify(entry, null, 2));
                   computeAndSet(entry);
                   return;
+                } else {
+                  console.log('[SIDEBAR DEBUG] No entry found in users map');
                 }
                 // If we couldn't resolve client-side email or no entry exists, fall back to server endpoint.
               } else {
+                console.log('[SIDEBAR DEBUG] No users map found in doc, using doc directly');
                 // Document is already the per-user map or a flat permissions object
                 computeAndSet(doc);
                 return;
@@ -256,18 +268,23 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
             }
           }
         } catch (e) {
+          console.log('[SIDEBAR DEBUG] Client-side Firestore read failed:', e);
           // ignore and fall back to server endpoint
         }
 
+        console.log('[SIDEBAR DEBUG] Falling back to server endpoint /api/permissions/me');
   // Fallback to server endpoint which requires a server session
         const res = await fetch('/api/permissions/me', { credentials: 'include' });
         if (!res.ok) {
+          console.log('[SIDEBAR DEBUG] Server endpoint failed:', res.status, res.statusText);
           computeAndSet(null);
           return;
         }
         const data = await res.json();
+        console.log('[SIDEBAR DEBUG] Server endpoint returned:', JSON.stringify(data, null, 2));
         computeAndSet(data);
       } catch (err) {
+        console.log('[SIDEBAR DEBUG] Load error:', err);
         computeAndSet(null);
       }
     };
@@ -376,6 +393,36 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
           </button>
         )}
 
+        {!hideSidebarItems.includes("decision-support") && (
+          <button
+            onClick={() => handleNavigation("/decision-support")}
+            className={`w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+              location === "/decision-support" 
+                ? "bg-primary text-primary-foreground" 
+                : "text-foreground hover:bg-accent hover:text-accent-foreground"
+            }`}
+            data-testid="nav-decision-support"
+          >
+            <i className="fas fa-brain mr-3 h-5 w-5"></i>
+            🧠 Karar Destek Sistemi
+          </button>
+        )}
+
+        {!hideSidebarItems.includes("decision-support-template") && (
+          <button
+            onClick={() => handleNavigation("/decision-support-template")}
+            className={`w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+              location === "/decision-support-template"
+                ? "bg-primary text-primary-foreground"
+                : "text-foreground hover:bg-accent hover:text-accent-foreground"
+            }`}
+            data-testid="nav-decision-support-template"
+          >
+            <i className="fas fa-file-alt mr-3 h-5 w-5"></i>
+            📋 Karar Destek Şablonu
+          </button>
+        )}
+
         {!hideSidebarItems.includes('n8n-vector-search') && (
           <button
             onClick={() => handleNavigation('/n8n-vector-search')}
@@ -390,23 +437,25 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
             <i className="fas fa-search mr-3 h-5 w-5 text-destructive"></i>
             <span className="truncate inline-flex items-center">
       <span className="text-red-500 mr-1">🔍</span>
-      N8N Vektör Arama
+      n8n-vector-search
     </span>
           </button>
         )}
 
-        <button
-          onClick={() => handleNavigation("/ai-search")}
-          className={`w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-            location === "/ai-search" 
-              ? "bg-primary text-primary-foreground" 
-              : "text-foreground hover:bg-accent hover:text-accent-foreground"
-          }`}
-          data-testid="nav-ai-search"
-        >
-          <i className="fas fa-sitemap mr-3 h-5 w-5"></i>
-          <span className="truncate">Belge Referans Ağı</span>
-        </button>
+        {!hideSidebarItems.includes("ai-search") && (
+          <button
+            onClick={() => handleNavigation("/ai-search")}
+            className={`w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+              location === "/ai-search" 
+                ? "bg-primary text-primary-foreground" 
+                : "text-foreground hover:bg-accent hover:text-accent-foreground"
+            }`}
+            data-testid="nav-ai-search"
+          >
+            <i className="fas fa-sitemap mr-3 h-5 w-5"></i>
+            <span className="truncate">Belge Referans Ağı</span>
+          </button>
+        )}
         
         {/* Nested links for AI Search */}
         <div className="ml-6 mt-1 space-y-1">
@@ -427,20 +476,22 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
             Projeler
           </h3>
           <div className="mt-2">
-            <div
-              className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                location === "/projects/info-center" ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-accent hover:text-accent-foreground"
-              }`}
-            >
-              <button
-                onClick={() => handleNavigation('/projects/info-center')}
-                className="flex items-center flex-1 text-left"
-                data-testid={`nav-info-center`}
+            {!hideSidebarItems.includes("projects/info-center") && (
+              <div
+                className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  location === "/projects/info-center" ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                }`}
               >
-                <i className="fas fa-info-circle mr-3 h-4 w-4 text-muted-foreground"></i>
-                <span className="truncate">INFO CENTER</span>
-              </button>
-            </div>
+                <button
+                  onClick={() => handleNavigation('/projects/info-center')}
+                  className="flex items-center flex-1 text-left"
+                  data-testid={`nav-info-center`}
+                >
+                  <i className="fas fa-info-circle mr-3 h-4 w-4 text-muted-foreground"></i>
+                  <span className="truncate">INFO CENTER</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </nav>

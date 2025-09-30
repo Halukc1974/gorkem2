@@ -14,6 +14,8 @@ import SettingsPage from "./pages/settings";
 import Login from "./pages/login";
 import AdisIndexPage from "./pages/adis_index";
 import N8NVectorSearch from './pages/n8n-vector-search';
+import DecisionSupportPage from './pages/decision-support';
+import DecisionSupportTemplate from './pages/decision-support-template';
 import Sidebar from "./components/sidebar";
 import LoadingOverlay from "./components/loading-overlay";
 import { useState, useEffect } from "react";
@@ -35,6 +37,8 @@ function Router() {
       <Route path="/document-search" component={DocumentSearchPage} />
       <Route path="/ai-search" component={AISearchPage} />
   <Route path="/n8n-vector-search" component={N8NVectorSearch} />
+  <Route path="/decision-support" component={DecisionSupportPage} />
+  <Route path="/decision-support-template" component={DecisionSupportTemplate} />
   <Route path="/settings" component={SettingsPage} />
       <Route path="/sheets/:id" component={SheetView} />
       <Route component={Dashboard} />
@@ -72,13 +76,23 @@ function AuthenticatedApp() {
     };
 
     // Sadece geçerli config'ler varsa configure et
-    if (serviceConfigs.supabase || serviceConfigs.deepseek || serviceConfigs.openai) {
+    if (serviceConfigs.supabase?.url && serviceConfigs.supabase?.anonKey) {
       try {
         configureServices(serviceConfigs);
         console.log('✅ Global: Servisler başarıyla otomatik konfigüre edildi');
       } catch (error) {
         console.error('❌ Global: Otomatik servis konfigürasyonu başarısız:', error);
       }
+    } else if (serviceConfigs.deepseek || serviceConfigs.openai) {
+      // AI servisleri için Supabase gerekli değil
+      try {
+        configureServices(serviceConfigs);
+        console.log('✅ Global: AI servisleri başarıyla konfigüre edildi');
+      } catch (error) {
+        console.error('❌ Global: AI servisleri konfigürasyonu başarısız:', error);
+      }
+    } else {
+      console.warn('⚠️ Global: Geçerli Supabase konfigürasyonu bulunamadı');
     }
   }, [config, configureServices]);
 
@@ -138,7 +152,7 @@ function AuthenticatedApp() {
               </button>
             )}
             <h2 className="text-xl font-semibold text-foreground" data-testid="text-page-title">
-              Görkem İnşaat
+              
             </h2>
           </div>
           

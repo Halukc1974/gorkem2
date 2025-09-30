@@ -197,6 +197,13 @@ export default function InfoCenterPage(): JSX.Element {
         .p-datatable .p-datatable-tbody > tr > td {
           border-bottom: 1px solid rgba(0,0,0,0.06);
         }
+        /* reduce row height to half */
+        .p-datatable .p-datatable-tbody > tr {
+          height: 2.5rem;
+        }
+        .p-datatable .p-datatable-tbody > tr > td {
+          padding: 0.25rem 0.5rem;
+        }
         /* ensure header search sits above table and doesn't overlap */
         .card-header .p-input-icon-left {
           z-index: 5;

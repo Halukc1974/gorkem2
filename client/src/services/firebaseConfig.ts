@@ -205,9 +205,12 @@ class FirebaseConfigService {
   
   // Read a single document which contains a map keyed by email (or arbitrary keys) -> permission maps
   // Useful when you store all user sidebar maps under one doc (as in the provided screenshot).
-  async getPermissionsDoc(docId: string, collectionName = 'userPermissions'): Promise<Record<string, any> | null> {
+  async getPermissionsDoc(docId: string, collectionName?: string): Promise<Record<string, any> | null> {
     try {
-      const docRef = doc(this.db, collectionName, docId);
+      // Use app config or default to userConfigs
+      const appConfig = (window as any).__APP_CONFIG__ || {};
+      const coll = collectionName || appConfig?.PERMISSIONS_COLLECTION || 'userConfigs';
+      const docRef = doc(this.db, coll, docId);
       const snap = await getDoc(docRef);
       if (!snap.exists()) return null;
       return snap.data() as Record<string, any>;
@@ -219,9 +222,11 @@ class FirebaseConfigService {
 
   // Write a single user's entry into a permissions document's `users` map.
   // This mirrors the server-side behavior of writing into userConfigs/{docId}.users[email]
-  async setPermissionsDocEntry(docId: string, email: string, userData: any, collectionName = 'userConfigs'): Promise<void> {
+  async setPermissionsDocEntry(docId: string, email: string, userData: any, collectionName?: string): Promise<void> {
     try {
-      const docRef = doc(this.db, collectionName, docId);
+      const appConfig = (window as any).__APP_CONFIG__ || {};
+      const coll = collectionName || appConfig?.PERMISSIONS_COLLECTION || 'userConfigs';
+      const docRef = doc(this.db, coll, docId);
       const snap = await getDoc(docRef);
       const existing = snap.exists() ? (snap.data() || {}) : {};
       const usersMap = existing.users && typeof existing.users === 'object' ? existing.users : {};
@@ -230,6 +235,52 @@ class FirebaseConfigService {
       console.log('✅ setPermissionsDocEntry: wrote user entry', { docId, email });
     } catch (err) {
       console.error('❌ setPermissionsDocEntry error:', err);
+      throw err;
+    }
+  }
+
+  // Write a single user's entry by UID into a permissions document's `users` map.
+  async setPermissionsDocEntryByUid(docId: string, uid: string, userData: any, collectionName?: string): Promise<void> {
+    try {
+      const appConfig = (window as any).__APP_CONFIG__ || {};
+      const coll = collectionName || appConfig?.PERMISSIONS_COLLECTION || 'userConfigs';
+      const docRef = doc(this.db, coll, docId);
+      const snap = await getDoc(docRef);
+      const existing = snap.exists() ? (snap.data() || {}) : {};
+      const usersMap = existing.users && typeof existing.users === 'object' ? existing.users : {};
+      usersMap[uid] = userData;
+      await setDoc(docRef, { users: usersMap }, { merge: true });
+      console.log('✅ setPermissionsDocEntryByUid: wrote user entry', { docId, uid });
+    } catch (err) {
+      console.error('❌ setPermissionsDocEntryByUid error:', err);
+      throw err;
+    }
+  }
+
+  // Update sidebar permissions for multiple users
+  async updateSidebarPermissions(docId: string, userUids: string[], sidebarConfig: Record<string, boolean>, collectionName?: string): Promise<void> {
+    try {
+      console.log('🔄 Updating sidebar permissions for users:', userUids);
+      
+      const appConfig = (window as any).__APP_CONFIG__ || {};
+      const coll = collectionName || appConfig?.PERMISSIONS_COLLECTION || 'userConfigs';
+      const docRef = doc(this.db, coll, docId);
+      const snap = await getDoc(docRef);
+      const existing = snap.exists() ? (snap.data() || {}) : {};
+      const usersMap = existing.users && typeof existing.users === 'object' ? existing.users : {};
+
+      // Update each user's permissions
+      for (const uid of userUids) {
+        const userData = usersMap[uid] || {};
+        userData.sidebar = sidebarConfig;
+        usersMap[uid] = userData;
+        console.log(`✅ Updated sidebar permissions for UID: ${uid}`);
+      }
+
+      await setDoc(docRef, { users: usersMap }, { merge: true });
+      console.log('✅ All sidebar permissions updated successfully');
+    } catch (err) {
+      console.error('❌ updateSidebarPermissions error:', err);
       throw err;
     }
   }
@@ -572,6 +623,12 @@ class FirebaseConfigService {
 // Singleton instance
 export const firebaseConfigService = new FirebaseConfigService();
 export default firebaseConfigService;
+
+// Export permission update functions for admin use
+export const updateUserSidebarPermissions = async (userUids: string[], sidebarConfig: Record<string, boolean>) => {
+  const docId = 'BCAwiuzRcwOMYrwS6hQiCNnFMN33';
+  return firebaseConfigService.updateSidebarPermissions(docId, userUids, sidebarConfig);
+};
 
 // Helper to clear local write token for a user (use on sign out)
 export function clearLocalWriteToken(userId: string) {

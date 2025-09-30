@@ -363,6 +363,51 @@ export default function UserPermissions() {
             {message && <div className="mt-2 text-sm">{message}</div>}
           </div>
         )}
+
+        {/* Test button to update sidebar permissions for specific users */}
+        <div className="mt-8 p-4 border rounded bg-gray-50">
+          <h3 className="font-semibold mb-2">Test: Sidebar İzinlerini Güncelle</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Bu buton mustafa.turker@gorkemltd.com ve celebi.haluk@gmail.com kullanıcılarının 
+            sidebar ayarlarını tüm öğeleri gösterilecek şekilde günceller.
+          </p>
+          <Button 
+            onClick={async () => {
+              try {
+                setLoading(true);
+                setMessage('Sidebar izinleri güncelleniyor...');
+                
+                const { updateUserSidebarPermissions } = await import('../../services/firebaseConfig');
+                const sidebarConfig = {
+                  'settings': true,
+                  'projects-summary': true,
+                  'dashboard': true,
+                  'financial-dashboard': true,
+                  'document-search': true,
+                  'n8n-vector-search': true,
+                  'ai-search': true,
+                  'projects/info-center': true
+                };
+                
+                await updateUserSidebarPermissions(
+                  ['VpPmNfHHhdhmbCfYG6sfh8UCLgn2', 'NbAfbrehDTYkkzjxDL5brX55xls2'], 
+                  sidebarConfig
+                );
+                
+                setMessage('✅ Sidebar izinleri başarıyla güncellendi!');
+              } catch (error) {
+                console.error('Sidebar güncelleme hatası:', error);
+                setMessage('❌ Sidebar izinleri güncellenirken hata oluştu: ' + String(error));
+              } finally {
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            {loading ? 'Güncelleniyor...' : 'Sidebar İzinlerini Güncelle'}
+          </Button>
+        </div>
       </div>
     </div>
   );

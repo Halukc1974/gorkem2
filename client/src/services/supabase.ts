@@ -38,6 +38,8 @@ interface DocumentRecord {
   "incout"?: string;           // text - gelen/giden (özel field name)
   keywords?: string;             // text - anahtar kelimeler
   weburl?: string;              // text - web URL
+  created?: string;              // timestamp
+  last_modified?: string;        // timestamp
 }
 
 interface SearchFilters {
@@ -61,7 +63,7 @@ interface VectorSearchResult extends DocumentRecord {
 const DEFAULTS = {
   TEXT_SEARCH_LIMIT: 200, // reduced from 1000 to avoid overwhelming results
   MANUAL_VECTOR_FETCH_LIMIT: 1000,
-  VECTOR_THRESHOLD: 0.3 // lowered vector similarity threshold to be more permissive
+  VECTOR_THRESHOLD: 0.1 // lowered vector similarity threshold to be more permissive
   ,VECTOR_FALLBACK_COUNT: 10 // default fallback when no items pass threshold
 };
 
@@ -112,6 +114,12 @@ class SupabaseService {
 
   // Konfigürasyon ayarlama
   configure(config: SupabaseConfig) {
+    // Boş config kontrolü
+    if (!config || !config.url || !config.anonKey) {
+      console.warn('⚠️ Supabase configure: Boş config gönderildi, konfigürasyon atlanıyor');
+      return;
+    }
+
     // URL doğrulaması yap
     if (!this.isValidUrl(config.url)) {
       console.error('❌ Geçersiz Supabase URL:', config.url);
@@ -532,7 +540,7 @@ class SupabaseService {
       const { data: incOutData } = await this.client
         .from('documents')
         .select('incout')
-        .not('incout', 'is', null);
+        .neq('incout', null);
 
       const incomingOutgoing = incOutData?.reduce((acc: any, item: any) => {
         const direction = item['incout'];
@@ -644,12 +652,12 @@ class SupabaseService {
       if (filters) {
         if (filters.dateFrom) query = query.gte('letter_date', filters.dateFrom);
         if (filters.dateTo) query = query.lte('letter_date', filters.dateTo);
-        if (filters.type_of_corr) query = query.eq('type_of_corr', filters.type_of_corr);
-        if (filters.severity_rate) query = query.eq('severity_rate', filters.severity_rate);
-        if (filters.inc_out) query = query.eq('incout', filters.inc_out);
+        if (filters.type_of_corr && filters.type_of_corr !== 'all') query = query.eq('type_of_corr', filters.type_of_corr);
+        if (filters.severity_rate && filters.severity_rate !== 'all') query = query.eq('severity_rate', filters.severity_rate);
+        if (filters.inc_out && filters.inc_out !== 'all') query = query.eq('incout', filters.inc_out);
         if (filters.internal_no) query = query.ilike('internal_no', `%${filters.internal_no}%`);
         if (filters.keywords && filters.keywords.length > 0) {
-          const keywordSearch = filters.keywords.map(keyword => 
+          const keywordSearch = filters.keywords.map(keyword =>
             `keywords.ilike.%${keyword}%`
           ).join(',');
           query = query.or(keywordSearch);
@@ -719,9 +727,11 @@ class SupabaseService {
         return resultsAboveThreshold.slice(0, maxResults);
       }
 
-  // Eğer hiçbir kayıt eşiği aşmadıysa, boş dizi döndür (fallback kaldırıldı)
-  console.log(`⚠️ Manuel vector search: hiçbir kayıt eşiği aşmadı. 0 sonuç döndürülüyor. threshold: ${threshold}`);
-  return [];
+      // Eğer hiçbir kayıt eşiği aşmadıysa, en iyi sonuçları döndür (fallback)
+      console.log(`⚠️ Manuel vector search: hiçbir kayıt eşiği aşmadı (${allResultsUnfiltered.length} sonuç bulundu), en iyi ${DEFAULTS.VECTOR_FALLBACK_COUNT} sonuç döndürülüyor`);
+      return allResultsUnfiltered
+        .sort((a, b) => (b.similarity || 0) - (a.similarity || 0))
+        .slice(0, Math.min(DEFAULTS.VECTOR_FALLBACK_COUNT, maxResults));
 
     } catch (error) {
       console.error('Manuel vector search hatası:', error);

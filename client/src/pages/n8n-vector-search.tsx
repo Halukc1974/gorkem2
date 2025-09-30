@@ -145,7 +145,7 @@ export default function N8NVectorSearch() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-semibold">N8N Vektör Arama</h2>
+          <h2 className="text-2xl font-semibold">n8n-vector-search</h2>
           <p className="text-sm text-muted-foreground">Webhook tabanlı test arayüzü — GET/POST isteklerini gönderir ve JSON çıktısını gösterir.</p>
         </div>
         <div>
