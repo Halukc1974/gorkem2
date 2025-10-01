@@ -76,16 +76,18 @@ interface HybridSearchOptions {
 
 class SupabaseService {
   // Tüm belgelerin ilişkilerini (letter_no ve ref_letters) çek
-  async getAllDocumentRelations(): Promise<Array<{ letter_no: string; ref_letters: string }>> {
+  async getAllDocumentRelations(): Promise<Array<{ letter_no: string; ref_letters: string; letter_date?: string; content?: string }>> {
     if (!this.client) throw new Error('Supabase istemcisi başlatılmamış');
     const { data, error } = await this.client
       .from('documents')
-      .select('letter_no, ref_letters');
+      .select('letter_no, ref_letters, letter_date, content');
     if (error) throw error;
     // letter_no ve ref_letters alanlarını normalize et
     return (data || []).map((row: any) => ({
       letter_no: row.letter_no,
-      ref_letters: row.ref_letters
+      ref_letters: row.ref_letters,
+      letter_date: row.letter_date,
+      content: row.content
     }));
   }
   private client: SupabaseClient | null = null;

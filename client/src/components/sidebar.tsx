@@ -10,6 +10,9 @@ import firebaseConfigService from '../services/firebaseConfig';
 import { auth } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import RenameSheetModal from "./rename-sheet-modal";
+import { 
+  Search, Network, Brain, Cpu, CircuitBoard, Sparkles 
+} from 'lucide-react';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -453,6 +456,7 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
             data-testid="nav-ai-search"
           >
             <i className="fas fa-sitemap mr-3 h-5 w-5"></i>
+            <Network className="h-4 w-4" />
             <span className="truncate">Belge Referans Ağı</span>
           </button>
         )}

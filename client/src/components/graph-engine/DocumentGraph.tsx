@@ -25,6 +25,8 @@ interface DocumentGraphProps {
   openStarMap?: boolean;
   // If provided, use this preloaded star-map data instead of fetching from supabase
   preloadedStarMap?: { nodes: any[]; edges: any[] } | null;
+  // Callback for adding document to basket
+  onAddToBasket?: (documentId: string) => void;
 }
 
 const createCyInstance = (
@@ -305,6 +307,7 @@ const createCyInstance = (
 
   instance.on('cxttap', 'node, edge', evt => {
     evt.preventDefault();
+    evt.stopPropagation();
     const renderedPosition = evt.renderedPosition;
     
     const containerBounds = container.getBoundingClientRect();
@@ -317,6 +320,19 @@ const createCyInstance = (
     );
   });
 
+  // Prevent browser context menu
+  instance.on('cxttapstart', (evt: any) => {
+    evt.preventDefault();
+    evt.stopPropagation();
+    evt.stopImmediatePropagation();
+  });
+
+  // Also prevent on the container
+  container.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, true); // Use capture phase
+
   instance.on('tap', evt => {
     if (evt.target === instance) {
       onBackgroundClick();
@@ -326,7 +342,7 @@ const createCyInstance = (
   return instance;
 };
 
-export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap, preloadedStarMap }: DocumentGraphProps) {
+export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap, preloadedStarMap, onAddToBasket }: DocumentGraphProps) {
   // Belge haritası için state
   const starMapCyRef = useRef<HTMLDivElement>(null);
   const [starMapLoading, setStarMapLoading] = useState(false);
@@ -341,6 +357,13 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
     title?: string;
     body?: string;
   }>({ visible: false, x: 0, y: 0, title: undefined, body: undefined });
+  // Context menu state for star-map
+  const [starContextMenu, setStarContextMenu] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    nodeId?: string;
+  }>({ visible: false, x: 0, y: 0 });
   // Refs for graph containers
   const previousCyRef = useRef<HTMLDivElement>(null);
   const nextCyRef = useRef<HTMLDivElement>(null);
@@ -378,6 +401,7 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
   const [contextMenuPosition, setContextMenuPosition] = useState<{x: number, y: number} | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>(initialActiveTab || "previous");
+  const [showGraphContextMenu, setShowGraphContextMenu] = useState(false);
 
   // If parent asks to open the star map, switch internal tab to 'star-map'
   useEffect(() => {
@@ -443,29 +467,70 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
         const pageX = containerBounds ? renderedPosition.x + containerBounds.left : renderedPosition.x;
         const pageY = containerBounds ? renderedPosition.y + containerBounds.top : renderedPosition.y;
 
-  const data = node.data() || {};
-  // Prefer showing content as the title/preview when available
-  const contentSnippet = data.content ? String(data.content).slice(0, 300) + (String(data.content).length > 300 ? '...' : '') : undefined;
-  const title = contentSnippet || data.title || data.id || '';
-  // Build a small body with requested fields (content is shown in title/preview)
-  const parts: string[] = [];
-  if (data.letter_date) parts.push(`Tarih: ${data.letter_date}`);
-  if (data.ref_letters) parts.push(`Referanslar: ${Array.isArray(data.ref_letters) ? data.ref_letters.join(', ') : data.ref_letters}`);
-  // include full content (truncated to 1000) in the body as well if present
-  if (data.content) parts.push(`${String(data.content).slice(0, 1000)}${String(data.content).length > 1000 ? '...' : ''}`);
+        const data = node.data() || {};
+        // Title olarak letter_no'yu kullan, yoksa id'yi
+        const title = data.letter_no || data.id || '';
+        
+        // Body'de letter_date, ref_letters ve content'i göster
+        const parts: string[] = [];
+        if (data.letter_date) parts.push(`Tarih: ${data.letter_date}`);
+        if (data.ref_letters) parts.push(`Referanslar: ${Array.isArray(data.ref_letters) ? data.ref_letters.join(', ') : data.ref_letters}`);
+        if (data.content) parts.push(`İçerik: ${String(data.content).slice(0, 500)}${String(data.content).length > 500 ? '...' : ''}`);
 
-  setStarTooltip({ visible: true, x: pageX + 12, y: pageY + 12, title, body: parts.join('\n\n') });
+        setStarTooltip({ visible: true, x: pageX + 12, y: pageY + 12, title, body: parts.join('\n\n') });
       } catch (e) {
         // ignore hover errors
       }
-    };
-
-    const onMouseOut = () => {
+    };    const onMouseOut = () => {
       setStarTooltip(prev => ({ ...prev, visible: false }));
     };
 
     instance.on('mouseover', 'node', onMouseOver);
     instance.on('mouseout', 'node', onMouseOut);
+    
+    // Add context menu for star-map
+    instance.on('cxttap', 'node', (evt: any) => {
+      evt.preventDefault();
+      evt.stopPropagation();
+      const renderedPosition = evt.renderedPosition;
+      const containerBounds = starMapCyRef.current?.getBoundingClientRect();
+      const x = containerBounds ? renderedPosition.x + containerBounds.left : renderedPosition.x;
+      const y = containerBounds ? renderedPosition.y + containerBounds.top : renderedPosition.y;
+      
+      setStarContextMenu({
+        visible: true,
+        x,
+        y,
+        nodeId: evt.target.id()
+      });
+    });
+    
+    instance.on('tap', (evt: any) => {
+      if (evt.target === instance) {
+        setStarContextMenu({ visible: false, x: 0, y: 0 });
+      }
+    });
+    
+    // Prevent browser context menu on the entire cytoscape instance
+    instance.on('cxttapstart', (evt: any) => {
+      evt.preventDefault();
+    });
+    
+    // Prevent browser context menu on the entire cytoscape instance
+    instance.on('cxttapstart', (evt: any) => {
+      evt.preventDefault();
+      evt.stopPropagation();
+      evt.stopImmediatePropagation();
+    });
+    
+    // Also prevent on the container
+    const container = starMapCyRef.current;
+    if (container) {
+      container.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }, true); // Use capture phase
+    }
     return () => { 
       try {
         instance.off('mouseover');
@@ -645,6 +710,10 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
       <div style={{ position: 'relative', display: activeTab === 'star-map' ? 'block' : 'none' }}>
         <div 
           ref={starMapCyRef}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
           style={{ 
             width: '100%', 
             height: '600px',
@@ -672,13 +741,57 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
             </div>
           )}
         </div>
+        
+        {/* Star-map context menu */}
+        {starContextMenu.visible && (
+          <div
+            style={{
+              position: 'fixed',
+              top: starContextMenu.y,
+              left: starContextMenu.x,
+              zIndex: 1000,
+              background: 'white',
+              border: '1px solid #ccc',
+              borderRadius: '4px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              minWidth: '180px'
+            }}
+          >
+            <div style={{ padding: '4px 0' }}>
+              {starContextMenu.nodeId && onAddToBasket && (
+                <button
+                  onClick={() => {
+                    onAddToBasket(starContextMenu.nodeId!);
+                    setStarContextMenu({ visible: false, x: 0, y: 0 });
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 16px',
+                    textAlign: 'left',
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  📄 Belgeyi Sepete Ekle
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <TabsContent value="previous" className="mt-0" forceMount>
         <div style={{ position: 'relative', display: activeTab === 'previous' ? 'block' : 'none' }}>
           <div 
             ref={previousCyRef}
-            onContextMenu={(e) => e.preventDefault()}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
             style={{ 
               width: '100%', 
               height: '600px',
@@ -776,14 +889,66 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
             position: 'fixed',
             top: contextMenuPosition.y,
             left: contextMenuPosition.x,
-            zIndex: 1000
+            zIndex: 1000,
+            background: 'white',
+            border: '1px solid #ccc',
+            borderRadius: '4px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            minWidth: '180px'
           }}
         >
-          <GraphContextMenu
-            onClose={() => setContextMenuPosition(null)}
-            selectedNodeId={selectedNodeId}
-          />
+          <div style={{ padding: '4px 0' }}>
+            {selectedNodeId && onAddToBasket && (
+              <button
+                onClick={() => {
+                  onAddToBasket(selectedNodeId);
+                  setContextMenuPosition(null);
+                  setSelectedNodeId(null);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '8px 16px',
+                  textAlign: 'left',
+                  border: 'none',
+                  background: 'none',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                📄 Belgeyi Sepete Ekle
+              </button>
+            )}
+            <button
+              onClick={() => {
+                // GraphContextMenu'yu açmak için state ekleyeceğim
+                setShowGraphContextMenu(true);
+                setContextMenuPosition(null);
+              }}
+              style={{
+                width: '100%',
+                padding: '8px 16px',
+                textAlign: 'left',
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              ⚙️ Grafik Özelleştirmeleri
+            </button>
+          </div>
         </div>
+      )}
+
+      {showGraphContextMenu && (
+        <GraphContextMenu
+          onClose={() => setShowGraphContextMenu(false)}
+          selectedNodeId={selectedNodeId}
+        />
       )}
       {/* Star-map tooltip rendered via React so we can style it easily */}
       {starTooltip.visible && (
