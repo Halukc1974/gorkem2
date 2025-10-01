@@ -356,7 +356,8 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
     y: number;
     title?: string;
     body?: string;
-  }>({ visible: false, x: 0, y: 0, title: undefined, body: undefined });
+    nodeId?: string;
+  }>({ visible: false, x: 0, y: 0, title: undefined, body: undefined, nodeId: undefined });
   // Context menu state for star-map
   const [starContextMenu, setStarContextMenu] = useState<{
     visible: boolean;
@@ -470,6 +471,7 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
         const data = node.data() || {};
         // Title olarak letter_no'yu kullan, yoksa id'yi
         const title = data.letter_no || data.id || '';
+        const nodeId = node.id();
         
         // Body'de letter_date, ref_letters ve content'i göster
         const parts: string[] = [];
@@ -477,7 +479,7 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
         if (data.ref_letters) parts.push(`Referanslar: ${Array.isArray(data.ref_letters) ? data.ref_letters.join(', ') : data.ref_letters}`);
         if (data.content) parts.push(`İçerik: ${String(data.content).slice(0, 500)}${String(data.content).length > 500 ? '...' : ''}`);
 
-        setStarTooltip({ visible: true, x: pageX + 12, y: pageY + 12, title, body: parts.join('\n\n') });
+        setStarTooltip({ visible: true, x: pageX + 12, y: pageY + 12, title, body: parts.join('\n\n'), nodeId });
       } catch (e) {
         // ignore hover errors
       }
@@ -527,6 +529,15 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
       evt.stopPropagation();
     });
     
+    // Prevent browser context menu on container
+    const container = starMapCyRef.current;
+    const preventContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    };
+    container.addEventListener('contextmenu', preventContextMenu, true);
+    
     // Cleanup function
     return () => {
       try {
@@ -535,6 +546,9 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
         instance.off('tap');
         instance.off('cxttap');
         instance.off('cxttapstart');
+        if (container) {
+          container.removeEventListener('contextmenu', preventContextMenu, true);
+        }
       } catch (e) {}
       instance.destroy();
       setStarMapCy(null);
@@ -1047,23 +1061,52 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
       {starTooltip.visible && (
         <div
           role="tooltip"
+          onMouseLeave={() => setStarTooltip(prev => ({ ...prev, visible: false }))}
           style={{
             position: 'fixed',
             top: starTooltip.y,
             left: starTooltip.x,
             zIndex: 2000,
             background: 'white',
-            padding: '10px',
+            padding: '12px',
             borderRadius: 8,
             boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
             maxWidth: 420,
             fontSize: 13,
             color: '#0f172a',
             whiteSpace: 'pre-wrap',
-            pointerEvents: 'none'
+            pointerEvents: 'auto'
           }}
         >
-          <div style={{ fontWeight: 700, marginBottom: 6 }}>{starTooltip.title}</div>
+          <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between', marginBottom: 6 }}>
+            <div style={{ fontWeight: 700, flex: 1 }}>{starTooltip.title}</div>
+            {onAddToBasket && starTooltip.nodeId && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddToBasket(starTooltip.nodeId!);
+                  setStarTooltip(prev => ({ ...prev, visible: false }));
+                }}
+                style={{
+                  background: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '4px 12px',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  marginLeft: 8,
+                  flexShrink: 0,
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#059669'}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#10b981'}
+              >
+                + Sepete Ekle
+              </button>
+            )}
+          </div>
           <div style={{ lineHeight: 1.4 }}>{starTooltip.body}</div>
         </div>
       )}
