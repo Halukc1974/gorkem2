@@ -54,24 +54,59 @@ export default function AISearchPage() {
     handleNodeClick 
   } = useDocumentGraph();
 
-    // Node click handler - belge detaylarını göster
+    // Node click handler - belge detaylarını göster veya web_url aç
   const handleNodeClickWithModal = async (nodeId: string) => {
     try {
-      const details = await supabaseService.getClient()
+      console.log('Node tıklandı:', nodeId);
+      
+      // Belge detaylarını çek - letter_no, internal_no veya id olabilir
+      // Önce letter_no'ya göre dene
+      let { data, error } = await supabaseService.getClient()
         .from('documents')
         .select('*')
-        .or(`letter_no.eq.${nodeId},internal_no.eq.${nodeId},id.eq.${nodeId}`)
-        .single();
+        .eq('letter_no', nodeId)
+        .maybeSingle();
+      
+      // Bulunamadıysa internal_no'ya göre dene
+      if (!data && !error) {
+        const result = await supabaseService.getClient()
+          .from('documents')
+          .select('*')
+          .eq('internal_no', nodeId)
+          .maybeSingle();
+        data = result.data;
+        error = result.error;
+      }
+      
+      // Hala bulunamadıysa id'ye göre dene
+      if (!data && !error) {
+        const result = await supabaseService.getClient()
+          .from('documents')
+          .select('*')
+          .eq('id', nodeId)
+          .maybeSingle();
+        data = result.data;
+        error = result.error;
+      }
 
-      if (details.data) {
+      if (error) {
+        console.error('Belge sorgu hatası:', error);
+        return;
+      }
+
+      if (data) {
+        console.log('Belge bulundu:', data);
+        
         // Eğer weburl varsa doğrudan aç
-        if (details.data.weburl) {
-          window.open(details.data.weburl, '_blank');
+        if (data.weburl) {
+          console.log('Web URL açılıyor:', data.weburl);
+          window.open(data.weburl, '_blank', 'noopener,noreferrer');
           return;
         }
         
+        console.log('Web URL yok, modal açılıyor');
         // Weburl yoksa modal aç
-        setSelectedDocument(details.data);
+        setSelectedDocument(data);
         setShowDocumentModal(true);
       } else {
         console.warn('Belge detayları bulunamadı:', nodeId);
@@ -101,32 +136,69 @@ export default function AISearchPage() {
 
   // Belge sepetine ekleme fonksiyonu
   const addToDocumentBasket = async (documentId: string) => {
-    // Eğer zaten sepette varsa ekleme
-    if (documentBasket.some(doc => doc.id === documentId)) {
-      return;
-    }
-
     try {
-      // Belge detaylarını Supabase'den çek
-      const { data, error } = await supabaseService.getClient()
+      console.log('Sepete ekleniyor, nodeId:', documentId);
+      
+      // Belge detaylarını Supabase'den çek - nodeId letter_no, internal_no veya id olabilir
+      // Önce letter_no'ya göre dene
+      let { data, error } = await supabaseService.getClient()
         .from('documents')
         .select('id, letter_no, letter_date, ref_letters, short_desc')
-        .eq('id', documentId)
-        .single();
+        .eq('letter_no', documentId)
+        .maybeSingle();
+      
+      // Bulunamadıysa internal_no'ya göre dene
+      if (!data && !error) {
+        const result = await supabaseService.getClient()
+          .from('documents')
+          .select('id, letter_no, letter_date, ref_letters, short_desc')
+          .eq('internal_no', documentId)
+          .maybeSingle();
+        data = result.data;
+        error = result.error;
+      }
+      
+      // Hala bulunamadıysa id'ye göre dene
+      if (!data && !error) {
+        const result = await supabaseService.getClient()
+          .from('documents')
+          .select('id, letter_no, letter_date, ref_letters, short_desc')
+          .eq('id', documentId)
+          .maybeSingle();
+        data = result.data;
+        error = result.error;
+      }
 
-      if (error) throw error;
+      if (error) {
+        console.error('Belge bulunamadı:', error);
+        alert(`Belge bulunamadı: ${documentId}`);
+        return;
+      }
 
       if (data) {
+        // Eğer zaten sepette varsa ekleme
+        if (documentBasket.some(doc => doc.id === String(data.id))) {
+          console.log('Belge zaten sepette:', data.id);
+          alert('Bu belge zaten sepette!');
+          return;
+        }
+
+        console.log('Belge sepete ekleniyor:', data);
         setDocumentBasket(prev => [...prev, {
-          id: data.id,
+          id: String(data.id),
           letter_no: data.letter_no || '',
           letter_date: data.letter_date,
           ref_letters: data.ref_letters,
           short_desc: data.short_desc
         }]);
+        alert(`"${data.letter_no}" belgesi sepete eklendi!`);
+        
+        // Belge Analiz sekmesine geç
+        setActiveTab('analysis');
       }
     } catch (error) {
       console.error('Belge sepete eklenirken hata:', error);
+      alert('Belge sepete eklenirken bir hata oluştu!');
     }
   };
 
@@ -280,12 +352,12 @@ export default function AISearchPage() {
 
         <TabsContent value="graph">
           <Card>
-            <CardHeader>
+           {/*  <CardHeader>
               <CardTitle>Belge İlişki Grafiği</CardTitle>
               <CardDescription>
                 Belgeler arasındaki referans ilişkilerini görselleştirir
               </CardDescription>
-            </CardHeader>
+            </CardHeader> */}
             <CardContent>
               <div className="space-y-4">
                 {/* Arama kutusu: letter_no girin -> sadece o belgenin bulunduğu ada getirilsin */}

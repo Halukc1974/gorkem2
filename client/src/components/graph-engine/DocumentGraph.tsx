@@ -488,7 +488,16 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
     instance.on('mouseover', 'node', onMouseOver);
     instance.on('mouseout', 'node', onMouseOut);
     
-    // Add context menu for star-map
+    // Add click handler for star-map nodes (single click)
+    instance.on('tap', 'node', (evt: any) => {
+      evt.preventDefault();
+      const nodeId = evt.target.id();
+      if (onNodeClick) {
+        onNodeClick(nodeId);
+      }
+    });
+    
+    // Add context menu for star-map (right click)
     instance.on('cxttap', 'node', (evt: any) => {
       evt.preventDefault();
       evt.stopPropagation();
@@ -505,40 +514,32 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
       });
     });
     
+    // Close context menu on background click
     instance.on('tap', (evt: any) => {
       if (evt.target === instance) {
         setStarContextMenu({ visible: false, x: 0, y: 0 });
       }
     });
     
-    // Prevent browser context menu on the entire cytoscape instance
-    instance.on('cxttapstart', (evt: any) => {
-      evt.preventDefault();
-    });
-    
-    // Prevent browser context menu on the entire cytoscape instance
+    // Prevent browser context menu on cytoscape events
     instance.on('cxttapstart', (evt: any) => {
       evt.preventDefault();
       evt.stopPropagation();
-      evt.stopImmediatePropagation();
     });
     
-    // Also prevent on the container
-    const container = starMapCyRef.current;
-    if (container) {
-      container.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }, true); // Use capture phase
-    }
-    return () => { 
+    // Cleanup function
+    return () => {
       try {
         instance.off('mouseover');
         instance.off('mouseout');
+        instance.off('tap');
+        instance.off('cxttap');
+        instance.off('cxttapstart');
       } catch (e) {}
-      instance.destroy(); setStarMapCy(null); 
+      instance.destroy();
+      setStarMapCy(null);
     };
-  }, [activeTab, starMapData]);
+  }, [activeTab, starMapData, onNodeClick]);
 
   // Graph customization
   const { 
@@ -564,6 +565,16 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
     if (!previousCyRef.current || !filteredData.previous) return;
 
     console.log('Previous graph initializing with data:', filteredData.previous);
+    
+    // Prevent browser context menu on container
+    const container = previousCyRef.current;
+    const preventContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    };
+    container.addEventListener('contextmenu', preventContextMenu, true);
+    
     const instance = createCyInstance(
       previousCyRef.current,
       filteredData.previous,
@@ -581,6 +592,7 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
 
     return () => {
       // Sadece component unmount olduğunda temizle
+      container.removeEventListener('contextmenu', preventContextMenu, true);
       if (previousCyRef.current) {
         instance.destroy();
         setPreviousCy(null);
@@ -593,6 +605,16 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
     if (!nextCyRef.current || !filteredData.next) return;
 
     console.log('Next graph initializing with data:', filteredData.next);
+    
+    // Prevent browser context menu on container
+    const container = nextCyRef.current;
+    const preventContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    };
+    container.addEventListener('contextmenu', preventContextMenu, true);
+    
     const instance = createCyInstance(
       nextCyRef.current,
       filteredData.next,
@@ -611,6 +633,7 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
 
     return () => {
       // Sadece component unmount olduğunda temizle
+      container.removeEventListener('contextmenu', preventContextMenu, true);
       if (nextCyRef.current) {
         instance.destroy();
         setNextCy(null);
@@ -623,6 +646,16 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
     if (!allCyRef.current || !filteredData.all) return;
 
     console.log('All graph initializing with data:', filteredData.all);
+    
+    // Prevent browser context menu on container
+    const container = allCyRef.current;
+    const preventContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    };
+    container.addEventListener('contextmenu', preventContextMenu, true);
+    
     const instance = createCyInstance(
       allCyRef.current,
       filteredData.all,
@@ -641,6 +674,7 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
 
     return () => {
       // Sadece component unmount olduğunda temizle
+      container.removeEventListener('contextmenu', preventContextMenu, true);
       if (allCyRef.current) {
         instance.destroy();
         setAllCy(null);
@@ -691,6 +725,24 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
     }
   }, [activeTab, previousCy, nextCy, allCy]);
 
+  // Close context menus when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      // Check if click is outside context menus
+      const target = e.target as HTMLElement;
+      const isContextMenu = target.closest('[data-context-menu]');
+      
+      if (!isContextMenu) {
+        setContextMenuPosition(null);
+        setSelectedNodeId(null);
+        setStarContextMenu({ visible: false, x: 0, y: 0 });
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
   return (
     <Tabs 
       defaultValue="previous" 
@@ -711,8 +763,12 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
         <div 
           ref={starMapCyRef}
           onContextMenu={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
+            // Sadece container'ın kendisinde browser menüsünü engelle
+            // Node'larda Cytoscape'in cxttap eventi bizim menümüzü gösterecek
+            if (e.target === e.currentTarget) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
           }}
           style={{ 
             width: '100%', 
@@ -722,7 +778,11 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
             border: '1px solid #e2e8f0',
             boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
             position: 'relative',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+            MozUserSelect: 'none',
+            msUserSelect: 'none'
           }} 
         >
           {starMapLoading && (
@@ -745,11 +805,12 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
         {/* Star-map context menu */}
         {starContextMenu.visible && (
           <div
+            data-context-menu="true"
             style={{
               position: 'fixed',
               top: starContextMenu.y,
               left: starContextMenu.x,
-              zIndex: 1000,
+              zIndex: 2000,
               background: 'white',
               border: '1px solid #ccc',
               borderRadius: '4px',
@@ -791,6 +852,13 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
             onContextMenu={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              return false;
+            }}
+            onMouseDown={(e) => {
+              if (e.button === 2) {
+                e.preventDefault();
+                e.stopPropagation();
+              }
             }}
             style={{ 
               width: '100%', 
@@ -800,7 +868,11 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
               border: '1px solid #e2e8f0',
               boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
               position: 'relative',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              MozUserSelect: 'none',
+              msUserSelect: 'none'
             }} 
           >
             {!data?.nodes?.length && (
@@ -823,7 +895,13 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
         <div style={{ position: 'relative', display: activeTab === 'next' ? 'block' : 'none' }}>
           <div 
             ref={nextCyRef}
-            onContextMenu={(e) => e.preventDefault()}
+            onContextMenu={(e) => {
+              // Sadece container'ın kendisinde browser menüsünü engelle
+              if (e.target === e.currentTarget) {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
             style={{ 
               width: '100%', 
               height: '600px',
@@ -832,7 +910,11 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
               border: '1px solid #e2e8f0',
               boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
               position: 'relative',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              MozUserSelect: 'none',
+              msUserSelect: 'none'
             }} 
           >
             {!data?.nodes?.length && (
@@ -855,7 +937,13 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
         <div style={{ position: 'relative', display: activeTab === 'all' ? 'block' : 'none' }}>
           <div 
             ref={allCyRef}
-            onContextMenu={(e) => e.preventDefault()}
+            onContextMenu={(e) => {
+              // Sadece container'ın kendisinde browser menüsünü engelle
+              if (e.target === e.currentTarget) {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
             style={{ 
               width: '100%', 
               height: '600px',
@@ -864,7 +952,11 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
               border: '1px solid #e2e8f0',
               boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
               position: 'relative',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              MozUserSelect: 'none',
+              msUserSelect: 'none'
             }} 
           >
             {!data?.nodes?.length && (
@@ -885,11 +977,12 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
 
       {contextMenuPosition && (
         <div
+          data-context-menu="true"
           style={{
             position: 'fixed',
             top: contextMenuPosition.y,
             left: contextMenuPosition.x,
-            zIndex: 1000,
+            zIndex: 2000,
             background: 'white',
             border: '1px solid #ccc',
             borderRadius: '4px',
