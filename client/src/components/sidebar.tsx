@@ -3,7 +3,6 @@ import { Button } from "../components/ui/button";
 import CreateSheetModal from "./create-sheet-modal";
 import { useState, useEffect } from "react";
 import { useToast } from "../hooks/use-toast";
-import { Brain } from "lucide-react";
 // Google Sheets integration removed for Info Center migration
 import { apiRequest } from "../lib/queryClient";
 import firebaseConfigService from '../services/firebaseConfig';
@@ -11,7 +10,7 @@ import { auth } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import RenameSheetModal from "./rename-sheet-modal";
 import { 
-  Search, Network, Brain, Cpu, CircuitBoard, Sparkles 
+  Search, Network, Brain, Cpu, CircuitBoard, Sparkles, Settings 
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -333,6 +332,7 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
           data-testid="nav-settings"
         >
           <i className="fas fa-cog mr-3 h-5 w-5"></i>
+          <Settings className="h-5 w-5 mr-3" />
           Ayarlar
         </button>
 
@@ -447,30 +447,29 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
 
         {!hideSidebarItems.includes("ai-search") && (
           <button
-            onClick={() => handleNavigation("/ai-search")}
-            className={`w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-              location === "/ai-search" 
-                ? "bg-primary text-primary-foreground" 
-                : "text-foreground hover:bg-accent hover:text-accent-foreground"
-            }`}
-            data-testid="nav-ai-search"
-          >
-            <i className="fas fa-sitemap mr-3 h-5 w-5"></i>
-            <Network className="h-4 w-4 " />
-            <span className="truncate">Belge Referans Ağı</span>
-          </button>
+  onClick={() => handleNavigation("/ai-search")}
+  className={`w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
+    ${location === "/ai-search" 
+      ? "bg-primary text-primary-foreground" 
+      : "text-foreground hover:bg-accent hover:text-accent-foreground"} pl-[5ch]`}
+  data-testid="nav-ai-search"
+>
+  <Network className="h-5 w-5 mr-3" />
+  <span className="truncate">Belge Referans Ağı</span>
+</button>
         )}
         
         {/* Nested links for AI Search */}
-        <div className="ml-6 mt-1 space-y-1">
+        <div className="ml-6 mt-1 space-y-1"> 
           <button
             onClick={() => handleNavigation('/ai-search/adis_index')}
-            className={`w-full flex items-center px-3 py-2 text-sm rounded-md transition-colors ${
+            className={`w-full flex items-center px-3 py-2 text-sm rounded-md transition-colors pl-[1ch] ${
               location === '/ai-search/adis_index' ? 'bg-accent text-accent-foreground' : 'text-foreground hover:bg-accent hover:text-accent-foreground'
             }`}
             data-testid="nav-ai-adis"
           >
-            📤 Belge Yükle
+            <span className="pl-[1.5ch]">📤</span>
+            <span className="ml-[1ch] truncate">Belge Yükle</span>
           </button>
         </div>
 

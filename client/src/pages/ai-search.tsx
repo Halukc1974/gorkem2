@@ -7,6 +7,7 @@ import { Switch } from '../components/ui/switch';
 import { 
   Search, Network, Brain, Cpu, CircuitBoard, Sparkles, CheckCircle2, XCircle, Eye, FileText 
 } from 'lucide-react';
+import { Badge } from '../components/ui/badge';
 import { DocumentGraph } from '../components/graph-engine/DocumentGraph';
 import { supabaseService } from '../services/supabase';
 import { buildStarMapGraph } from '../utils/documentGraphStarMap';
@@ -569,25 +570,19 @@ export default function AISearchPage() {
                               />
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-center">
-                              {(() => {
-                                const v = doc.inc_out?.toString().toLowerCase();
-                                const isIncoming = v === 'incoming' || v === 'gelen' || v === 'in';
-                                const label = isIncoming ? 'Gelen' : (v ? 'Giden' : '—');
-                                const color = isIncoming ? '#10b981' : (v ? '#ef4444' : '#9ca3af');
-                                return (
-                                  <span style={{ 
-                                    display: 'inline-block', 
-                                    padding: '4px 8px', 
-                                    borderRadius: 12, 
-                                    background: color, 
-                                    color: 'white', 
-                                    fontSize: 12,
-                                    fontWeight: 500
-                                  }}>
-                                    {label}
-                                  </span>
-                                );
-                              })()}
+                              {doc.inc_out === 'inc' ? (
+                                <Badge className="bg-green-500 text-white hover:bg-green-600">
+                                  Gelen
+                                </Badge>
+                              ) : doc.inc_out === 'out' ? (
+                                <Badge className="bg-red-500 text-white hover:bg-red-600">
+                                  Giden
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary">
+                                  -
+                                </Badge>
+                              )}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">{doc.letter_no}</td>
                             <td className="border border-gray-300 px-4 py-2">{doc.letter_date || '-'}</td>
