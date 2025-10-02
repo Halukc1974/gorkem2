@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { Switch } from '../components/ui/switch';
 import { 
-  Search, Network, Brain, Cpu, CircuitBoard, Sparkles 
+  Search, Network, Brain, Cpu, CircuitBoard, Sparkles, CheckCircle2, XCircle, Eye, FileText 
 } from 'lucide-react';
 import { DocumentGraph } from '../components/graph-engine/DocumentGraph';
 import { supabaseService } from '../services/supabase';
@@ -14,8 +14,12 @@ import { useDocumentGraph } from '../hooks/use-document-graph';
 import { GraphCustomizationProvider } from '../components/graph-engine/context/GraphCustomizationContext';
 import { useDocumentSearch } from '../hooks/use-document-search';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { useUserSettings } from '../hooks/useUserSettings';
 
 export default function AISearchPage() {
+  // User settings hook for API keys
+  const { config, hasValidApis } = useUserSettings();
+  
   // Document search hooks
   const {
     loading: searchLoading,
@@ -55,16 +59,16 @@ export default function AISearchPage() {
   } = useDocumentGraph();
 
     // Node click handler - belge detaylarını göster veya web_url aç
-  const handleNodeClickWithModal = async (nodeId: string) => {
+  const handleNodeClickWithModal = useCallback(async (nodeId: string) => {
     try {
       console.log('Node tıklandı:', nodeId);
       
       // Belge detaylarını çek - letter_no, internal_no veya id olabilir
-      // Önce letter_no'ya göre dene
-      let { data, error } = await supabaseService.getClient()
+            // Önce letter_no veya internal_no ile dene
+      let { data, error } = await supabase
         .from('documents')
-        .select('*')
-        .eq('letter_no', nodeId)
+        .select('id, letter_no, letter_date, ref_letters, short_desc, weburl, content, inc_out')
+        .or(`letter_no.eq.${documentId},internal_no.eq.${documentId},id.eq.${documentId}`)
         .maybeSingle();
       
       // Bulunamadıysa internal_no'ya göre dene
@@ -114,7 +118,7 @@ export default function AISearchPage() {
     } catch (error) {
       console.error('Belge detayları alınırken hata:', error);
     }
-  };
+  }, []);
   const [preloadedStarMap, setPreloadedStarMap] = useState<{ nodes: any[]; edges: any[] } | null>(null);
   const [starQuery, setStarQuery] = useState('');
   const [starLoading, setStarLoading] = useState(false);
@@ -127,6 +131,8 @@ export default function AISearchPage() {
     letter_date?: string;
     ref_letters?: string;
     short_desc?: string;
+    weburl?: string;
+    inc_out?: string;
   }>>([]);
   const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set());
 
@@ -134,8 +140,12 @@ export default function AISearchPage() {
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
 
+  // Belge ön izleme modal state
+  const [previewContent, setPreviewContent] = useState<{ letter_no: string; content: string } | null>(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+
   // Belge sepetine ekleme fonksiyonu
-  const addToDocumentBasket = async (documentId: string) => {
+  const addToDocumentBasket = useCallback(async (documentId: string) => {
     try {
       console.log('Sepete ekleniyor, nodeId:', documentId);
       
@@ -143,7 +153,7 @@ export default function AISearchPage() {
       // Önce letter_no'ya göre dene
       let { data, error } = await supabaseService.getClient()
         .from('documents')
-        .select('id, letter_no, letter_date, ref_letters, short_desc')
+        .select('id, letter_no, letter_date, ref_letters, short_desc, weburl')
         .eq('letter_no', documentId)
         .maybeSingle();
       
@@ -162,7 +172,7 @@ export default function AISearchPage() {
       if (!data && !error) {
         const result = await supabaseService.getClient()
           .from('documents')
-          .select('id, letter_no, letter_date, ref_letters, short_desc')
+          .select('id, letter_no, letter_date, ref_letters, short_desc, weburl')
           .eq('id', documentId)
           .maybeSingle();
         data = result.data;
@@ -189,18 +199,17 @@ export default function AISearchPage() {
           letter_no: data.letter_no || '',
           letter_date: data.letter_date,
           ref_letters: data.ref_letters,
-          short_desc: data.short_desc
+          short_desc: data.short_desc,
+          weburl: data.weburl,
+          inc_out: data.inc_out
         }]);
         alert(`"${data.letter_no}" belgesi sepete eklendi!`);
-        
-        // Belge Analiz sekmesine geç
-        setActiveTab('analysis');
       }
     } catch (error) {
       console.error('Belge sepete eklenirken hata:', error);
       alert('Belge sepete eklenirken bir hata oluştu!');
     }
-  };
+  }, [documentBasket]);
 
   // Belge sepetinden çıkarma fonksiyonu
   const removeFromDocumentBasket = (documentId: string) => {
@@ -210,6 +219,37 @@ export default function AISearchPage() {
       newSet.delete(documentId);
       return newSet;
     });
+  };
+
+  // Belge ön izleme fonksiyonu
+  const handlePreviewDocument = async (documentId: string, letterNo: string) => {
+    try {
+      const { data, error } = await supabaseService.getClient()
+        .from('documents')
+        .select('content')
+        .eq('id', documentId)
+        .single();
+
+      if (error || !data) {
+        alert('Belge içeriği yüklenemedi!');
+        return;
+      }
+
+      setPreviewContent({ letter_no: letterNo, content: data.content || 'İçerik bulunamadı' });
+      setShowPreviewModal(true);
+    } catch (error) {
+      console.error('Belge önizleme hatası:', error);
+      alert('Belge önizlenirken bir hata oluştu!');
+    }
+  };
+
+  // Belgeyi yeni sekmede aç
+  const handleOpenDocument = (weburl: string | undefined) => {
+    if (weburl && weburl.trim()) {
+      window.open(weburl, '_blank', 'noopener,noreferrer');
+    } else {
+      alert('Bu belge için URL bulunamadı!');
+    }
   };
  
   const handleFindIsland = async (query: string) => {
@@ -435,6 +475,27 @@ export default function AISearchPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
+                {/* API Bağlantı Durumu */}
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border">
+                  {hasValidApis ? (
+                    <>
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                      <span className="text-sm text-gray-700">
+                        API bağlantısı aktif 
+                        {config?.apis.openai && <span className="text-xs text-gray-500 ml-1">(OpenAI)</span>}
+                        {config?.apis.deepseek && <span className="text-xs text-gray-500 ml-1">(DeepSeek)</span>}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="w-5 h-5 text-red-600" />
+                      <span className="text-sm text-gray-700">
+                        API bağlantısı yok - Lütfen ayarlardan API anahtarı ekleyin
+                      </span>
+                    </>
+                  )}
+                </div>
+
                 {/* Analiz Et butonu */}
                 <div className="flex justify-between items-center">
                   <div className="text-sm text-gray-600">
@@ -445,8 +506,9 @@ export default function AISearchPage() {
                       // TODO: Analiz işlemi burada yapılacak
                       console.log('Seçilen belgeler:', Array.from(selectedDocuments));
                     }}
-                    disabled={selectedDocuments.size === 0}
+                    disabled={selectedDocuments.size === 0 || !hasValidApis}
                   >
+                    <Brain className="w-4 h-4 mr-2" />
                     Analiz Et ({selectedDocuments.size})
                   </Button>
                 </div>
@@ -475,10 +537,13 @@ export default function AISearchPage() {
                               className="rounded"
                             />
                           </th>
+                          <th className="border border-gray-300 px-4 py-2 text-center">Tip</th>
                           <th className="border border-gray-300 px-4 py-2 text-left">Belge No</th>
                           <th className="border border-gray-300 px-4 py-2 text-left">Tarih</th>
                           <th className="border border-gray-300 px-4 py-2 text-left">Referanslar</th>
                           <th className="border border-gray-300 px-4 py-2 text-left">Açıklama</th>
+                          <th className="border border-gray-300 px-4 py-2 text-center">Ön İzleme</th>
+                          <th className="border border-gray-300 px-4 py-2 text-center">Belge</th>
                           <th className="border border-gray-300 px-4 py-2 text-left">İşlem</th>
                         </tr>
                       </thead>
@@ -503,10 +568,54 @@ export default function AISearchPage() {
                                 className="rounded"
                               />
                             </td>
+                            <td className="border border-gray-300 px-4 py-2 text-center">
+                              {(() => {
+                                const v = doc.inc_out?.toString().toLowerCase();
+                                const isIncoming = v === 'incoming' || v === 'gelen' || v === 'in';
+                                const label = isIncoming ? 'Gelen' : (v ? 'Giden' : '—');
+                                const color = isIncoming ? '#10b981' : (v ? '#ef4444' : '#9ca3af');
+                                return (
+                                  <span style={{ 
+                                    display: 'inline-block', 
+                                    padding: '4px 8px', 
+                                    borderRadius: 12, 
+                                    background: color, 
+                                    color: 'white', 
+                                    fontSize: 12,
+                                    fontWeight: 500
+                                  }}>
+                                    {label}
+                                  </span>
+                                );
+                              })()}
+                            </td>
                             <td className="border border-gray-300 px-4 py-2">{doc.letter_no}</td>
                             <td className="border border-gray-300 px-4 py-2">{doc.letter_date || '-'}</td>
                             <td className="border border-gray-300 px-4 py-2">{doc.ref_letters || '-'}</td>
                             <td className="border border-gray-300 px-4 py-2">{doc.short_desc || '-'}</td>
+                            <td className="border border-gray-300 px-4 py-2 text-center">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handlePreviewDocument(doc.id, doc.letter_no)}
+                                className="text-blue-600 hover:text-blue-800"
+                                title="Belge içeriğini önizle"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                            </td>
+                            <td className="border border-gray-300 px-4 py-2 text-center">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleOpenDocument(doc.weburl)}
+                                disabled={!doc.weburl}
+                                className="text-green-600 hover:text-green-800 disabled:text-gray-400"
+                                title={doc.weburl ? "Belgeyi aç" : "URL bulunamadı"}
+                              >
+                                <FileText className="w-4 h-4" />
+                              </Button>
+                            </td>
                             <td className="border border-gray-300 px-4 py-2">
                               <Button
                                 variant="ghost"
@@ -594,6 +703,24 @@ export default function AISearchPage() {
                   </a>
                 </div>
               )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Belge Ön İzleme Modal */}
+      <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Belge Ön İzleme: {previewContent?.letter_no}</DialogTitle>
+          </DialogHeader>
+          {previewContent && (
+            <div className="space-y-4">
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                  {previewContent.content}
+                </div>
+              </div>
             </div>
           )}
         </DialogContent>

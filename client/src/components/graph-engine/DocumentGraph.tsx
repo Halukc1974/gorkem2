@@ -358,6 +358,7 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
     body?: string;
     nodeId?: string;
   }>({ visible: false, x: 0, y: 0, title: undefined, body: undefined, nodeId: undefined });
+  const starTooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Context menu state for star-map
   const [starContextMenu, setStarContextMenu] = useState<{
     visible: boolean;
@@ -484,7 +485,14 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
         // ignore hover errors
       }
     };    const onMouseOut = () => {
-      setStarTooltip(prev => ({ ...prev, visible: false }));
+      // Clear any existing timeout
+      if (starTooltipTimeoutRef.current) {
+        clearTimeout(starTooltipTimeoutRef.current);
+      }
+      // Wait 500ms before hiding tooltip so user can move mouse to tooltip
+      starTooltipTimeoutRef.current = setTimeout(() => {
+        setStarTooltip(prev => ({ ...prev, visible: false }));
+      }, 500);
     };
 
     instance.on('mouseover', 'node', onMouseOver);
@@ -541,6 +549,11 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
     // Cleanup function
     return () => {
       try {
+        // Clear tooltip timeout
+        if (starTooltipTimeoutRef.current) {
+          clearTimeout(starTooltipTimeoutRef.current);
+          starTooltipTimeoutRef.current = null;
+        }
         instance.off('mouseover');
         instance.off('mouseout');
         instance.off('tap');
@@ -1061,7 +1074,17 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
       {starTooltip.visible && (
         <div
           role="tooltip"
-          onMouseLeave={() => setStarTooltip(prev => ({ ...prev, visible: false }))}
+          onMouseEnter={() => {
+            // Cancel hide timeout when mouse enters tooltip
+            if (starTooltipTimeoutRef.current) {
+              clearTimeout(starTooltipTimeoutRef.current);
+              starTooltipTimeoutRef.current = null;
+            }
+          }}
+          onMouseLeave={() => {
+            // Hide immediately when leaving tooltip
+            setStarTooltip(prev => ({ ...prev, visible: false }));
+          }}
           style={{
             position: 'fixed',
             top: starTooltip.y,
