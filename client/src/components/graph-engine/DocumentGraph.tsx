@@ -476,7 +476,7 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
         
         // Body'de letter_date, ref_letters ve content'i göster
         const parts: string[] = [];
-        if (data.letter_date) parts.push(`Tarih: ${data.letter_date}`);
+        if (data.letter_date) parts.push(`Date: ${data.letter_date}`);
         if (data.ref_letters) parts.push(`Referanslar: ${Array.isArray(data.ref_letters) ? data.ref_letters.join(', ') : data.ref_letters}`);
         if (data.content) parts.push(`İçerik: ${String(data.content).slice(0, 500)}${String(data.content).length > 500 ? '...' : ''}`);
 
@@ -824,7 +824,7 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
           )}
           {!starMapLoading && !starMapError && !starMapData.nodes.length && (
             <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', color: '#64748b' }}>
-              Hiç belge ilişkisi bulunamadı
+              No document relationships found
             </div>
           )}
         </div>
@@ -864,7 +864,7 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  📄 Belgeyi Sepete Ekle
+                  📄 Add Document to Basket
                 </button>
               )}
             </div>
@@ -911,7 +911,7 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
                 textAlign: 'center',
                 color: '#64748b'
               }}>
-                Önceki yazışmalar bulunamadı veya yüklenemiyor
+                Previous correspondence not found or cannot be loaded
               </div>
             )}
           </div>
@@ -953,7 +953,7 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
                 textAlign: 'center',
                 color: '#64748b'
               }}>
-                Sonraki yazışmalar bulunamadı veya yüklenemiyor
+                Next correspondence not found or cannot be loaded
               </div>
             )}
           </div>
@@ -995,7 +995,7 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
                 textAlign: 'center',
                 color: '#64748b'
               }}>
-                Tüm yazışmalar bulunamadı veya yüklenemiyor
+                All correspondence not found or cannot be loaded
               </div>
             )}
           </div>
@@ -1037,7 +1037,7 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
-                📄 Belgeyi Sepete Ekle
+                📄 Add Document to Basket
               </button>
             )}
             <button
@@ -1126,7 +1126,7 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
                 onMouseEnter={(e) => e.currentTarget.style.background = '#059669'}
                 onMouseLeave={(e) => e.currentTarget.style.background = '#10b981'}
               >
-                + Sepete Ekle
+                + Add to Basket
               </button>
             )}
           </div>

@@ -230,7 +230,7 @@ export function GraphContextMenu({ selectedNodeId, onClose }: ContextMenuProps) 
               </div>
 
               <div className="space-y-2">
-                <Label>Node Aralığı</Label>
+                <Label>Node Range</Label>
                 <Input
                   type="number"
                   value={customization.layout.nodeSeparation}
@@ -241,7 +241,7 @@ export function GraphContextMenu({ selectedNodeId, onClose }: ContextMenuProps) 
               </div>
 
               <div className="space-y-2">
-                <Label>Seviye Aralığı</Label>
+                <Label>Seviye Range</Label>
                 <Input
                   type="number"
                   value={customization.layout.rankSeparation}

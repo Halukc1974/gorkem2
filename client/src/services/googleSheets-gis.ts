@@ -292,11 +292,11 @@ export class ClientGoogleSheetsService {
   getTemplateHeaders(template: string): string[] {
     switch (template) {
       case 'income-expense':
-        return ['Tarih', 'Açıklama', 'Tutar', 'Tür', 'Kategori'];
+        return ['Date', 'Açıklama', 'Tutar', 'Tür', 'Kategori'];
       case 'project-tracking':
         return ['Proje Adı', 'Başlangıç', 'Bitiş', 'Durum', 'Sorumlu', 'Bütçe'];
       case 'inventory':
-        return ['Ürün Adı', 'Miktar', 'Birim', 'Fiyat', 'Toplam', 'Tarih'];
+        return ['Ürün Adı', 'Miktar', 'Birim', 'Fiyat', 'Toplam', 'Date'];
       case 'client-management':
         return ['Müşteri Adı', 'Email', 'Telefon', 'Şirket', 'Adres', 'Notlar'];
       case 'employee-records':

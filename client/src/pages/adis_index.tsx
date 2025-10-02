@@ -157,7 +157,7 @@ export default function AdisIndexPage(): JSX.Element {
               setTimeout(() => {
                 try { $('#submittalType').val(data.subm_type || []).trigger('change'); } catch(e){}
                 (document.getElementById('submittalStatus') as HTMLSelectElement).value = data.onay_durumu || '';
-                (document.getElementById('DecisionDate') as HTMLInputElement).value = data.onay_tarih || '';
+                (document.getElementById('DecisionDate') as HTMLInputElement).value = data.onay_Date || '';
               }, 0);
               validateRequired();
             }
@@ -268,7 +268,7 @@ export default function AdisIndexPage(): JSX.Element {
               formData.append('subject', (document.getElementById('subject') as HTMLTextAreaElement).value);
               formData.append('letterContent', (document.getElementById('letterContent') as HTMLTextAreaElement).value);
               formData.append('onay_durumu', (document.getElementById('submittalStatus') as HTMLSelectElement).value);
-              formData.append('onay_tarih', (document.getElementById('DecisionDate') as HTMLInputElement).value);
+              formData.append('onay_Date', (document.getElementById('DecisionDate') as HTMLInputElement).value);
               formData.append('Manufac', (document.getElementById('manufacturer') as HTMLInputElement).value);
               const appendArray = (fd: FormData, name: string, val: any) => {
                 const arr = Array.isArray(val) ? val : (val ? [val] : []);

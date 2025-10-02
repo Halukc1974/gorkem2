@@ -12,7 +12,7 @@ import { useToast } from '../hooks/use-toast';
 import { googleSheetsClient } from '../services/googleSheets';
 
 interface FinancialEntry {
-  tarih: string;
+  Date: string;
   proje_id?: string;
   aciklama: string;
   tutar: number;
@@ -29,7 +29,7 @@ export function FinancialDataEntry() {
 
   // Form states
   const [gelirForm, setGelirForm] = useState<FinancialEntry>({
-    tarih: new Date().toISOString().split('T')[0],
+    Date: new Date().toISOString().split('T')[0],
     proje_id: '',
     aciklama: '',
     tutar: 0,
@@ -39,7 +39,7 @@ export function FinancialDataEntry() {
   });
 
   const [giderForm, setGiderForm] = useState<FinancialEntry>({
-    tarih: new Date().toISOString().split('T')[0],
+    Date: new Date().toISOString().split('T')[0],
     proje_id: '',
     aciklama: '',
     tutar: 0,
@@ -94,7 +94,7 @@ export function FinancialDataEntry() {
       
       // Google Sheets'e yeni satır ekle
       const rowData = [
-        gelirForm.tarih,
+        gelirForm.Date,
         gelirForm.proje_id || '',
         gelirForm.kategori,
         gelirForm.aciklama,
@@ -117,7 +117,7 @@ export function FinancialDataEntry() {
 
       // Formu resetle
       setGelirForm({
-        tarih: new Date().toISOString().split('T')[0],
+        Date: new Date().toISOString().split('T')[0],
         proje_id: '',
         aciklama: '',
         tutar: 0,
@@ -152,7 +152,7 @@ export function FinancialDataEntry() {
       setLoading(true);
       
       const rowData = [
-        giderForm.tarih,
+        giderForm.Date,
         giderForm.proje_id || '',
         giderForm.kategori,
         giderForm.alt_kategori || '',
@@ -173,7 +173,7 @@ export function FinancialDataEntry() {
 
       // Formu resetle
       setGiderForm({
-        tarih: new Date().toISOString().split('T')[0],
+        Date: new Date().toISOString().split('T')[0],
         proje_id: '',
         aciklama: '',
         tutar: 0,
@@ -223,12 +223,12 @@ export function FinancialDataEntry() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="gelir-tarih">Tarih *</Label>
+                  <Label htmlFor="gelir-Date">Date *</Label>
                   <Input
-                    id="gelir-tarih"
+                    id="gelir-Date"
                     type="date"
-                    value={gelirForm.tarih}
-                    onChange={(e) => setGelirForm({...gelirForm, tarih: e.target.value})}
+                    value={gelirForm.Date}
+                    onChange={(e) => setGelirForm({...gelirForm, Date: e.target.value})}
                   />
                 </div>
                 
@@ -330,12 +330,12 @@ export function FinancialDataEntry() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="gider-tarih">Tarih *</Label>
+                  <Label htmlFor="gider-Date">Date *</Label>
                   <Input
-                    id="gider-tarih"
+                    id="gider-Date"
                     type="date"
-                    value={giderForm.tarih}
-                    onChange={(e) => setGiderForm({...giderForm, tarih: e.target.value})}
+                    value={giderForm.Date}
+                    onChange={(e) => setGiderForm({...giderForm, Date: e.target.value})}
                   />
                 </div>
                 

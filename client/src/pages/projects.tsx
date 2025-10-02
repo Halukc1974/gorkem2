@@ -41,12 +41,12 @@ interface ProjectData {
   finansman_kaynagi: string;            // O: "Finansman Kaynağı"
   arsa_alani: string;                   // P: "Arsa Alanı"
   toplam_insaat_alani: string;          // Q: "Toplam İnşaat Alanı"
-  sozlesmeye_gore_baslangic: string;    // R: "Sözleşmeye Göre Proje başlangıç tarihi"
-  sozlesmeye_gore_bitis: string;        // S: "Sözleşmeye Göre Proje Bitiş tarihi"
+  sozlesmeye_gore_baslangic: string;    // R: "Sözleşmeye Göre Proje başlangıç Datei"
+  sozlesmeye_gore_bitis: string;        // S: "Sözleşmeye Göre Proje Bitiş Datei"
   isin_suresi: string;                  // T: "İşin Süresi (Gün)"
   sure_uzatimi: string;                 // U: "Süre Uzatımı"
   devam_durumu: string;                 // V: "Devam Durumu"
-  fiili_bitis_tarihi: string;           // W: "Fiili Bitiş Tarihi"
+  fiili_bitis_Datei: string;           // W: "Fiili Bitiş Datei"
   gecici_kabul_durumu: string;          // X: "Geçici Kabul Durumu"
   kesin_kabul_durumu: string;           // Y: "Kesin Kabul Durumu"
 }
@@ -281,10 +281,10 @@ export default function ProjectsPage() {
                               <p className="font-medium">{project.sozlesmeye_gore_bitis}</p>
                             </div>
                           )}
-                          {project.fiili_bitis_tarihi && (
+                          {project.fiili_bitis_Datei && (
                             <div>
                               <span className="text-gray-600">Fiili Bitiş:</span>
-                              <p className="font-medium">{project.fiili_bitis_tarihi}</p>
+                              <p className="font-medium">{project.fiili_bitis_Datei}</p>
                             </div>
                           )}
                         </div>

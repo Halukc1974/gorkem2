@@ -181,16 +181,16 @@ export default function AISearchPage() {
       }
 
       if (error) {
-        console.error('Belge bulunamadı:', error);
-        alert(`Belge bulunamadı: ${documentId}`);
+        console.error('Document not found:', error);
+        alert(`Document not found: ${documentId}`);
         return;
       }
 
       if (data) {
         // Eğer zaten sepette varsa ekleme
         if (documentBasket.some(doc => doc.id === String(data.id))) {
-          console.log('Belge zaten sepette:', data.id);
-          alert('Bu belge zaten sepette!');
+          console.log('Document already in basket:', data.id);
+          alert('This document is already in the basket!');
           return;
         }
 
@@ -204,11 +204,11 @@ export default function AISearchPage() {
           weburl: data.weburl,
           inc_out: data.inc_out
         }]);
-        alert(`"${data.letter_no}" belgesi sepete eklendi!`);
+        alert(`"${data.letter_no}" document added to basket!`);
       }
     } catch (error) {
-      console.error('Belge sepete eklenirken hata:', error);
-      alert('Belge sepete eklenirken bir hata oluştu!');
+      console.error('Error adding document to basket:', error);
+      alert('An error occurred while adding the document to basket!');
     }
   }, [documentBasket]);
 
@@ -232,15 +232,15 @@ export default function AISearchPage() {
         .single();
 
       if (error || !data) {
-        alert('Belge içeriği yüklenemedi!');
+        alert('Document content could not be loaded!');
         return;
       }
 
-      setPreviewContent({ letter_no: letterNo, content: data.content || 'İçerik bulunamadı' });
+      setPreviewContent({ letter_no: letterNo, content: data.content || 'Content not found' });
       setShowPreviewModal(true);
     } catch (error) {
-      console.error('Belge önizleme hatası:', error);
-      alert('Belge önizlenirken bir hata oluştu!');
+      console.error('Document preview error:', error);
+      alert('An error occurred while previewing the document!');
     }
   };
 
@@ -249,7 +249,7 @@ export default function AISearchPage() {
     if (weburl && weburl.trim()) {
       window.open(weburl, '_blank', 'noopener,noreferrer');
     } else {
-      alert('Bu belge için URL bulunamadı!');
+      alert('URL not found for this document!');
     }
   };
  
@@ -289,7 +289,7 @@ export default function AISearchPage() {
       const qNorm = normalize(query);
       const startId = normToOriginal.get(qNorm) || null;
       if (!startId) {
-        setStarError('Aranan letter_no haritada bulunamadı.');
+        setStarError('Searched letter_no not found in map.');
         setStarLoading(false);
         return;
       }
@@ -361,10 +361,10 @@ export default function AISearchPage() {
             <span className="inline-flex items-center justify-center p-2 bg-blue-100 rounded-lg">
               {/* <Brain className="h-8 w-8 text-blue-600 stroke-2" strokeLinejoin="round" /> */}
             </span>
-           Belge Referans Grafikleri
+           Document Reference Graphs
           </h1>
           <p className="text-gray-600 mt-1">
-            AI destekli arama ve belge ilişkileri görselleştirme
+            AI-powered search and document relationship visualization
           </p>
         </div>
       </div>
@@ -377,15 +377,15 @@ export default function AISearchPage() {
           </TabsTrigger> */}
           <TabsTrigger value="graph" className="flex items-center gap-2">
             <Network className="h-4 w-4" />
-            Belge Referans Grafiği
+            Document Reference Graph
           </TabsTrigger>
           <TabsTrigger value="star-map-top" className="flex items-center gap-2">
             <Network className="h-4 w-4" />
-            Tüm Belge Ağı
+            All Documents Network
           </TabsTrigger>
           <TabsTrigger value="analysis" className="flex items-center gap-2">
             <Search className="h-4 w-4" />
-            Belge Analiz
+            Document Analysis
           </TabsTrigger>
         </TabsList>
         
@@ -404,16 +404,16 @@ export default function AISearchPage() {
                 {/* Arama kutusu: letter_no girin -> sadece o belgenin bulunduğu ada getirilsin */}
                 <div className="flex gap-2 items-center">
                   <Input
-                    placeholder="Ada için letter_no girin (ör. IC-HQ-975)"
+                    placeholder="Enter letter_no for island (e.g., IC-HQ-975)"
                     value={starQuery}
                     onChange={(e) => setStarQuery(e.target.value)}
                     className="w-full max-w-md"
                   />
                   <Button onClick={() => handleFindIsland(starQuery)} disabled={starLoading}>
-                    {starLoading ? 'Bulunuyor...' : 'Ada Getir'}
+                    {starLoading ? 'Finding...' : 'Show Island'}
                   </Button>
                   <Button variant="ghost" onClick={() => { setPreloadedStarMap(null); setStarQuery(''); }}>
-                    Sıfırla
+                    Reset
                   </Button>
                 </div>
                 {starError && <div className="text-sm text-red-600">{starError}</div>}
@@ -439,16 +439,16 @@ export default function AISearchPage() {
                 {/* Arama kutusu: letter_no girin -> sadece o belgenin bulunduğu ada getirilsin */}
                 <div className="flex gap-2 items-center">
                   <Input
-                    placeholder="Ada için letter_no girin (ör. IC-HQ-975)"
+                    placeholder="Enter letter_no for island (e.g., IC-HQ-975)"
                     value={starQuery}
                     onChange={(e) => setStarQuery(e.target.value)}
                     className="w-full max-w-md"
                   />
                   <Button onClick={() => handleFindIsland(starQuery)} disabled={starLoading}>
-                    {starLoading ? 'Bulunuyor...' : 'Ada Getir'}
+                    {starLoading ? 'Finding...' : 'Show Island'}
                   </Button>
                   <Button variant="ghost" onClick={() => { setPreloadedStarMap(null); setStarQuery(''); }}>
-                    Sıfırla
+                    Reset
                   </Button>
                 </div>
                 {starError && <div className="text-sm text-red-600">{starError}</div>}
@@ -497,7 +497,7 @@ export default function AISearchPage() {
                   )}
                 </div>
 
-                {/* Analiz Et butonu */}
+                {/* Analyze butonu */}
                 <div className="flex justify-between items-center">
                   <div className="text-sm text-gray-600">
                     {documentBasket.length} belge seçildi
@@ -510,14 +510,14 @@ export default function AISearchPage() {
                     disabled={selectedDocuments.size === 0 || !hasValidApis}
                   >
                     <Brain className="w-4 h-4 mr-2" />
-                    Analiz Et ({selectedDocuments.size})
+                    Analyze ({selectedDocuments.size})
                   </Button>
                 </div>
 
                 {/* Belge tablosu */}
                 {documentBasket.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
-                    Henüz hiç belge eklenmemiş. Grafiklerde node'lara sağ tıklayarak "Belgeyi Sepete Ekle" seçeneği ile belgeleri ekleyebilirsiniz.
+                    No documents added yet. Hover over nodes in graphs and click 'Add to Basket' button to add documents.
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -539,13 +539,13 @@ export default function AISearchPage() {
                             />
                           </th>
                           <th className="border border-gray-300 px-4 py-2 text-center">Tip</th>
-                          <th className="border border-gray-300 px-4 py-2 text-left">Belge No</th>
-                          <th className="border border-gray-300 px-4 py-2 text-left">Tarih</th>
-                          <th className="border border-gray-300 px-4 py-2 text-left">Referanslar</th>
-                          <th className="border border-gray-300 px-4 py-2 text-left">Açıklama</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">Ön İzleme</th>
+                          <th className="border border-gray-300 px-4 py-2 text-left">Document No</th>
+                          <th className="border border-gray-300 px-4 py-2 text-left">Date</th>
+                          <th className="border border-gray-300 px-4 py-2 text-left">References</th>
+                          <th className="border border-gray-300 px-4 py-2 text-left">Description</th>
+                          <th className="border border-gray-300 px-4 py-2 text-center">Preview</th>
                           <th className="border border-gray-300 px-4 py-2 text-center">Belge</th>
-                          <th className="border border-gray-300 px-4 py-2 text-left">İşlem</th>
+                          <th className="border border-gray-300 px-4 py-2 text-left">Action</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -594,7 +594,7 @@ export default function AISearchPage() {
                                 size="sm"
                                 onClick={() => handlePreviewDocument(doc.id, doc.letter_no)}
                                 className="text-blue-600 hover:text-blue-800"
-                                title="Belge içeriğini önizle"
+                                title="Preview document content"
                               >
                                 <Eye className="w-4 h-4" />
                               </Button>
@@ -637,46 +637,46 @@ export default function AISearchPage() {
       <Dialog open={showDocumentModal} onOpenChange={setShowDocumentModal}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Belge Detayları</DialogTitle>
+            <DialogTitle>Document Details</DialogTitle>
           </DialogHeader>
           {selectedDocument && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="font-semibold">Belge No:</label>
+                  <label className="font-semibold">Document No:</label>
                   <p>{selectedDocument.letter_no || '-'}</p>
                 </div>
                 <div>
-                  <label className="font-semibold">Tarih:</label>
+                  <label className="font-semibold">Date:</label>
                   <p>{selectedDocument.letter_date || '-'}</p>
                 </div>
                 <div>
-                  <label className="font-semibold">Referanslar:</label>
+                  <label className="font-semibold">References:</label>
                   <p>{selectedDocument.ref_letters || '-'}</p>
                 </div>
                 <div>
-                  <label className="font-semibold">Önem Derecesi:</label>
+                  <label className="font-semibold">Severity Level:</label>
                   <p>{selectedDocument.severity_rate || '-'}</p>
                 </div>
                 <div>
-                  <label className="font-semibold">Yazışma Türü:</label>
+                  <label className="font-semibold">Correspondence Type:</label>
                   <p>{selectedDocument.type_of_corr || '-'}</p>
                 </div>
                 <div>
-                  <label className="font-semibold">Gelen/Giden:</label>
+                  <label className="font-semibold">Incoming/Outgoing:</label>
                   <p>{selectedDocument.incout || '-'}</p>
                 </div>
               </div>
               
               <div>
-                <label className="font-semibold">Kısa Açıklama:</label>
+                <label className="font-semibold">Kısa Description:</label>
                 <p className="mt-1">{selectedDocument.short_desc || '-'}</p>
               </div>
               
               <div>
-                <label className="font-semibold">İçerik:</label>
+                <label className="font-semibold">Content:</label>
                 <div className="mt-1 p-3 bg-gray-50 rounded max-h-40 overflow-y-auto">
-                  {selectedDocument.content || 'İçerik bulunamadı'}
+                  {selectedDocument.content || 'Content not found'}
                 </div>
               </div>
               
@@ -703,11 +703,11 @@ export default function AISearchPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Belge Ön İzleme Modal */}
+      {/* Belge Preview Modal */}
       <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Belge Ön İzleme: {previewContent?.letter_no}</DialogTitle>
+            <DialogTitle>Belge Preview: {previewContent?.letter_no}</DialogTitle>
           </DialogHeader>
           {previewContent && (
             <div className="space-y-4">

@@ -96,7 +96,7 @@ Gantt benzeri basit aşama görünümü
 🔄 Dashboard verileri her sayfa geçişinde ya da belli aralıklarla Google Sheets üzerinden güncellenerek çekilir.
 
 📊 Örnek Muhasebe Sheet Yapısı:
-Tarih	Açıklama	Tutar	Tür	Kategori
+Date	Açıklama	Tutar	Tür	Kategori
 2025-08-01	Kaba inşaat gideri	45.000	Gider	İnşaat
 2025-08-03	Müşteri ödemesi	75.000	Gelir	Proje Satışı
 2025-08-04	Ofis kirası	15.000	Gider	Genel Gider

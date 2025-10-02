@@ -93,7 +93,7 @@ const findConnectedNodes = (
 
       visited[neighbor] = true;
       
-      // Tarih koşulunu kontrol et
+      // Date koşulunu kontrol et
       if (!condition || condition(dates[neighbor])) {
         result.add(neighbor);
         stack.push(neighbor); // Koşulu sağlayan komşuları hemen ekle
@@ -159,7 +159,7 @@ export const filterPreviousCorrespondence = (data: GraphData) => {
     }
   });
 
-  // Sonuçları tarihe göre sırala
+  // Sonuçları Datee göre sırala
   const sortedNodes = Array.from(resultNodes)
     .map(id => data.nodes.find(n => n.id === id))
     .filter((node): node is GraphNode => node !== undefined)
@@ -188,7 +188,7 @@ export const filterNextCorrespondence = (data: GraphData) => {
 
   if (startIndex === undefined) return { nodes: [], edges: [] };
 
-  // İlk geçişte sadece gelecek tarihli bağlantıları bul
+  // İlk geçişte sadece gelecek Dateli bağlantıları bul
   const visited = new Array(data.nodes.length).fill(false);
   const futureNodes = findConnectedNodes(
     matrix,
@@ -210,7 +210,7 @@ export const filterNextCorrespondence = (data: GraphData) => {
     }
   });
 
-  // Son olarak sadece seçili tarihten sonraki node'ları filtrele
+  // Son olarak sadece seçili Dateten sonraki node'ları filtrele
   const resultIndices = new Set<number>();
   allConnected.forEach(index => {
     if (dates[index] >= selectedDate) {
@@ -235,7 +235,7 @@ export const filterNextCorrespondence = (data: GraphData) => {
     }
   });
 
-  // Sonuçları tarihe göre sırala
+  // Sonuçları Datee göre sırala
   const sortedNodes = Array.from(resultNodes)
     .map(id => data.nodes.find(n => n.id === id))
     .filter((node): node is GraphNode => node !== undefined)
@@ -286,7 +286,7 @@ export const filterAllCorrespondence = (data: GraphData) => {
     }
   });
 
-  // Sonuçları tarihe göre sırala
+  // Sonuçları Datee göre sırala
   const sortedNodes = Array.from(resultNodes)
     .map(id => data.nodes.find(n => n.id === id))
     .filter((node): node is GraphNode => node !== undefined)

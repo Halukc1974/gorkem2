@@ -239,7 +239,7 @@ Supabase sonuç örnekleri: ${JSON.stringify(supabaseResults.slice(0, 3))}`;
         return {
           relevanceScores: { neo4j: 0.5, supabase: 0.5 },
           recommendations: ['Daha spesifik anahtar kelimeler kullanmayı deneyin'],
-          suggestedActions: ['Filtreleri ayarlayın', 'Tarih aralığını daraltın']
+          suggestedActions: ['Filtreleri ayarlayın', 'Date Rangenı daraltın']
         };
       }
 
@@ -248,7 +248,7 @@ Supabase sonuç örnekleri: ${JSON.stringify(supabaseResults.slice(0, 3))}`;
       return {
         relevanceScores: { neo4j: 0.5, supabase: 0.5 },
         recommendations: ['Daha spesifik anahtar kelimeler kullanmayı deneyin'],
-        suggestedActions: ['Filtreleri ayarlayın', 'Tarih aralığını daraltın']
+        suggestedActions: ['Filtreleri ayarlayın', 'Date Rangenı daraltın']
       };
     }
   }

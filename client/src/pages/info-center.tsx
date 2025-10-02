@@ -44,7 +44,7 @@ function ContentPreviewBody(rowData: any, { onPreview }: any) {
       type="button"
       className="p-button p-button-text"
       onClick={() => onPreview(rowData)}
-      title="İçeriği önizle"
+      title="İçeriği Preview"
       style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}
     >
       <i className="pi pi-search" style={{ fontSize: '1.1rem', color: '#0b5cff' }} aria-hidden />
@@ -356,7 +356,7 @@ export default function InfoCenterPage(): JSX.Element {
                 )}
                 {visibleColumns.preview && (
                   <Column
-                    header="Önizle"
+                    header="Preview"
                     body={(rowData: any) => ContentPreviewBody(rowData, { onPreview: handlePreview })}
                     style={{ width: '3.5rem', textAlign: 'center' }}
                   />

@@ -60,8 +60,8 @@ export interface UserConfig {
     layout: {
       name: string;      // 'dagre', 'grid', etc.
       rankDir: string;   // 'TB', 'LR', etc.
-      nodeSep: number;   // Node aralığı
-      rankSep: number;   // Rank aralığı
+      nodeSep: number;   // Node Range
+      rankSep: number;   // Rank Range
     };
     
     // Node stilleri

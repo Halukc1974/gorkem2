@@ -615,7 +615,7 @@ export default function DocumentSearchPage() {
 
   // Format date
   const formatDate = (dateString?: string): string => {
-    if (!dateString) return 'Tarih belirtilmemiş';
+    if (!dateString) return 'Date belirtilmemiş';
     return new Date(dateString).toLocaleDateString('tr-TR', {
       year: 'numeric',
       month: 'short',
@@ -797,7 +797,7 @@ export default function DocumentSearchPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {/* Date Range */}
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-700">Mektup Tarihi Aralığı</Label>
+                        <Label className="text-sm font-medium text-gray-700">Mektup Datei Range</Label>
                         <div className="flex gap-2">
                           <Input
                             type="date"
@@ -934,7 +934,7 @@ export default function DocumentSearchPage() {
                             <SelectValue placeholder="Sıralama kriteri seçin" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="letter_date">📅 Mektup Tarihi</SelectItem>
+                            <SelectItem value="letter_date">📅 Mektup Datei</SelectItem>
                             <SelectItem value="similarity">🎯 Benzerlik Skoru</SelectItem>
                             <SelectItem value="severity_rate">⚡ Önem Derecesi</SelectItem>
                             <SelectItem value="short_desc">📝 Alfabetik (Açıklama)</SelectItem>
@@ -1170,11 +1170,11 @@ export default function DocumentSearchPage() {
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => changeSort('date', 'desc')}>
                     <Calendar className="h-4 w-4 mr-2" />
-                    Tarih (Yeni → Eski)
+                    Date (Yeni → Eski)
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => changeSort('date', 'asc')}>
                     <Calendar className="h-4 w-4 mr-2" />
-                    Tarih (Eski → Yeni)
+                    Date (Eski → Yeni)
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

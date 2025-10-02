@@ -376,7 +376,7 @@ export class DecisionSupportService {
     // Yaygın Türkçe kelimeler için daha yüksek DF
     const commonWords = new Set([
       'proje', 'izin', 'rapor', 'onay', 'ödeme', 'sözleşme', 'talep',
-      'cevap', 'yazı', 'belge', 'tarih', 'konu', 'hakkında', 'iletişim'
+      'cevap', 'yazı', 'belge', 'Date', 'konu', 'hakkında', 'iletişim'
     ]);
 
     if (commonWords.has(word)) return 100;
@@ -603,7 +603,7 @@ export class DecisionSupportService {
       }
     });
 
-    // Tarih yakınlığı bonus (daha yeni tarihler daha yüksek skor)
+    // Date yakınlığı bonus (daha yeni Dateler daha yüksek skor)
     if (item.letter_date) {
       const daysSince = (Date.now() - new Date(item.letter_date).getTime()) / (1000 * 60 * 60 * 24);
       const recencyBonus = Math.max(0, 30 - daysSince); // 30 gün içinde bonus
@@ -772,7 +772,7 @@ ANALİZ TALİMATLARI:
 3. **Risk Analizi**: Potansiyel riskleri, önem derecelerini ve aciliyet faktörlerini detaylı değerlendir (50-70 kelime)
 4. **Duygu ve Ton Analizi**: Belgelerin genel duygu durumunu ve iletişim tonunu derinlemesine analiz et
 5. **Önerilen Aksiyonlar**: Yapılması gereken somut, uygulanabilir adımları detaylı olarak belirt (50-70 kelime)
-6. **Zaman Çizelgesi**: Önemli tarihler, süreler ve zamanlamalar varsa belirt
+6. **Zaman Çizelgesi**: Önemli Dateler, süreler ve zamanlamalar varsa belirt
 7. **Benzer Doküman Önerileri**: İçerik bazlı benzer doküman türleri öner
 8. **Şablon Önerileri**: Uygun yazışma şablonları öner
 

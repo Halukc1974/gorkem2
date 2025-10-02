@@ -19,7 +19,7 @@ export default function Login() {
     setError(null);
 
     if (!auth) {
-      setError('Firebase auth yapılandırılmamış. Lütfen yöneticinize başvurun.');
+      setError('Firebase auth not configured. Please contact your administrator.');
       setLoading(false);
       return;
     }
@@ -33,8 +33,8 @@ export default function Login() {
         // server-side or via an admin flow. Continue to dashboard.
         setLocation('/');
       } catch (err: any) {
-      console.error("Firebase kimlik doğrulama hatası:", err);
-      setError(err.message || "Giriş başarısız");
+      console.error("Firebase authentication error:", err);
+      setError(err.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -44,19 +44,19 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
       <Card className="w-[420px]">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Görkem İnşaat</CardTitle>
-          <CardDescription>Belge Yönetim Sistemi</CardDescription>
+          <CardTitle className="text-2xl">Görkem Construction</CardTitle>
+          <CardDescription>Document Management System</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="text-center">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              E-posta ve şifrenizle giriş yapın
+              Login with your email and password
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-3">
               <input
                 type="email"
-                placeholder="E-posta"
+                placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-3 py-2 border rounded"
@@ -64,7 +64,7 @@ export default function Login() {
               />
               <input
                 type="password"
-                placeholder="Şifre"
+                placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-3 py-2 border rounded"
@@ -72,7 +72,7 @@ export default function Login() {
               />
               {error && <div className="text-sm text-red-500">{error}</div>}
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Giriş yapılıyor..." : "E-posta ile Giriş"}
+                {loading ? "Logging in..." : "Login with Email"}
               </Button>
             </form>
             

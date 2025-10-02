@@ -3,7 +3,7 @@ export const FINANCIAL_SHEET_TEMPLATES = {
   'Gelirler': {
     template: 'income-tracking',
     headers: [
-      'Tarih',
+      'Date',
       'Proje ID', 
       'Gelir Türü',
       'Açıklama',
@@ -28,7 +28,7 @@ export const FINANCIAL_SHEET_TEMPLATES = {
   'Giderler': {
     template: 'expense-tracking',
     headers: [
-      'Tarih',
+      'Date',
       'Proje ID',
       'Kategori',
       'Alt Kategori',
@@ -64,10 +64,10 @@ export const FINANCIAL_SHEET_TEMPLATES = {
       'İnşaat Alanı Brüt (m²)',
       'İnşaat Alanı Net (m²)',
       'Kat Adedi',
-      'Başlangıç Tarihi',
-      'Bitiş Tarihi',
+      'Başlangıç Datei',
+      'Bitiş Datei',
       'Devam Durumu',
-      'Fiili Bitiş Tarihi',
+      'Fiili Bitiş Datei',
       'Alt Yükleniciler',
       'Yaklaşık Maliyet',
       'Kesin Teminat %',
@@ -95,7 +95,7 @@ export const FINANCIAL_SHEET_TEMPLATES = {
       'Hesap No',
       'Bakiye',
       'Para Birimi',
-      'Tarih',
+      'Date',
       'Hesap Türü',
       'Durum'
     ]
@@ -104,7 +104,7 @@ export const FINANCIAL_SHEET_TEMPLATES = {
   'Yaklasan_Odemeler': {
     template: 'upcoming-payments',
     headers: [
-      'Vade Tarihi',
+      'Vade Datei',
       'Açıklama',
       'Tutar',
       'Kategori',
@@ -123,7 +123,7 @@ export const FINANCIAL_SHEET_TEMPLATES = {
       'Aylık Gelir',
       'Aylık Gider',
       'Net Kar',
-      'Tarih',
+      'Date',
       'Aktif Projeler',
       'Durum'
     ]

@@ -482,19 +482,19 @@ export class ClientGoogleSheetsService {
   getTemplateHeaders(template: string): string[] {
     switch (template) {
       case 'income-tracking':
-        return ['Tarih', 'Proje ID', 'Gelir Türü', 'Açıklama', 'Tutar', 'Para Birimi', 'Ödeme Durumu', 'Fatura No', 'Müşteri', 'Kategori'];
+        return ['Date', 'Proje ID', 'Gelir Türü', 'Açıklama', 'Tutar', 'Para Birimi', 'Ödeme Durumu', 'Fatura No', 'Müşteri', 'Kategori'];
       case 'expense-tracking':
-        return ['Tarih', 'Proje ID', 'Kategori', 'Alt Kategori', 'Açıklama', 'Tutar', 'Para Birimi', 'Ödeme Durumu', 'Tedarikçi', 'Fatura No'];
+        return ['Date', 'Proje ID', 'Kategori', 'Alt Kategori', 'Açıklama', 'Tutar', 'Para Birimi', 'Ödeme Durumu', 'Tedarikçi', 'Fatura No'];
       case 'project-tracking':
-        return ['Proje ID', 'Proje Adı', 'Toplam Bütçe', 'Başlangıç Tarihi', 'Bitiş Tarihi', 'Durum', 'Sorumlu Kişi', 'Lokasyon', 'Proje Tipi'];
+        return ['Proje ID', 'Proje Adı', 'Toplam Bütçe', 'Başlangıç Datei', 'Bitiş Datei', 'Durum', 'Sorumlu Kişi', 'Lokasyon', 'Proje Tipi'];
       case 'bank-accounts':
-        return ['Hesap Adı', 'Banka', 'Hesap No', 'Bakiye', 'Para Birimi', 'Tarih', 'Hesap Türü', 'Durum'];
+        return ['Hesap Adı', 'Banka', 'Hesap No', 'Bakiye', 'Para Birimi', 'Date', 'Hesap Türü', 'Durum'];
       case 'upcoming-payments':
-        return ['Vade Tarihi', 'Açıklama', 'Tutar', 'Kategori', 'Öncelik', 'Durum', 'Sorumlu', 'Notlar'];
+        return ['Vade Datei', 'Açıklama', 'Tutar', 'Kategori', 'Öncelik', 'Durum', 'Sorumlu', 'Notlar'];
       case 'subsidiaries':
-        return ['İştirak Adı', 'Sektör', 'Aylık Gelir', 'Aylık Gider', 'Net Kar', 'Tarih', 'Aktif Projeler', 'Durum'];
+        return ['İştirak Adı', 'Sektör', 'Aylık Gelir', 'Aylık Gider', 'Net Kar', 'Date', 'Aktif Projeler', 'Durum'];
       case 'income-expense':
-        return ['Tarih', 'Açıklama', 'Tutar', 'Tür', 'Kategori'];
+        return ['Date', 'Açıklama', 'Tutar', 'Tür', 'Kategori'];
       default:
         return ['Kolon 1', 'Kolon 2', 'Kolon 3'];
     }

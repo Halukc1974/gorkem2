@@ -354,7 +354,7 @@ export default function DocumentSearchPage() {
 
   // Format date
   const formatDate = (dateString?: string): string => {
-    if (!dateString) return 'Tarih belirtilmemiş';
+    if (!dateString) return 'Date belirtilmemiş';
     return new Date(dateString).toLocaleDateString('tr-TR', {
       year: 'numeric',
       month: 'short',
@@ -541,7 +541,7 @@ export default function DocumentSearchPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Date Range */}
                 <div className="space-y-2">
-                  <Label>Mektup Tarihi Aralığı</Label>
+                  <Label>Mektup Datei Range</Label>
                   <div className="flex gap-2">
                     <Input
                       type="date"
@@ -979,7 +979,7 @@ export default function DocumentSearchPage() {
           <Dialog open={quickPreviewOpen} onOpenChange={setQuickPreviewOpen}>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Belge Önizlemesi</DialogTitle>
+                <DialogTitle>Document Preview</DialogTitle>
               </DialogHeader>
               <div className="p-4 text-sm">
                 {quickPreviewData ? (

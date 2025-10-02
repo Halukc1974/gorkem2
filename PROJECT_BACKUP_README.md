@@ -1,5 +1,5 @@
 # GÖRKEM İNŞAAT PROJE VE MUHASEBE TAKİP SİSTEMİ
-## 📅 Yedekleme Tarihi: 2 Eylül 2025
+## 📅 Yedekleme Datei: 2 Eylül 2025
 
 ### 🎯 PROJE DURUMU VE ÖZELLİKLER
 

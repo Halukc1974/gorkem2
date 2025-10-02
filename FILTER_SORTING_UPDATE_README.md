@@ -11,7 +11,7 @@
 
 ### 2. ✅ Modern Sıralama Sistemi Eklendi
 - **Yeni Sıralama Kriterleri:**
-  - 📅 Mektup Tarihi (Yeni→Eski / Eski→Yeni)
+  - 📅 Mektup Datei (Yeni→Eski / Eski→Yeni)
   - 🎯 Benzerlik Skoru (Yüksek→Düşük / Düşük→Yüksek)
   - ⚡ Önem Derecesi (Yüksek→Düşük / Düşük→Yüksek)
   - 📝 Alfabetik - Açıklama (A→Z / Z→A)
@@ -19,7 +19,7 @@
 
 ### 3. ✅ Modernize Edilmiş UI
 - **Accordion Tabanlı Filtre Paneli:**
-  - Temel Filtreler bölümü (tarih, tür, önem, gelen/giden, dahili no)
+  - Temel Filtreler bölümü (Date, tür, önem, gelen/giden, dahili no)
   - Anahtar Kelimeler bölümü (30 adet, seçili sayısı gösterimi)
   - Sıralama Kriterleri bölümü (emoji ile zenginleştirilmiş)
 - **Visual Feedback:**
@@ -46,7 +46,7 @@ Aşağıdaki dosyalar güncellendi:
 ### 3. Test Edilmesi Gerekenler
 
 #### Filtreleme Testi:
-1. Tarih aralığı filtrelemesi
+1. Date Range filtrelemesi
 2. Yazışma türü filtrelemesi  
 3. Önem derecesi filtrelemesi
 4. Gelen/Giden filtrelemesi
@@ -54,13 +54,13 @@ Aşağıdaki dosyalar güncellendi:
 6. Anahtar kelime filtrelemesi (çoklu seçim)
 
 #### Sıralama Testi:
-1. Mektup tarihi - Yeni→Eski, Eski→Yeni
+1. Mektup Datei - Yeni→Eski, Eski→Yeni
 2. Benzerlik skoru - Yüksek→Düşük, Düşük→Yüksek
 3. Önem derecesi sıralaması
 4. Alfabetik sıralama (açıklama ve mektup no)
 
 #### AI Vector Search + Filtre Kombinasyonu:
-1. AI destekli arama + tarih filtresi
+1. AI destekli arama + Date filtresi
 2. AI destekli arama + yazışma türü filtresi
 3. AI destekli arama + önem derecesi sıralaması
 4. Basit arama + anahtar kelime filtresi
@@ -77,7 +77,7 @@ Aşağıdaki dosyalar güncellendi:
 - 📈 **Çok Kriterli:** 5 farklı sıralama kriteri
 - 🔄 **İki Yönlü:** Artan/azalan sıralama seçenekleri
 - 🎯 **Benzerlik Skoru:** AI aramalarda benzerlik skoruna göre sıralama
-- 📅 **Tarih Bazlı:** En yeni veya en eski belgeler önce
+- 📅 **Date Bazlı:** En yeni veya en eski belgeler önce
 
 ### Performans İyileştirmeleri
 - 🚀 **RPC Optimizasyonu:** Supabase tarafında filtreleme

@@ -27,7 +27,7 @@ interface DocumentRecord {
   metadata?: Record<string, any>; // jsonb - ek metadata
   embedding?: any;               // USER-DEFINED - vector embedding
   internal_no?: string;          // text - dahili numara
-  letter_date?: string;          // date - mektup tarihi
+  letter_date?: string;          // date - mektup Datei
   type_of_corr?: string;         // text - yazışma türü
   short_desc?: string;           // text - kısa açıklama
   sp_id?: string;                // text - özel ID
@@ -701,7 +701,7 @@ class SupabaseService {
       // Similarity'ye göre sırala ve sınırla
       const sortBy = filters?.sortBy || 'letter_date';
       const sortOrder = filters?.sortOrder || 'desc';
-      // Eğer sortBy similarity isteniyorsa ona göre sırala; değilse tarih vb. alanlara göre
+      // Eğer sortBy similarity isteniyorsa ona göre sırala; değilse Date vb. alanlara göre
       if (sortBy === 'similarity') {
         allResultsUnfiltered.sort((a, b) => sortOrder === 'desc' ? (b.similarity || 0) - (a.similarity || 0) : (a.similarity || 0) - (b.similarity || 0));
       } else {

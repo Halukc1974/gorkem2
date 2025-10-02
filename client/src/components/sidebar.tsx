@@ -45,7 +45,7 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
 
   const handleDeleteSheet = (sheetTabId: number, sheetName: string) => {
     // Client-side sheet deletion is deprecated; this is a safe no-op.
-    if (!confirm(`"${sheetName}" adlı sheet'i silmek istediğinizden emin misiniz?`)) return;
+    if (!confirm(`Are you sure you want to delete the sheet "${sheetName}"?`)) return;
     try {
       // If a delete mutation exists, call it; otherwise show a toast explaining deprecation.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -53,17 +53,17 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
       if (maybeDelete && typeof maybeDelete.mutate === 'function') {
         maybeDelete.mutate({ sheetTabId }, {
           onSuccess: () => {
-            toast({ title: 'Sheet Silindi', description: 'Sheet başarıyla silindi.' });
+            toast({ title: 'Sheet Deleted', description: 'Sheet was successfully deleted.' });
           },
           onError: () => {
-            toast({ title: 'Silme Hatası', description: 'Sheet silinirken bir hata oluştu.', variant: 'destructive' });
+            toast({ title: 'Delete Error', description: 'An error occurred while deleting the sheet.', variant: 'destructive' });
           }
         });
       } else {
-        toast({ title: 'İşlem Desteklenmiyor', description: 'Client-side sheet silme artık desteklenmiyor.' });
+        toast({ title: 'Operation Not Supported', description: 'Client-side sheet deletion is no longer supported.' });
       }
-    } catch (err) {
-      toast({ title: 'Hata', description: 'Sheet silme sırasında bir hata oluştu.', variant: 'destructive' });
+    } catch (e: any) {
+      toast({ title: 'Error', description: 'An error occurred while deleting the sheet.', variant: 'destructive' });
     }
   };
 
@@ -313,8 +313,8 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
         <div className="flex items-center">
           <i className="fas fa-building text-primary text-2xl mr-3"></i>
           <div>
-            <h1 className="text-lg font-semibold text-foreground">Görkem İnşaat</h1>
-            <p className="text-sm text-muted-foreground">Proje Takip Sistemi</p>
+            <h1 className="text-lg font-semibold text-foreground">Görkem Construction</h1>
+            <p className="text-sm text-muted-foreground">Project Tracking System</p>
           </div>
         </div>
       </div>
@@ -333,7 +333,7 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
         >
           <i className="fas fa-cog mr-3 h-5 w-5"></i>
           <Settings className="h-5 w-5 mr-3" />
-          Ayarlar
+          Settings
         </button>
 
         {!hideSidebarItems.includes("projects-summary") && (
@@ -347,7 +347,7 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
             data-testid="nav-projects"
           >
             <i className="fas fa-building mr-3 h-5 w-5"></i>
-            🏗️ Projeler Özet Tablosu
+            🏗️ Projects Summary
           </button>
         )}
 
@@ -377,7 +377,7 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
             data-testid="nav-financial"
           >
             <i className="fas fa-chart-bar mr-3 h-5 w-5"></i>
-            Finansal Dashboard
+            Financial Dashboard
           </button>
         )}
 
@@ -392,7 +392,7 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
             data-testid="nav-document-search"
           >
             <i className="fas fa-search mr-3 h-5 w-5"></i>
-            🔍 Belge Arama
+            🔍 Document Search
           </button>
         )}
 
@@ -407,7 +407,7 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
             data-testid="nav-decision-support"
           >
             <i className="fas fa-brain mr-3 h-5 w-5"></i>
-            🧠 Karar Destek Sistemi
+            🧠 Decision Support System
           </button>
         )}
 
@@ -422,7 +422,7 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
             data-testid="nav-decision-support-template"
           >
             <i className="fas fa-file-alt mr-3 h-5 w-5"></i>
-            📋 Karar Destek Sistemi
+            📋 Decision Support Template
           </button>
         )}
 
@@ -455,7 +455,7 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
   data-testid="nav-ai-search"
 >
   <Network className="h-5 w-5 mr-3" />
-  <span className="truncate">Belge Referans Ağı</span>
+  <span className="truncate">Document Reference Network</span>
 </button>
         )}
         
@@ -469,14 +469,14 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
             data-testid="nav-ai-adis"
           >
             <span className="pl-[1.5ch]">📤</span>
-            <span className="ml-[1ch] truncate">Belge Yükle</span>
+            <span className="ml-[1ch] truncate">Upload Document</span>
           </button>
         </div>
 
         {/* Info Center link (replaces Google Sheets list) */}
         <div className="mt-6">
           <h3 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            Projeler
+            Projects
           </h3>
           <div className="mt-2">
             {!hideSidebarItems.includes("projects/info-center") && (

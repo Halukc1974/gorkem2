@@ -123,7 +123,7 @@ export default function SheetTable({ headers, records, sheetName, onDataChange }
                         ) : (
                           <Input
                             type={headers[colIndex]?.toLowerCase().includes('tutar') ? 'number' : 
-                                  headers[colIndex]?.toLowerCase().includes('tarih') ? 'date' : 'text'}
+                                  headers[colIndex]?.toLowerCase().includes('Date') ? 'date' : 'text'}
                             defaultValue={cell?.toString() || ''}
                             className="h-8 border-none shadow-none"
                             onKeyDown={(e) => handleKeyPress(e, startIndex + rowIndex, colIndex)}

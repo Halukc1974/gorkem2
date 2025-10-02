@@ -43,7 +43,7 @@ function LetterCard({ data, idx }: { data: any; idx: number }) {
         <div>
           <div className="text-sm text-muted-foreground">{incOut?.toUpperCase()}</div>
           <h3 className="text-lg font-semibold">{subject}</h3>
-          <div className="text-sm text-muted-foreground mt-1">No: <span className="font-medium">{letterNo}</span> • Tarih: {date}</div>
+          <div className="text-sm text-muted-foreground mt-1">No: <span className="font-medium">{letterNo}</span> • Date: {date}</div>
         </div>
         <div className="text-right text-sm">
           {spId && <div className="mb-1">SP ID: <span className="font-medium">{spId}</span></div>}
@@ -146,18 +146,18 @@ export default function N8NVectorSearch() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-semibold">n8n-vector-search</h2>
-          <p className="text-sm text-muted-foreground">Webhook tabanlı test arayüzü — GET/POST isteklerini gönderir ve JSON çıktısını gösterir.</p>
+          <p className="text-sm text-muted-foreground">Webhook-based test UI — sends GET/POST requests and displays JSON output.</p>
         </div>
         <div>
-          <Button variant="ghost" onClick={() => setLocation('/settings')}>Ayarlar'a Dön</Button>
+          {/* <Button variant="ghost" onClick={() => setLocation('/settings')}>Back to Settings</Button> */}
         </div>
       </div>
 
       <div className="mb-4">
         <nav className="flex gap-2">
-          <button onClick={() => setTab('gets')} className={`px-3 py-2 rounded ${tab==='gets'?'bg-primary text-primary-foreground':'bg-muted/40'}`}>Tüm Yazışmalar</button>
-          <button onClick={() => setTab('chain_bw')} className={`px-3 py-2 rounded ${tab==='chain_bw'?'bg-primary text-primary-foreground':'bg-muted/40'}`}>Geriye Dönük Referanslar</button>
-          <button onClick={() => setTab('chain_fw')} className={`px-3 py-2 rounded ${tab==='chain_fw'?'bg-primary text-primary-foreground':'bg-muted/40'}`}>İleriye Dönük Referanslar</button>
+          <button onClick={() => setTab('gets')} className={`px-3 py-2 rounded ${tab==='gets'?'bg-primary text-primary-foreground':'bg-muted/40'}`}>All Correspondence</button>
+          <button onClick={() => setTab('chain_bw')} className={`px-3 py-2 rounded ${tab==='chain_bw'?'bg-primary text-primary-foreground':'bg-muted/40'}`}>Backward References</button>
+          <button onClick={() => setTab('chain_fw')} className={`px-3 py-2 rounded ${tab==='chain_fw'?'bg-primary text-primary-foreground':'bg-muted/40'}`}>Forward References</button>
           <button onClick={() => setTab('vector')} className={`px-3 py-2 rounded ${tab==='vector'?'bg-primary text-primary-foreground':'bg-muted/40'}`}>Vector Search</button>
         </nav>
       </div>
@@ -165,29 +165,29 @@ export default function N8NVectorSearch() {
       <div className="bg-card border border-border rounded p-4">
         {tab === 'gets' && (
           <div className="space-y-4">
-            <p className="text-sm">Supabase üzerinden tüm yazışmaları çeker (GET). Aşağıdaki butona basın.</p>
+            <p className="text-sm">Fetches all correspondence from Supabase (GET). Click the button below.</p>
             <div className="flex gap-2 items-center">
-              <Button onClick={doGetAll} disabled={loading}>{loading ? 'Yükleniyor...' : 'Tüm Yazışmaları Getir'}</Button>
+              <Button onClick={doGetAll} disabled={loading}>{loading ? 'Loading...' : 'Fetch All Correspondence'}</Button>
               <Input
                 value={searchText}
                 onChange={e => setSearchText(e.target.value)}
-                placeholder="Aranacak kelimeyi girin.."
+                placeholder="Enter keyword to search.."
                 className="w-80"
               />
-              <Button variant="outline" onClick={() => { setSearchText(''); }} disabled={loading}>Temizle</Button>
+              <Button variant="outline" onClick={() => { setSearchText(''); }} disabled={loading}>Clear</Button>
             </div>
-            <p className="text-xs text-muted-foreground">Arama kutusuna yazdığınız kelime, sonuçlar geldikten sonra otomatik olarak filtrelenecektir. (Subject/content/keywords içerisinde aranır)</p>
+            <p className="text-xs text-muted-foreground">The keyword you type will automatically filter results after they arrive. (Searched in subject/content/keywords)</p>
           </div>
         )}
 
         {tab === 'chain_bw' && (
           <div className="space-y-4">
-            <p className="text-sm">Geriye dönük referansları getirir. `letter_no` JSON olarak gönderilmelidir.</p>
+            <p className="text-sm">Fetches backward references. `letter_no` should be sent as JSON.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>letter_no (tek veya dizi)</Label>
-                <Input value={letterNo} onChange={e => setLetterNo(e.target.value)} placeholder='Örnek: IC-HQ-868 veya ["IC-HQ-868"]' />
-                <p className="text-xs text-muted-foreground mt-1">JSON yazmak zorunda değilsiniz; basit bir numara girerseniz otomatik olarak string olarak gönderilir. Eğer dizi göndermek isterseniz, ["IC-HQ-868","IC-HQ-1037"] biçiminde yazın.</p>
+                <Label>letter_no (single or array)</Label>
+                <Input value={letterNo} onChange={e => setLetterNo(e.target.value)} placeholder='Example: IC-HQ-868 or ["IC-HQ-868"]' />
+                <p className="text-xs text-muted-foreground mt-1">You don't need to write JSON; a simple number will be sent as a string. To send an array, use ["IC-HQ-868","IC-HQ-1037"].</p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -195,13 +195,13 @@ export default function N8NVectorSearch() {
                 setError(null);
                 let payload: any;
                 const raw = letterNo.trim();
-                if (!raw) { setError('Lütfen letter_no girin.'); return; }
+                if (!raw) { setError('Please provide letter_no.'); return; }
                 // Try to parse JSON if it looks like JSON
                 if ((raw.startsWith('{') && raw.endsWith('}')) || (raw.startsWith('[') && raw.endsWith(']')) || (raw.startsWith('"') && raw.endsWith('"'))) {
                   try {
                     payload = JSON.parse(raw);
                   } catch (err) {
-                    setError('Gönderilen JSON okunamadı. Lütfen doğru JSON veya basit bir string girin.');
+                    setError('Unable to parse JSON. Please provide valid JSON or a simple string.');
                     return;
                   }
                 } else {
@@ -216,22 +216,22 @@ export default function N8NVectorSearch() {
 
         {tab === 'chain_fw' && (
           <div className="space-y-4">
-            <p className="text-sm">İleriye dönük referansları getirir. `letter_no` JSON olarak gönderilmelidir.</p>
+            <p className="text-sm">Fetches forward references. `letter_no` should be sent as JSON.</p>
             <div>
-              <Label>letter_no (tek veya dizi)</Label>
-              <Input value={letterNo} onChange={e => setLetterNo(e.target.value)} placeholder='"IC-HQ-868" veya ["IC-HQ-868"]' />
+              <Label>letter_no (single or array)</Label>
+              <Input value={letterNo} onChange={e => setLetterNo(e.target.value)} placeholder='"IC-HQ-868" or ["IC-HQ-868"]' />
             </div>
             <div className="flex gap-2">
               <Button onClick={() => {
                 setError(null);
                 let payload: any;
                 const raw = letterNo.trim();
-                if (!raw) { setError('Lütfen letter_no girin.'); return; }
+                if (!raw) { setError('Please provide letter_no.'); return; }
                 if ((raw.startsWith('{') && raw.endsWith('}')) || (raw.startsWith('[') && raw.endsWith(']')) || (raw.startsWith('"') && raw.endsWith('"'))) {
                   try {
                     payload = JSON.parse(raw);
                   } catch (err) {
-                    setError('Gönderilen JSON okunamadı. Lütfen doğru JSON veya basit bir string girin.');
+                    setError('Unable to parse JSON. Please provide valid JSON or a simple string.');
                     return;
                   }
                 } else {
@@ -245,11 +245,11 @@ export default function N8NVectorSearch() {
 
         {tab === 'vector' && (
           <div className="space-y-4">
-            <p className="text-sm">Vector search ile eşleşen sonuçları getirir. Gönderilecek JSON: {`{ search_text: string, threshold: number }`}</p>
+            <p className="text-sm">Fetches matching results with vector search. JSON to send: {`{ search_text: string, threshold: number }`}</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>search_text</Label>
-                <Input value={searchText} onChange={e => setSearchText(e.target.value)} placeholder="Arama metni" />
+                <Input value={searchText} onChange={e => setSearchText(e.target.value)} placeholder="Search text" />
               </div>
               <div>
                 <Label>threshold</Label>
@@ -259,8 +259,8 @@ export default function N8NVectorSearch() {
             <div className="flex gap-2">
               <Button onClick={() => {
                 const t = Number(threshold);
-                if (!searchText) { setError('Arama metni boş olamaz.'); return; }
-                if (Number.isNaN(t)) { setError('Threshold sayısal olmalı.'); return; }
+                if (!searchText) { setError('Search text cannot be empty.'); return; }
+                if (Number.isNaN(t)) { setError('Threshold must be numeric.'); return; }
                 doPost(VECTOR_SEARCH_URL, { search_text: searchText, threshold: t });
               }} disabled={loading}>{loading ? 'Aranıyor...' : 'Ara (POST)'}</Button>
             </div>

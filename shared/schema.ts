@@ -197,7 +197,7 @@ export type DashboardData = {
 
 // Form schemas for validation
 export const addRecordFormSchema = z.object({
-  date: z.string().min(1, "Tarih gerekli"),
+  date: z.string().min(1, "Date gerekli"),
   description: z.string().min(1, "Açıklama gerekli"),
   amount: z.number().min(0, "Tutar 0'dan büyük olmalı"),
   type: z.enum(["Gelir", "Gider"], { required_error: "Tür seçimi gerekli" }),

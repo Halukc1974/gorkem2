@@ -125,7 +125,7 @@ const searchFields = [
 
 // Ek filtreleme alanları:
 const filterFields = {
-  'letter_date': 'Mektup tarihi (tarih aralığı)',
+  'letter_date': 'Mektup Datei (Date Range)',
   'type_of_corr': 'Yazışma türü',
   'severity_rate': 'Önem derecesi',
   'incout': 'Gelen/Giden',
@@ -144,7 +144,7 @@ const DEFAULTS = {
 
 // Sıralama seçenekleri:
 const sortOptions = {
-  'letter_date': 'Mektup tarihine göre',
+  'letter_date': 'Mektup Dateine göre',
   'similarity': 'Benzerlik skoruna göre',
   'severity_rate': 'Önem derecesine göre',
   'short_desc': 'Açıklamaya göre',
@@ -165,8 +165,8 @@ const sortOptions = {
    - letter_no (mektup no)
    - internal_no (dahili no)
    - ref_letters (referans mektuplar)
-4. Ek filtreler uygulanır (tarih, tür, önem, vs.)
-5. Sonuçlar tarihe göre azalan sırada döndürülür
+4. Ek filtreler uygulanır (Date, tür, önem, vs.)
+5. Sonuçlar Datee göre azalan sırada döndürülür
 6. Maksimum 20000 sonuç gösterilir
 */
 

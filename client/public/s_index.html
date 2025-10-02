@@ -277,7 +277,7 @@
       setTimeout(() => {
         $('#submittalType').val(data.subm_type || []).trigger('change');
         document.getElementById("submittalStatus").value = data.onay_durumu || "";
-        document.getElementById("DecisionDate").value = data.onay_tarih || "";
+        document.getElementById("DecisionDate").value = data.onay_Date || "";
       }, 0);
     }
 

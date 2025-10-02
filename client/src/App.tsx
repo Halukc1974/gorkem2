@@ -148,7 +148,7 @@ function AuthenticatedApp() {
                 data-testid="button-toggle-sidebar-desktop"
               >
                 <i className={`fas fa-${isSidebarVisible ? 'times' : 'bars'} h-5 w-5`}></i>
-                <span>{isSidebarVisible ? 'Menüyü Gizle' : 'Menüyü Göster'}</span>
+                <span>{isSidebarVisible ? 'Hide Menu' : 'Show Menu'}</span>
               </button>
             )}
             <h2 className="text-xl font-semibold text-foreground" data-testid="text-page-title">
@@ -160,13 +160,13 @@ function AuthenticatedApp() {
             <div className="flex items-center space-x-3 text-sm">
               <div className="flex items-center gap-2">
                 <span className="inline-flex h-2 w-2 rounded-full bg-green-500"></span>
-                <span className="text-green-600">Bağlı</span>
+                <span className="text-green-600">Connected</span>
               </div>
               <div className="flex items-center gap-2">
                 <i className="fas fa-envelope text-blue-500"></i>
-                <span className="text-muted-foreground">{(user as any)?.email || 'Kullanıcı'}</span>
+                <span className="text-muted-foreground">{(user as any)?.email || 'User'}</span>
               </div>
-              <div className="flex items-center gap-2 text-muted-foreground" title="Son senkronizasyon zamanı">
+              <div className="flex items-center gap-2 text-muted-foreground" title="Last synchronization time">
                 <i className="fas fa-sync-alt h-4 w-4 text-blue-500"></i>
                 <span data-testid="text-last-sync">{new Date().toLocaleTimeString('tr-TR')}</span>
               </div>
@@ -180,7 +180,7 @@ function AuthenticatedApp() {
                   onClick={handleLogout}
                   data-testid="button-logout"
                 >
-                  Çıkış
+                  Logout
                 </Button>
               </div>
             )}

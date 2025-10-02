@@ -270,7 +270,7 @@ export class ClientGoogleSheetsService {
   getTemplateHeaders(template: string): string[] {
     switch (template) {
       case 'accounting':
-        return ['Tarih', 'Açıklama', 'Tutar', 'Tür', 'Kategori'];
+        return ['Date', 'Açıklama', 'Tutar', 'Tür', 'Kategori'];
       case 'project':
         return ['Proje Adı', 'Başlangıç', 'Bitiş', 'Durum', 'Harcama', 'Tamamlanma (%)'];
       case 'personnel':

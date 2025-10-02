@@ -36,10 +36,10 @@ interface ProjectData {
   insaat_alani_brut: number;
   insaat_alani_net: number;
   kat_adedi: number;
-  baslangic_tarihi: string;
-  bitis_tarihi: string;
+  baslangic_Datei: string;
+  bitis_Datei: string;
   devam_durumu: string;
-  fiili_bitis_tarihi?: string;
+  fiili_bitis_Datei?: string;
   alt_yukleniciler?: string;
   yaklasik_maliyet: number;
   kesin_teminat_yuzde: number;
@@ -85,8 +85,8 @@ export function ProjectDashboard({ className }: ProjectDashboardProps) {
 
   // Progress hesaplama (örnek olarak)
   const calculateProgress = (project: ProjectData): number => {
-    const start = new Date(project.baslangic_tarihi);
-    const end = new Date(project.bitis_tarihi);
+    const start = new Date(project.baslangic_Datei);
+    const end = new Date(project.bitis_Datei);
     const now = new Date();
     
     if (now < start) return 0;
@@ -300,16 +300,16 @@ export function ProjectDashboard({ className }: ProjectDashboardProps) {
                     <div className="space-y-2 text-sm">
                       <div>
                         <span className="text-gray-600">Başlangıç:</span>
-                        <p className="font-medium">{project.baslangic_tarihi}</p>
+                        <p className="font-medium">{project.baslangic_Datei}</p>
                       </div>
                       <div>
                         <span className="text-gray-600">Planlanan Bitiş:</span>
-                        <p className="font-medium">{project.bitis_tarihi}</p>
+                        <p className="font-medium">{project.bitis_Datei}</p>
                       </div>
-                      {project.fiili_bitis_tarihi && (
+                      {project.fiili_bitis_Datei && (
                         <div>
                           <span className="text-gray-600">Fiili Bitiş:</span>
-                          <p className="font-medium">{project.fiili_bitis_tarihi}</p>
+                          <p className="font-medium">{project.fiili_bitis_Datei}</p>
                         </div>
                       )}
                     </div>

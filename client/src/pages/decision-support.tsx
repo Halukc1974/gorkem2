@@ -138,14 +138,14 @@ const DecisionSupportPage: React.FC = () => {
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">🧠 Karar Destek Sistemi</h1>
+            <h1 className="text-3xl font-bold text-foreground">🧠 Decision Support System</h1>
             <p className="text-muted-foreground mt-2">
-              AI destekli yazışma analizi ve karar önerileri
+              AI-powered correspondence analysis and decision suggestions
             </p>
           </div>
           <TabsList>
-            <TabsTrigger value="analysis">Analiz</TabsTrigger>
-            <TabsTrigger value="reports">Raporlar</TabsTrigger>
+            <TabsTrigger value="analysis">Analysis</TabsTrigger>
+            <TabsTrigger value="reports">Reports</TabsTrigger>
           </TabsList>
         </div>
 
@@ -154,14 +154,14 @@ const DecisionSupportPage: React.FC = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5" />
-            Yazışma Arama ve AI Ayarları
+            Correspondence Search and AI Settings
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {/* API Selection */}
             <div className="flex items-center gap-4">
-              <label className="text-sm font-medium">AI API Seçimi:</label>
+              <label className="text-sm font-medium">AI API Selection:</label>
               <div className="flex gap-2">
                 <Button
                   variant={selectedApi === 'deepseek' ? 'default' : 'outline'}
@@ -183,14 +183,14 @@ const DecisionSupportPage: React.FC = () => {
                 </Button>
               </div>
               <div className="text-xs text-muted-foreground">
-                Seçili: <span className="font-medium">{selectedApi.toUpperCase()}</span>
+                Selected: <span className="font-medium">{selectedApi.toUpperCase()}</span>
               </div>
             </div>
 
             {/* Search Input */}
             <div className="flex gap-4">
               <Input
-                placeholder="Yazışma konusu, taraf, numarası veya anahtar kelime ile arama..."
+                placeholder="Search by subject, party, number or keyword..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
@@ -201,7 +201,7 @@ const DecisionSupportPage: React.FC = () => {
                 onClick={() => setShowFilters(!showFilters)}
               >
                 <Filter className="h-4 w-4 mr-2" />
-                Filtreler
+                Filters
               </Button>
               <Button
                 onClick={handleSearch}
@@ -212,7 +212,7 @@ const DecisionSupportPage: React.FC = () => {
                 ) : (
                   <Search className="h-4 w-4 mr-2" />
                 )}
-                Ara
+                Search
               </Button>
             </div>
 
@@ -222,53 +222,53 @@ const DecisionSupportPage: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Date Range */}
                   <div className="space-y-2">
-                    <Label>Mektup Tarihi Aralığı</Label>
+                    <Label>Letter Date Range</Label>
                     <div className="flex gap-2">
                       <Input
                         type="date"
                         value={searchFilters.dateFrom || ''}
                         onChange={(e) => setSearchFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
-                        placeholder="Başlangıç"
+                        placeholder="Start"
                       />
                       <Input
                         type="date"
                         value={searchFilters.dateTo || ''}
                         onChange={(e) => setSearchFilters(prev => ({ ...prev, dateTo: e.target.value }))}
-                        placeholder="Bitiş"
+                        placeholder="End"
                       />
                     </div>
                   </div>
 
                   {/* Content Type */}
                   <div className="space-y-2">
-                    <Label>Yazışma Türü</Label>
+                    <Label>Correspondence Type</Label>
                     <select
                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                       value={searchFilters.contentType || ''}
                       onChange={(e) => setSearchFilters(prev => ({ ...prev, contentType: e.target.value || undefined }))}
                     >
-                      <option value="">Tümü</option>
-                      <option value="Bilgilendirme">Bilgilendirme</option>
-                      <option value="İhtar">İhtar</option>
-                      <option value="Cevap">Cevap</option>
-                      <option value="Talep">Talep</option>
-                      <option value="Başvuru">Başvuru</option>
-                      <option value="Diğer">Diğer</option>
+                      <option value="">All</option>
+                      <option value="Bilgilendirme">Information</option>
+                      <option value="İhtar">Warning</option>
+                      <option value="Cevap">Reply</option>
+                      <option value="Talep">Request</option>
+                      <option value="Başvuru">Application</option>
+                      <option value="Diğer">Other</option>
                     </select>
                   </div>
 
                   {/* Risk Level */}
                   <div className="space-y-2">
-                    <Label>Risk Seviyesi</Label>
+                    <Label>Risk Level</Label>
                     <select
                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                       value={searchFilters.riskLevel || ''}
                       onChange={(e) => setSearchFilters(prev => ({ ...prev, riskLevel: e.target.value || undefined }))}
                     >
-                      <option value="">Tümü</option>
-                      <option value="Düşük">Düşük</option>
-                      <option value="Orta">Orta</option>
-                      <option value="Yüksek">Yüksek</option>
+                      <option value="">All</option>
+                      <option value="Düşük">Low</option>
+                      <option value="Orta">Medium</option>
+                      <option value="Yüksek">High</option>
                     </select>
                   </div>
                 </div>
@@ -276,21 +276,21 @@ const DecisionSupportPage: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Project Name */}
                   <div className="space-y-2">
-                    <Label>Proje Adı</Label>
+                    <Label>Project Name</Label>
                     <Input
                       value={searchFilters.projectName || ''}
                       onChange={(e) => setSearchFilters(prev => ({ ...prev, projectName: e.target.value || undefined }))}
-                      placeholder="Proje adı girin"
+                      placeholder="Enter project name"
                     />
                   </div>
 
                   {/* Parties */}
                   <div className="space-y-2">
-                    <Label>Taraflar</Label>
+                    <Label>Parties</Label>
                     <Input
                       value={searchFilters.parties || ''}
                       onChange={(e) => setSearchFilters(prev => ({ ...prev, parties: e.target.value || undefined }))}
-                      placeholder="Taraf adı girin"
+                      placeholder="Enter party name"
                     />
                   </div>
                 </div>
@@ -298,17 +298,17 @@ const DecisionSupportPage: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Letter Number */}
                   <div className="space-y-2">
-                    <Label>Mektup Numarası</Label>
+                    <Label>Letter Number</Label>
                     <Input
                       value={searchFilters.letterNo || ''}
                       onChange={(e) => setSearchFilters(prev => ({ ...prev, letterNo: e.target.value || undefined }))}
-                      placeholder="Mektup numarası girin"
+                      placeholder="Enter letter number"
                     />
                   </div>
 
                   {/* Criticality Range */}
                   <div className="space-y-2">
-                    <Label>Kritiklik Aralığı</Label>
+                    <Label>Criticality Range</Label>
                     <div className="flex gap-2">
                       <Input
                         type="number"
@@ -338,7 +338,7 @@ const DecisionSupportPage: React.FC = () => {
                       setSearchQuery('');
                     }}
                   >
-                    Temizle
+                    Clear
                   </Button>
                 </div>
               </div>
@@ -352,11 +352,11 @@ const DecisionSupportPage: React.FC = () => {
         <div className="lg:col-span-1">
           <Card>
             <CardHeader>
-              <CardTitle>Yazışmalar ({totalResults})</CardTitle>
+              <CardTitle>Correspondence ({totalResults})</CardTitle>
               {totalResults > filteredData.length && (
                 <p className="text-sm text-muted-foreground">
-                  {filteredData.length} tanesi gösteriliyor
-                  {hasMore && " (daha fazlası var)"}
+                  {filteredData.length} shown
+                  {hasMore && " (more available)"}
                 </p>
               )}
             </CardHeader>
@@ -365,7 +365,7 @@ const DecisionSupportPage: React.FC = () => {
                 <div className="p-6 text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
                   <p className="text-sm text-muted-foreground">
-                    {isSearching ? 'Arama yapılıyor...' : 'Veriler yükleniyor...'}
+                    {isSearching ? 'Searching...' : 'Loading data...'}
                   </p>
                 </div>
               ) : (
@@ -407,8 +407,8 @@ const DecisionSupportPage: React.FC = () => {
                   {filteredData.length === 0 && !isLoading && !isSearching && (
                     <div className="p-6 text-center text-muted-foreground">
                       <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p>Arama kriterlerine uygun yazışma bulunamadı</p>
-                      <p className="text-xs mt-1">Farklı arama terimleri deneyin</p>
+                      <p>No correspondence found matching search criteria</p>
+                      <p className="text-xs mt-1">Try different search terms</p>
                     </div>
                   )}
                 </div>
@@ -425,46 +425,46 @@ const DecisionSupportPage: React.FC = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
-                    <span>Seçili Yazışma: {selectedCorrespondence.letter_no}</span>
+                    <span>Selected Correspondence: {selectedCorrespondence.letter_no}</span>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handlePreview(selectedCorrespondence)}
                     >
                       <FileText className="h-4 w-4 mr-2" />
-                      Önizle
+                      Preview
                     </Button>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
-                      <label className="text-sm font-medium">Konu</label>
+                      <label className="text-sm font-medium">Subject</label>
                       <p className="text-sm text-muted-foreground">{selectedCorrespondence.subject}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium">Tarih</label>
-                      <p className="text-sm text-muted-foreground">{new Date(selectedCorrespondence.letterDate).toLocaleDateString('tr-TR')}</p>
+                      <label className="text-sm font-medium">Date</label>
+                      <p className="text-sm text-muted-foreground">{new Date(selectedCorrespondence.letterDate).toLocaleDateString('en-US')}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium">Taraflar</label>
+                      <label className="text-sm font-medium">Parties</label>
                       <p className="text-sm text-muted-foreground">{selectedCorrespondence.parties}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium">Proje</label>
+                      <label className="text-sm font-medium">Project</label>
                       <p className="text-sm text-muted-foreground">{selectedCorrespondence.projectName}</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
                     <Badge variant="outline">{selectedCorrespondence.contentType}</Badge>
                     <Badge variant={selectedCorrespondence.decisionMade ? "default" : "secondary"}>
-                      {selectedCorrespondence.decisionMade ? "Karar Verildi" : "Bekliyor"}
+                      {selectedCorrespondence.decisionMade ? "Decision Made" : "Pending"}
                     </Badge>
                     <Badge variant={
                       selectedCorrespondence.riskLevel === 'Yüksek' ? 'destructive' :
                       selectedCorrespondence.riskLevel === 'Orta' ? 'default' : 'secondary'
                     }>
-                      {selectedCorrespondence.riskLevel} Risk
+                      {selectedCorrespondence.riskLevel === 'Yüksek' ? 'High' : selectedCorrespondence.riskLevel === 'Orta' ? 'Medium' : selectedCorrespondence.riskLevel === 'Düşük' ? 'Low' : selectedCorrespondence.riskLevel} Risk
                     </Badge>
                   </div>
                 </CardContent>
@@ -477,20 +477,20 @@ const DecisionSupportPage: React.FC = () => {
                     <div className="flex items-center justify-center">
                       <div className="text-center">
                         <Brain className="h-8 w-8 animate-pulse mx-auto mb-2" />
-                        <p className="text-sm text-muted-foreground">AI analiz ediliyor...</p>
+                        <p className="text-sm text-muted-foreground">AI is analyzing...</p>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               ) : aiAnalysis ? (
                 <Tabs defaultValue="summary" className="w-full">
-                  <TabsList className="grid w-full grid-cols-6">
-                    <TabsTrigger value="summary">Özet</TabsTrigger>
-                    <TabsTrigger value="similar">Benzer</TabsTrigger>
-                    <TabsTrigger value="actions">Aksiyon</TabsTrigger>
-                    <TabsTrigger value="templates">Şablon</TabsTrigger>
-                    <TabsTrigger value="completion">Tamamlama</TabsTrigger>
-                    <TabsTrigger value="risk">Risk</TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-6">
+                      <TabsTrigger value="summary">Summary</TabsTrigger>
+                      <TabsTrigger value="similar">Similar</TabsTrigger>
+                      <TabsTrigger value="actions">Actions</TabsTrigger>
+                      <TabsTrigger value="templates">Templates</TabsTrigger>
+                      <TabsTrigger value="completion">Completion</TabsTrigger>
+                      <TabsTrigger value="risk">Risk</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="summary" className="space-y-4">
@@ -498,7 +498,7 @@ const DecisionSupportPage: React.FC = () => {
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <FileText className="h-5 w-5" />
-                          Yazışma Özeti
+                          Correspondence Summary
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -512,7 +512,7 @@ const DecisionSupportPage: React.FC = () => {
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <Search className="h-5 w-5" />
-                          Benzer Yazışmalar
+                          Similar Correspondence
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -542,7 +542,7 @@ const DecisionSupportPage: React.FC = () => {
                               ) : null;
                             }).filter(Boolean)
                           ) : (
-                            <p className="text-sm text-muted-foreground">Benzer yazışma bulunamadı</p>
+                            <p className="text-sm text-muted-foreground">No similar correspondence found</p>
                           )}
                         </div>
                       </CardContent>
@@ -554,7 +554,7 @@ const DecisionSupportPage: React.FC = () => {
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <Lightbulb className="h-5 w-5" />
-                          Önerilen Aksiyonlar
+                          Suggested Actions
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -575,7 +575,7 @@ const DecisionSupportPage: React.FC = () => {
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <File className="h-5 w-5" />
-                          Uygun Şablonlar
+                          Suitable Templates
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -596,7 +596,7 @@ const DecisionSupportPage: React.FC = () => {
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <MessageSquare className="h-5 w-5" />
-                          Metin Tamamlama Önerisi
+                          Text Completion Suggestion
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -614,15 +614,15 @@ const DecisionSupportPage: React.FC = () => {
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <AlertTriangle className="h-5 w-5" />
-                          Risk ve Duygu Analizi
+                          Risk and Sentiment Analysis
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
                         <div>
                           <div className="flex justify-between mb-2">
-                            <span className="text-sm font-medium">Risk Seviyesi</span>
+                            <span className="text-sm font-medium">Risk Level</span>
                             <Badge variant={aiAnalysis.risk_analysis.level === 'Yüksek' ? 'destructive' : 'secondary'}>
-                              {aiAnalysis.risk_analysis.level}
+                              {aiAnalysis.risk_analysis.level === 'Yüksek' ? 'High' : aiAnalysis.risk_analysis.level === 'Orta' ? 'Medium' : aiAnalysis.risk_analysis.level === 'Düşük' ? 'Low' : aiAnalysis.risk_analysis.level}
                             </Badge>
                           </div>
                           <ul className="text-sm space-y-1">
@@ -634,7 +634,7 @@ const DecisionSupportPage: React.FC = () => {
 
                         <div>
                           <div className="flex justify-between mb-2">
-                            <span className="text-sm font-medium">Duygu Analizi</span>
+                            <span className="text-sm font-medium">Sentiment Analysis</span>
                             <span className="text-sm text-muted-foreground">
                               {aiAnalysis.sentiment_analysis.overall} ({aiAnalysis.sentiment_analysis.score}%)
                             </span>
@@ -651,9 +651,9 @@ const DecisionSupportPage: React.FC = () => {
             <Card>
               <CardContent className="p-12 text-center">
                 <Brain className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-medium mb-2">Yazışma Seçin</h3>
+                <h3 className="text-lg font-medium mb-2">Select Correspondence</h3>
                 <p className="text-muted-foreground">
-                  Analiz edilecek yazışmayı soldaki listeden seçin
+                  Select the correspondence to analyze from the list on the left
                 </p>
               </CardContent>
             </Card>
@@ -671,7 +671,7 @@ const DecisionSupportPage: React.FC = () => {
                 <div className="flex items-center">
                   <FileText className="h-8 w-8 text-blue-600" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">Toplam Yazışma</p>
+                    <p className="text-sm font-medium text-muted-foreground">Total Correspondence</p>
                     <p className="text-2xl font-bold">{stats.total}</p>
                   </div>
                 </div>
@@ -683,7 +683,7 @@ const DecisionSupportPage: React.FC = () => {
                 <div className="flex items-center">
                   <Clock className="h-8 w-8 text-orange-600" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">Bekleyen Kararlar</p>
+                    <p className="text-sm font-medium text-muted-foreground">Pending Decisions</p>
                     <p className="text-2xl font-bold">{stats.pendingDecisions}</p>
                   </div>
                 </div>
@@ -695,7 +695,7 @@ const DecisionSupportPage: React.FC = () => {
                 <div className="flex items-center">
                   <AlertTriangle className="h-8 w-8 text-red-600" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">Gecikmiş Kararlar</p>
+                    <p className="text-sm font-medium text-muted-foreground">Overdue Decisions</p>
                     <p className="text-2xl font-bold">{stats.overdueDecisions}</p>
                   </div>
                 </div>
@@ -707,7 +707,7 @@ const DecisionSupportPage: React.FC = () => {
                 <div className="flex items-center">
                   <TrendingUp className="h-8 w-8 text-green-600" />
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">Bu Ay</p>
+                    <p className="text-sm font-medium text-muted-foreground">This Month</p>
                     <p className="text-2xl font-bold">
                       {stats.byMonth.find((m: any) => m.month === new Date().toISOString().substring(0, 7))?.count || 0}
                     </p>
@@ -720,7 +720,7 @@ const DecisionSupportPage: React.FC = () => {
           <Card>
             <CardContent className="p-6 text-center">
               <BarChart3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">İstatistikler yükleniyor...</p>
+              <p className="text-muted-foreground">Loading statistics...</p>
             </CardContent>
           </Card>
         )}
@@ -732,7 +732,7 @@ const DecisionSupportPage: React.FC = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5" />
-                  Aylık Yazışma Trendi
+                  Monthly Correspondence Trend
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -760,7 +760,7 @@ const DecisionSupportPage: React.FC = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="h-5 w-5" />
-                  Yazışma Tipleri Dağılımı
+                  Correspondence Type Distribution
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -788,7 +788,7 @@ const DecisionSupportPage: React.FC = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5" />
-                  Proje Bazlı Dağılım
+                  Project-based Distribution
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -808,14 +808,14 @@ const DecisionSupportPage: React.FC = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <AlertTriangle className="h-5 w-5" />
-                  Risk Özeti
+                  Risk Summary
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div>
                     <div className="flex justify-between text-sm mb-1">
-                      <span>Yüksek Risk</span>
+                      <span>High Risk</span>
                       <span>{correspondenceData.filter(c => c.riskLevel === 'Yüksek').length}</span>
                     </div>
                     <Progress
@@ -825,7 +825,7 @@ const DecisionSupportPage: React.FC = () => {
                   </div>
                   <div>
                     <div className="flex justify-between text-sm mb-1">
-                      <span>Orta Risk</span>
+                      <span>Medium Risk</span>
                       <span>{correspondenceData.filter(c => c.riskLevel === 'Orta').length}</span>
                     </div>
                     <Progress
@@ -835,7 +835,7 @@ const DecisionSupportPage: React.FC = () => {
                   </div>
                   <div>
                     <div className="flex justify-between text-sm mb-1">
-                      <span>Düşük Risk</span>
+                      <span>Low Risk</span>
                       <span>{correspondenceData.filter(c => c.riskLevel === 'Düşük').length}</span>
                     </div>
                     <Progress
@@ -852,13 +852,13 @@ const DecisionSupportPage: React.FC = () => {
 
       {/* Preview Dialog */}
       <Dialog
-        header="Belge İçeriği"
+  header="Document Content"
         visible={previewOpen}
         style={{ width: '60vw' }}
         onHide={() => setPreviewOpen(false)}
       >
         <div style={{ maxHeight: '60vh', overflow: 'auto', whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
-          {previewContent || <i>İçerik bulunamadı</i>}
+          {previewContent || <i>Content not found</i>}
         </div>
       </Dialog>
       </div>

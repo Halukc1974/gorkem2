@@ -3,7 +3,7 @@ export const FINANCIAL_SHEETS_STRUCTURE = {
   // Ana finansal veriler
   gelirler: {
     columns: [
-      'tarih',           // 2025-09-02
+      'Date',           // 2025-09-02
       'proje_id',        // PROJ001
       'gelir_turu',      // Hakediş, Enerji, Zirai, Diğer
       'aciklama',        // Açıklama
@@ -18,7 +18,7 @@ export const FINANCIAL_SHEETS_STRUCTURE = {
   
   giderler: {
     columns: [
-      'tarih',           // 2025-09-02
+      'Date',           // 2025-09-02
       'proje_id',        // PROJ001
       'kategori',        // Şantiye, Taşeron, Merkez, Enerji, Finansman
       'alt_kategori',    // Malzeme, İşçilik, Kira, Kredi
@@ -36,8 +36,8 @@ export const FINANCIAL_SHEETS_STRUCTURE = {
       'proje_id',        // PROJ001
       'proje_adi',       // Konut Projesi A
       'toplam_butce',    // 5000000
-      'baslangic_tarihi', // 2025-01-01
-      'bitis_tarihi',    // 2025-12-31
+      'baslangic_Datei', // 2025-01-01
+      'bitis_Datei',    // 2025-12-31
       'durum',           // Aktif, Tamamlandı, Askıya alındı
       'sorumlu_kisi',    // Proje sorumlusu
       'lokasyon',        // İstanbul/Başakşehir
@@ -52,7 +52,7 @@ export const FINANCIAL_SHEETS_STRUCTURE = {
       'hesap_no',        // 1234567890
       'bakiye',          // 2500000
       'para_birimi',     // TL, USD, EUR
-      'tarih',           // 2025-09-02
+      'Date',           // 2025-09-02
       'hesap_turu',      // Vadesiz, Vadeli, Kredi
       'durum'            // Aktif, Pasif
     ]
@@ -60,7 +60,7 @@ export const FINANCIAL_SHEETS_STRUCTURE = {
 
   yaklasan_odemeler: {
     columns: [
-      'vade_tarihi',     // 2025-09-05
+      'vade_Datei',     // 2025-09-05
       'aciklama',        // SGK Primi
       'tutar',           // 75000
       'kategori',        // Vergi, SGK, Taşeron, Kredi
@@ -78,7 +78,7 @@ export const FINANCIAL_SHEETS_STRUCTURE = {
       'aylık_gelir',     // 180000
       'aylık_gider',     // 120000
       'net_kar',         // 60000
-      'tarih',           // 2025-09-01
+      'Date',           // 2025-09-01
       'aktif_projeler',  // 3
       'durum'            // Aktif, Pasif
     ]

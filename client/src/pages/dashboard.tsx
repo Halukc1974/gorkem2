@@ -16,10 +16,10 @@ export default function Dashboard() {
             <div className="text-muted-foreground mb-4">
               <i className="fas fa-sign-in-alt text-4xl"></i>
             </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">Dashboard Erişimi</h3>
-            <p className="text-muted-foreground mb-4">Dashboard verilerine erişmek için giriş yapmanız gerekiyor.</p>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Dashboard Access</h3>
+            <p className="text-muted-foreground mb-4">You need to sign in to access dashboard data.</p>
             <Button onClick={() => window.location.href = '/login'}>
-              Giriş Yap
+              Sign In
             </Button>
           </CardContent>
         </Card>
@@ -53,13 +53,13 @@ export default function Dashboard() {
             <div className="text-muted-foreground mb-4">
               <i className="fab fa-google text-4xl text-blue-500"></i>
             </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">Google Sheets Bağlantısı Gerekli</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Google Sheets Connection Required</h3>
             <p className="text-muted-foreground mb-4">
-              Dashboard verilerini görüntülemek için Google Sheets ile bağlantı kurmanız gerekiyor.
+              You need to connect with Google Sheets to view dashboard data.
             </p>
             <div className="space-y-2 text-sm text-muted-foreground mb-4">
               <p>Spreadsheet ID: 1gOjceZ4DxORlbD1rTiGxgxoATvmKLVsIhyeE8UPtdlU</p>
-              <p>Bu spreadsheet'e düzenleme yetkisine sahip olduğunuzdan emin olun.</p>
+              <p>Make sure you have edit permission for this spreadsheet.</p>
             </div>
             <div className="space-y-2">
               <Button 
@@ -75,11 +75,11 @@ export default function Dashboard() {
                 className="mb-2"
               >
                 <i className="fab fa-google mr-2"></i>
-                Google ile Bağlan
+                Connect with Google
               </Button>
               <br />
               <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-                Tekrar Kontrol Et
+                Check Again
               </Button>
             </div>
           </CardContent>
@@ -93,7 +93,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
         <div className="text-sm text-muted-foreground">
-          Hoş geldiniz, {user.email}
+          Welcome, {user.email}
         </div>
       </div>
       
@@ -105,7 +105,7 @@ export default function Dashboard() {
                 <i className="fas fa-table text-blue-600 dark:text-blue-400"></i>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Toplam Sheet</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Sheets</p>
                 <p className="text-2xl font-bold text-foreground">{dashboardData.totalSheets || 0}</p>
               </div>
             </div>
@@ -119,9 +119,9 @@ export default function Dashboard() {
                 <i className="fas fa-arrow-up text-green-600 dark:text-green-400"></i>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Gelir</p>
+                <p className="text-sm font-medium text-muted-foreground">Income</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {dashboardData.stats?.income?.toLocaleString('tr-TR') || '0'} ₺
+                  {dashboardData.stats?.income?.toLocaleString('en-US') || '0'} ₺
                 </p>
               </div>
             </div>
@@ -135,9 +135,9 @@ export default function Dashboard() {
                 <i className="fas fa-arrow-down text-red-600 dark:text-red-400"></i>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Gider</p>
+                <p className="text-sm font-medium text-muted-foreground">Expenses</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {dashboardData.stats?.expenses?.toLocaleString('tr-TR') || '0'} ₺
+                  {dashboardData.stats?.expenses?.toLocaleString('en-US') || '0'} ₺
                 </p>
               </div>
             </div>
@@ -151,7 +151,7 @@ export default function Dashboard() {
                 <i className="fas fa-project-diagram text-purple-600 dark:text-purple-400"></i>
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Projeler</p>
+                <p className="text-sm font-medium text-muted-foreground">Projects</p>
                 <p className="text-2xl font-bold text-foreground">{dashboardData.stats?.projects || 0}</p>
               </div>
             </div>
@@ -162,15 +162,15 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardContent className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Hızlı İşlemler</h3>
+            <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
             <div className="space-y-2">
               <Button variant="outline" className="w-full justify-start" onClick={() => window.location.href = '/sheets/new'}>
                 <i className="fas fa-plus mr-2"></i>
-                Yeni Sheet Oluştur
+                Create New Sheet
               </Button>
               <Button variant="outline" className="w-full justify-start" onClick={() => window.location.reload()}>
                 <i className="fas fa-sync mr-2"></i>
-                Verileri Yenile
+                Refresh Data
               </Button>
             </div>
           </CardContent>
@@ -178,7 +178,7 @@ export default function Dashboard() {
 
         <Card>
           <CardContent className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Son Aktiviteler</h3>
+            <h3 className="text-lg font-semibold mb-4">Recent Activities</h3>
             {dashboardData.recentActivity && dashboardData.recentActivity.length > 0 ? (
               <div className="space-y-2">
                 {dashboardData.recentActivity.map((activity: any, index: number) => (
@@ -187,8 +187,8 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Henüz aktivite bulunmuyor.</p>
+              ) : (
+              <p className="text-sm text-muted-foreground">No activities yet.</p>
             )}
           </CardContent>
         </Card>

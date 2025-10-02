@@ -184,7 +184,7 @@ class GraphService {
           data: {
             docId: String(doc.id),
             letterNo: doc.letter_no || `Belge #${doc.id}`,
-            date: doc.letter_date || 'Tarih yok',
+            date: doc.letter_date || 'Date yok',
             webUrl: doc.weburl,
             keywords: doc.keywords || [] // keywords alanını ekledik
           }

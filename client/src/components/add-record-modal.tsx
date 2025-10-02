@@ -68,7 +68,7 @@ export default function AddRecordModal({ isOpen, onClose, sheetName, headers, on
               name="date"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tarih</FormLabel>
+                  <FormLabel>Date</FormLabel>
                   <FormControl>
                     <Input 
                       type="date" 

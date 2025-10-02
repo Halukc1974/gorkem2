@@ -103,14 +103,14 @@ const DecisionSupportTemplate: React.FC = () => {
     if (settings?.supabase?.url && settings?.supabase?.anonKey) {
       try {
         configureServices({ supabase: settings.supabase });
-        setIsConfigured(true);
-        console.log('✅ Karar destek sistemi: Supabase konfigürasyonu yüklendi (global config)');
+  setIsConfigured(true);
+  console.log('✅ Decision support: Supabase configuration loaded (global config)');
       } catch (error) {
-        console.error('❌ Karar destek sistemi: Supabase konfigürasyonu başarısız:', error);
+  console.error('❌ Decision support: Supabase configuration failed:', error);
         setIsConfigured(false);
       }
     } else {
-      console.warn('⚠️ Karar destek sistemi: Geçerli Supabase konfigürasyonu bulunamadı');
+  console.warn('⚠️ Decision support: No valid Supabase configuration found');
       setIsConfigured(false);
     }
   }, [settings, configureServices]);
@@ -118,7 +118,7 @@ const DecisionSupportTemplate: React.FC = () => {
   // AI analiz sekmesine geçtiğinde OpenAI bağlantısını otomatik kontrol et
   useEffect(() => {
     if (activeTab === 'analysis' && settings?.openai?.apiKey && !openaiConnectionStatus.isConnected && !openaiConnectionStatus.isChecking) {
-      console.log('🔄 AI analiz sekmesine geçildi, OpenAI bağlantısı kontrol ediliyor...');
+      console.log('🔄 AI analysis tab activated, checking OpenAI connection...');
       checkOpenAIConnection();
     }
   }, [activeTab, settings?.openai?.apiKey]);
@@ -130,7 +130,7 @@ const DecisionSupportTemplate: React.FC = () => {
         isConnected: false,
         isChecking: false,
         lastChecked: new Date().toISOString(),
-        error: "OpenAI API key bulunamadı. Lütfen ayarlar bölümünden API key'inizi girin."
+        error: "OpenAI API key not found. Please enter your API key in Settings."
       });
       return;
     }
@@ -138,7 +138,7 @@ const DecisionSupportTemplate: React.FC = () => {
     setOpenaiConnectionStatus(prev => ({ ...prev, isChecking: true, error: null }));
 
     try {
-      console.log('🔄 OpenAI bağlantısı test ediliyor...');
+  console.log('🔄 Testing OpenAI connection...');
       const testResponse = await fetch('https://api.openai.com/v1/models', {
         method: 'GET',
         headers: {
@@ -147,14 +147,14 @@ const DecisionSupportTemplate: React.FC = () => {
       });
 
       if (!testResponse.ok) {
-        const errorMsg = `OpenAI API bağlantı hatası: ${testResponse.status} ${testResponse.statusText}`;
+        const errorMsg = `OpenAI API connection error: ${testResponse.status} ${testResponse.statusText}`;
         setOpenaiConnectionStatus({
           isConnected: false,
           isChecking: false,
           lastChecked: new Date().toISOString(),
           error: errorMsg
         });
-        console.error('❌ OpenAI bağlantı testi başarısız:', errorMsg);
+        console.error('❌ OpenAI connection test failed:', errorMsg);
       } else {
         setOpenaiConnectionStatus({
           isConnected: true,
@@ -162,17 +162,17 @@ const DecisionSupportTemplate: React.FC = () => {
           lastChecked: new Date().toISOString(),
           error: null
         });
-        console.log('✅ OpenAI bağlantısı başarılı!');
+        console.log('✅ OpenAI connection successful!');
       }
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Bilinmeyen hata';
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       setOpenaiConnectionStatus({
         isConnected: false,
         isChecking: false,
         lastChecked: new Date().toISOString(),
-        error: `Bağlantı hatası: ${errorMsg}`
+        error: `Connection error: ${errorMsg}`
       });
-      console.error('❌ OpenAI bağlantı testi hatası:', error);
+      console.error('❌ OpenAI connection test error:', error);
     }
   };
 
@@ -191,27 +191,27 @@ const DecisionSupportTemplate: React.FC = () => {
 
     setIsGeneratingSummaries(true);
     try {
-      // Sepet belgelerinin özetlerini oluştur
+      // Generate summaries for basket documents
       if (correspondenceBasket.length > 0) {
         const basketResults = await decisionSupportService.generateBasketSummaries(correspondenceBasket);
         setBasketSummaries(basketResults);
       }
 
-      // Referans belgelerinin özetlerini oluştur
+      // Generate summaries for reference documents
       if (referenceDocuments.length > 0) {
         const referenceResults = await decisionSupportService.generateBasketSummaries(referenceDocuments);
         setReferenceSummaries(referenceResults);
       }
 
       toast({
-        title: "AI Özetler Hazır",
-        description: `${correspondenceBasket.length + referenceDocuments.length} belge için AI özetleri oluşturuldu.`,
+        title: "AI Summaries Ready",
+        description: `${correspondenceBasket.length + referenceDocuments.length} documents have AI summaries.`,
       });
     } catch (error) {
       console.error('Summary generation error:', error);
       toast({
-        title: "Özet Oluşturma Hatası",
-        description: "AI özetleri oluşturulurken bir hata oluştu.",
+        title: "Summary Generation Error",
+        description: "An error occurred while creating AI summaries.",
         variant: "destructive",
       });
     } finally {
@@ -230,8 +230,8 @@ const DecisionSupportTemplate: React.FC = () => {
   const handleAnalyze = async (correspondence: CorrespondenceMetadata) => {
     if (!isConfigured) {
       toast({
-        title: "Konfigürasyon Gerekli",
-        description: "AI analiz için gerekli konfigürasyonlar eksik.",
+        title: "Configuration Required",
+        description: "Required configuration for AI analysis is missing.",
         variant: "destructive",
       });
       return;
@@ -260,14 +260,14 @@ const DecisionSupportTemplate: React.FC = () => {
       ));
 
       toast({
-        title: "AI Analiz Tamamlandı",
-        description: `"${correspondence.short_desc}" için AI analiz hazır.`,
+        title: "AI Analysis Completed",
+        description: `AI analysis ready for "${correspondence.short_desc}".`,
       });
     } catch (error) {
       console.error('Single document analysis error:', error);
       toast({
-        title: "Analiz Hatası",
-        description: "AI analiz sırasında bir hata oluştu.",
+        title: "Analysis Error",
+        description: "An error occurred during AI analysis.",
         variant: "destructive",
       });
     } finally {
@@ -279,8 +279,8 @@ const DecisionSupportTemplate: React.FC = () => {
   const loadCorrespondenceData = async () => {
     if (!isConfigured) {
       toast({
-        title: "Konfigürasyon Gerekli",
-        description: "Veritabanı bağlantısı yapılandırılmamış.",
+        title: "Configuration Required",
+        description: "Database connection is not configured.",
         variant: "destructive",
       });
       return;
@@ -291,13 +291,13 @@ const DecisionSupportTemplate: React.FC = () => {
       let result;
       
       if (useVectorSearch && searchFilters.query.trim()) {
-        // Vektör arama kullan
+        // Use vector search
         result = await decisionSupportService.searchCorrespondenceVector(
           searchFilters.query, 
           searchFilters
         );
       } else {
-        // Normal text arama
+        // Normal text search
         result = await decisionSupportService.searchCorrespondence(searchFilters.query || '', searchFilters);
       }
       
@@ -305,8 +305,8 @@ const DecisionSupportTemplate: React.FC = () => {
     } catch (error) {
       console.error('Error loading correspondence data:', error);
       toast({
-        title: "Veri Yükleme Hatası",
-        description: "Yazışma verileri yüklenirken bir hata oluştu. Veritabanı bağlantısını kontrol edin.",
+        title: "Data Loading Error",
+        description: "An error occurred while loading correspondence data. Check the database connection.",
         variant: "destructive",
       });
     } finally {
@@ -319,13 +319,13 @@ const DecisionSupportTemplate: React.FC = () => {
     if (!correspondenceBasket.find(item => item.id === correspondence.id)) {
       setCorrespondenceBasket(prev => [...prev, correspondence]);
       toast({
-        title: "Sepete Eklendi",
-        description: `"${correspondence.short_desc}" sepetinize eklendi.`,
+        title: "Added to Basket",
+        description: `"${correspondence.short_desc}" added to your basket.`,
       });
     } else {
       toast({
-        title: "Zaten Sepette",
-        description: "Bu yazışma zaten sepetinizde bulunuyor.",
+        title: "Already in Basket",
+        description: "This correspondence is already in your basket.",
         variant: "destructive",
       });
     }
@@ -335,8 +335,8 @@ const DecisionSupportTemplate: React.FC = () => {
   const removeFromBasket = (correspondenceId: string) => {
     setCorrespondenceBasket(prev => prev.filter(item => item.id !== correspondenceId));
     toast({
-      title: "Sepetten Çıkarıldı",
-      description: "Yazışma sepetinizden çıkarıldı.",
+      title: "Removed from Basket",
+      description: "The correspondence has been removed from your basket.",
     });
   };
 
@@ -344,8 +344,8 @@ const DecisionSupportTemplate: React.FC = () => {
   const setAsResponseTarget = (correspondence: CorrespondenceMetadata) => {
     setSelectedForResponse(correspondence);
     toast({
-      title: "Cevap Hedefi Seçildi",
-      description: `"${correspondence.short_desc}" için cevap yazılacak.`,
+      title: "Response Target Selected",
+      description: `A response will be written for "${correspondence.short_desc}".`,
     });
   };
 
@@ -354,8 +354,8 @@ const DecisionSupportTemplate: React.FC = () => {
     if (!referenceDocuments.find(item => item.id === correspondence.id)) {
       setReferenceDocuments(prev => [...prev, correspondence]);
       toast({
-        title: "Referans Eklendi",
-        description: `"${correspondence.short_desc}" referans belgesi olarak eklendi.`,
+        title: "Reference Added",
+        description: `"${correspondence.short_desc}" added as a reference document.`,
       });
     }
   };
@@ -367,18 +367,18 @@ const DecisionSupportTemplate: React.FC = () => {
 
   const getRiskColor = (level: string) => {
     switch (level) {
-      case 'Yüksek': return 'destructive';
-      case 'Orta': return 'secondary';
-      case 'Düşük': return 'default';
+      case 'High': return 'destructive';
+      case 'Medium': return 'secondary';
+      case 'Low': return 'default';
       default: return 'default';
     }
   };
 
   const getSentimentColor = (sentiment: string) => {
     switch (sentiment) {
-      case 'Pozitif': return 'default';
-      case 'Nötr': return 'secondary';
-      case 'Negatif': return 'destructive';
+      case 'Positive': return 'default';
+      case 'Neutral': return 'secondary';
+      case 'Negative': return 'destructive';
       default: return 'default';
     }
   };
@@ -409,8 +409,8 @@ const DecisionSupportTemplate: React.FC = () => {
   const processSelectedDocuments = async () => {
     if (selectedDocuments.size === 0) {
       toast({
-        title: "Belge Seçilmedi",
-        description: "İşlem yapmak için en az bir belge seçin.",
+        title: "No Document Selected",
+        description: "Please select at least one document to proceed.",
         variant: "destructive",
       });
       return;
@@ -421,8 +421,8 @@ const DecisionSupportTemplate: React.FC = () => {
 
     if (selectedBasketItems.length === 0 && selectedReferenceItems.length === 0) {
       toast({
-        title: "Geçersiz Seçim",
-        description: "Seçili belgeler bulunamadı.",
+        title: "Invalid Selection",
+        description: "Selected documents could not be found.",
         variant: "destructive",
       });
       return;
@@ -440,11 +440,11 @@ const DecisionSupportTemplate: React.FC = () => {
           isConnected: false,
           isChecking: false,
           lastChecked: new Date().toISOString(),
-          error: "OpenAI API key bulunamadı. Lütfen ayarlar bölümünden API key'inizi girin."
+          error: "OpenAI API key not found. Please enter your API key in Settings."
         });
         toast({
-          title: "API Key Gerekli",
-          description: "Belge analizi için OpenAI API key gerekli.",
+          title: "API Key Required",
+          description: "OpenAI API key is required for document analysis.",
           variant: "destructive",
         });
         setIsAnalyzing(false);
@@ -452,7 +452,7 @@ const DecisionSupportTemplate: React.FC = () => {
       }
 
       // OpenAI bağlantısını test et
-      console.log('🔄 OpenAI bağlantısı test ediliyor...');
+  console.log('🔄 Testing OpenAI connection...');
       const testResponse = await fetch('https://api.openai.com/v1/models', {
         method: 'GET',
         headers: {
@@ -461,17 +461,17 @@ const DecisionSupportTemplate: React.FC = () => {
       });
 
       if (!testResponse.ok) {
-        const errorMsg = `OpenAI API bağlantı hatası: ${testResponse.status} ${testResponse.statusText}`;
+        const errorMsg = `OpenAI API connection error: ${testResponse.status} ${testResponse.statusText}`;
         setOpenaiConnectionStatus({
           isConnected: false,
           isChecking: false,
           lastChecked: new Date().toISOString(),
           error: errorMsg
         });
-        console.error('❌ OpenAI bağlantı testi başarısız:', errorMsg);
+        console.error('❌ OpenAI connection test failed:', errorMsg);
         toast({
-          title: "OpenAI Bağlantı Hatası",
-          description: "API key'inizi kontrol edin.",
+          title: "OpenAI Connection Error",
+          description: "Please check your API key.",
           variant: "destructive",
         });
         setIsAnalyzing(false);
@@ -484,56 +484,56 @@ const DecisionSupportTemplate: React.FC = () => {
         lastChecked: new Date().toISOString(),
         error: null
       });
-      console.log('✅ OpenAI bağlantısı başarılı!');
+  console.log('✅ OpenAI connection successful!');
 
       // Tüm seçili belgelerin içeriğini birleştir
       const allSelectedDocuments = [...selectedBasketItems, ...selectedReferenceItems];
       const combinedContent = allSelectedDocuments.map(item =>
-        `BELGE: ${item.short_desc}\nTÜR: ${item.incout === 'incoming' ? 'Gelen Yazışma' : 'Giden Yazışma'}\nTARİH: ${new Date(item.letter_date).toLocaleDateString('tr-TR')}\nİÇERİK:\n${item.content}`
+        `DOCUMENT: ${item.short_desc}\nTYPE: ${item.incout === 'incoming' ? 'Incoming' : 'Outgoing'}\nDATE: ${new Date(item.letter_date).toLocaleDateString('en-US')}\nCONTENT:\n${item.content}`
       ).join('\n\n---\n\n');
 
       // Detaylı analiz için kapsamlı prompt oluştur
       const analysisPrompt = `
-Aşağıdaki seçili belgeleri kapsamlı bir şekilde analiz et. Analiz raporun 200-300 kelime arasında olmalı ve aşağıdaki unsurları içermeli:
+Please comprehensively analyze the selected documents below. The analysis should be between 200-300 words and include the following elements:
 
-BELGELER:
+DOCUMENTS:
 ${combinedContent}
 
-ANALİZ TALİMATLARI:
-1. **Genel Özet**: Belgelerin genel konusunu ve amacını özetle (50-70 kelime)
-2. **İlişkiler ve Bağlantılar**: Belgeler arasındaki ilişkileri, referansları ve bağlantıları belirle. Mantıksız veya tutarsız referansları temizle ve gerçek ilişkileri vurgula.
-3. **Risk Analizi**: Potansiyel riskleri, önem derecelerini ve aciliyet faktörlerini değerlendir (50-70 kelime)
-4. **Duygu ve Ton Analizi**: Belgelerin genel duygu durumunu ve iletişim tonunu analiz et
-5. **Önerilen Aksiyonlar**: Yapılması gereken somut adımları ve önerileri listele (50-70 kelime)
-6. **Zaman Çizelgesi**: Önemli tarihler, süreler ve zamanlamalar varsa belirt
+ANALYSIS INSTRUCTIONS:
+1. General Summary: Summarize the overall subject and purpose of the documents (50-70 words).
+2. Relationships and Links: Identify relationships, references, and connections between documents. Clean up inconsistent references and highlight true relations.
+3. Risk Analysis: Assess potential risks, severity, and urgency (50-70 words).
+4. Sentiment and Tone Analysis: Analyze the general sentiment and tone of the communications.
+5. Suggested Actions: List concrete recommended actions (50-70 words).
+6. Timeline: Note important dates, deadlines, and timing if present.
 
-ANALİZ FORMATI:
-- Türkçe yaz
-- Profesyonel ve nesnel dil kullan
-- Somut bulgulara dayalı ol
-- Önerileri uygulanabilir şekilde belirt
-- Risk seviyelerini (Düşük/Orta/Yüksek) belirt
+OUTPUT FORMAT:
+- Write in English
+- Use professional and objective language
+- Be evidence-based
+- Provide actionable recommendations
+- Indicate risk levels (Low/Medium/High)
 
-Lütfen JSON formatında yanıt ver:
+Please respond in JSON format:
 {
-  "summary": "Genel özet metni",
-  "relationships": "Belgeler arası ilişkiler analizi",
+  "summary": "Summary text",
+  "relationships": "Analysis of relationships between documents",
   "risk_analysis": {
-    "level": "Düşük|Orta|Yüksek",
-    "factors": ["risk faktörü 1", "risk faktörü 2"],
-    "description": "Risk analizi açıklaması"
+    "level": "Low|Medium|High",
+    "factors": ["risk factor 1", "risk factor 2"],
+    "description": "Risk analysis description"
   },
   "sentiment_analysis": {
-    "overall": "Pozitif|Nötr|Negatif",
-    "score": 0-100,
-    "description": "Duygu analizi açıklaması"
+    "overall": "Positive|Neutral|Negative",
+    "score": 0,
+    "description": "Sentiment analysis description"
   },
-  "action_suggestions": ["aksiyon 1", "aksiyon 2", "aksiyon 3"],
-  "timeline": "Zaman çizelgesi ve önemli tarihler"
+  "action_suggestions": ["action 1", "action 2", "action 3"],
+  "timeline": "Timeline and important dates"
 }
       `;
 
-      console.log('🔄 OpenAI ile detaylı analiz başlatılıyor...');
+      console.log('🔄 Starting detailed analysis with OpenAI...');
       const analysisResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -545,7 +545,7 @@ Lütfen JSON formatında yanıt ver:
           messages: [
             {
               role: 'system',
-              content: 'Sen deneyimli bir kamu yönetimi uzmanısın. Yazışma belgelerini analiz eder, ilişkileri belirler ve karar destek önerileri sunarsun. Türkçe yanıt verirsin ve detaylı, kapsamlı analizler yaparsın.'
+              content: 'You are an experienced public administration expert. Analyze correspondence documents, identify relationships, and provide decision support recommendations. Respond in English and produce detailed, comprehensive analyses.'
             },
             {
               role: 'user',
@@ -565,7 +565,7 @@ Lütfen JSON formatında yanıt ver:
       const aiResponse = analysisData.choices[0]?.message?.content;
 
       if (!aiResponse) {
-        throw new Error('OpenAI API boş yanıt döndürdü');
+        throw new Error('OpenAI API returned an empty response');
       }
 
       console.log('✅ OpenAI analizi tamamlandı, JSON parse ediliyor...');
@@ -576,8 +576,8 @@ Lütfen JSON formatında yanıt ver:
         parsedAnalysis = JSON.parse(aiResponse);
       } catch (parseError) {
         console.error('JSON parse hatası:', parseError);
-        console.log('AI yanıtı:', aiResponse);
-        throw new Error('AI yanıtı geçerli JSON formatında değil');
+        console.log('AI response:', aiResponse);
+        throw new Error('AI response is not valid JSON');
       }
 
       // Analiz sonuçlarını state'te sakla
@@ -594,26 +594,26 @@ Lütfen JSON formatında yanıt ver:
       // localStorage'a da kaydet (şimdilik)
       localStorage.setItem('selectedDocumentsAnalysis', JSON.stringify(analysisResult));
 
-      console.log('✅ Belge analizi başarıyla tamamlandı!');
-      console.log('📊 Analiz özeti:', parsedAnalysis.summary?.substring(0, 100) + '...');
+      console.log('✅ Document analysis completed successfully!');
+      console.log('📊 Analysis summary:', parsedAnalysis.summary?.substring(0, 100) + '...');
 
       toast({
-        title: "Analiz Tamamlandı",
-        description: `${selectedDocuments.size} seçili belge için kapsamlı OpenAI analizi hazır.`,
+        title: "Analysis Completed",
+        description: `Comprehensive OpenAI analysis is ready for ${selectedDocuments.size} selected documents.`,
       });
 
     } catch (error) {
-      console.error('❌ Seçili belgeler analizi hatası:', error);
+      console.error('❌ Selected documents analysis error:', error);
       setOpenaiConnectionStatus({
         isConnected: false,
         isChecking: false,
         lastChecked: new Date().toISOString(),
-        error: error instanceof Error ? error.message : 'Bilinmeyen hata'
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
 
       toast({
-        title: "Analiz Hatası",
-        description: "Seçili belgeler analiz edilirken bir hata oluştu. API key'ini kontrol edin.",
+        title: "Analysis Error",
+        description: "An error occurred while analyzing the selected documents. Check your API key.",
         variant: "destructive",
       });
     } finally {
@@ -625,8 +625,8 @@ Lütfen JSON formatında yanıt ver:
   const generateDecisionReport = async () => {
     if (!isConfigured) {
       toast({
-        title: "Konfigürasyon Gerekli",
-        description: "Karar raporu oluşturmak için gerekli konfigürasyonlar eksik.",
+        title: "Configuration Required",
+        description: "Required configuration for generating decision report is missing.",
         variant: "destructive",
       });
       return;
@@ -634,8 +634,8 @@ Lütfen JSON formatında yanıt ver:
 
     if (correspondenceBasket.length === 0) {
       toast({
-        title: "Sepet Boş",
-        description: "Karar raporu oluşturmak için sepetinize yazışma ekleyin.",
+        title: "Basket Empty",
+        description: "Add correspondence to your basket to generate a decision report.",
         variant: "destructive",
       });
       return;
@@ -661,16 +661,16 @@ Lütfen JSON formatında yanıt ver:
       localStorage.setItem('decisionSupportReport', JSON.stringify(report));
 
       toast({
-        title: "Karar Raporu Hazır",
-        description: "Seçili yazışmalar temel alınarak karar raporu oluşturuldu.",
+        title: "Decision Report Ready",
+        description: "A decision report has been generated based on selected correspondence.",
       });
 
       setActiveTab('reports');
     } catch (error) {
       console.error('Report generation error:', error);
       toast({
-        title: "Rapor Oluşturma Hatası",
-        description: "Karar raporu oluşturulurken bir hata oluştu. API key'lerini kontrol edin.",
+        title: "Report Generation Error",
+        description: "An error occurred while generating the decision report. Check API keys.",
         variant: "destructive",
       });
     } finally {
@@ -685,15 +685,15 @@ Lütfen JSON formatında yanıt ver:
     const urgentItems = correspondenceBasket.filter(item => item.severity_rate >= '4');
 
     if (highSeverityItems.length > 0) {
-      recommendations.push(`${highSeverityItems.length} adet yüksek önem dereceli yazışma için acil eylem planı hazırlayın`);
+      recommendations.push(`Prepare an urgent action plan for ${highSeverityItems.length} high-severity correspondence`);
     }
 
     if (urgentItems.length > 0) {
-      recommendations.push(`${urgentItems.length} adet kritik yazışma için üst yönetim onayını alın`);
+      recommendations.push(`Obtain executive approval for ${urgentItems.length} critical correspondences`);
     }
 
     if (selectedForResponse) {
-      recommendations.push(`${selectedForResponse.short_desc} yazışması için hazırlanan cevap yazısını ilgili taraflara iletin`);
+      recommendations.push(`Send the drafted response for ${selectedForResponse.short_desc} to relevant parties`);
     }
 
     return recommendations;
@@ -703,8 +703,8 @@ Lütfen JSON formatında yanıt ver:
   const generateResponseLetter = async () => {
     if (!selectedDocumentsAnalysis || !responseLetterInstruction.trim()) {
       toast({
-        title: "Eksik Bilgi",
-        description: "Analiz ve talimat gerekli.",
+        title: "Missing Information",
+        description: "Analysis and instruction are required.",
         variant: "destructive",
       });
       return;
@@ -717,8 +717,8 @@ Lütfen JSON formatında yanıt ver:
 
       if (!openaiApiKey || !openaiApiKey.trim()) {
         toast({
-          title: "API Key Gerekli",
-          description: "Cevap yazısı oluşturmak için OpenAI API key gerekli.",
+          title: "API Key Required",
+          description: "OpenAI API key is required to generate the response letter.",
           variant: "destructive",
         });
         setIsGeneratingResponseLetter(false);
@@ -728,30 +728,30 @@ Lütfen JSON formatında yanıt ver:
       // Tüm ilgili belgelerin içeriğini birleştir
       const allDocuments = [...selectedDocumentsAnalysis.basketItems, ...selectedDocumentsAnalysis.referenceItems];
       const allContent = allDocuments.map(item =>
-        `Belge: ${item.short_desc}\nİçerik: ${item.content}`
+        `Document: ${item.short_desc}\nContent: ${item.content}`
       ).join('\n\n---\n\n');
 
       // OpenAI API ile cevap yazısı oluştur
-      const responsePrompt = `
-Aşağıdaki analiz ve belgeler temel alınarak, kullanıcının isteğine göre resmi bir cevap yazısı oluştur:
+  const responsePrompt = `
+Based on the following analysis and documents, draft an official response letter according to the user's instruction:
 
-KULLANICI TALİMATI: ${responseLetterInstruction}
+USER INSTRUCTION: ${responseLetterInstruction}
 
-ANALİZ SONUCU: ${JSON.stringify(selectedDocumentsAnalysis.analysis, null, 2)}
+ANALYSIS RESULT: ${JSON.stringify(selectedDocumentsAnalysis.analysis, null, 2)}
 
-İLGİLİ BELGELER:
+RELEVANT DOCUMENTS:
 ${allContent}
 
-TALİMATLAR:
-1. Resmi ve profesyonel bir yazı dili kullan
-2. Kullanıcının talimatına uygun içerik oluştur
-3. Yazışma referanslarını dahil et
-4. Uygun resmi başlık ve kapanış kullan
-5. Türkçe yaz
-6. Detaylı ve kapsamlı ol
+INSTRUCTIONS:
+1. Use official and professional tone
+2. Follow the user's instruction
+3. Include document references
+4. Use appropriate header and closing
+5. Write in English
+6. Be detailed and comprehensive
 
-Lütfen sadece cevap yazısının içeriğini döndür, başka açıklama ekleme.
-      `;
+Please return only the response letter content, do not add extra commentary.
+  `;
 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -764,7 +764,7 @@ Lütfen sadece cevap yazısının içeriğini döndür, başka açıklama ekleme
           messages: [
             {
               role: 'system',
-              content: 'Sen deneyimli bir kamu yönetimi uzmanısın. Analiz ve belgeler temel alınarak resmi cevap yazıları oluşturursun. Türkçe, resmi ve profesyonel yazarsın.'
+              content: 'You are an experienced public administration expert. Draft official response letters based on analysis and documents. Write in English, formal and professional.'
             },
             {
               role: 'user',
@@ -784,7 +784,7 @@ Lütfen sadece cevap yazısının içeriğini döndür, başka açıklama ekleme
       const aiResponse = data.choices[0]?.message?.content;
 
       if (!aiResponse) {
-        throw new Error('OpenAI API boş yanıt döndürdü');
+        throw new Error('OpenAI API returned an empty response');
       }
 
       const responseLetter = {
@@ -798,15 +798,15 @@ Lütfen sadece cevap yazısının içeriğini döndür, başka açıklama ekleme
       setIsResponseLetterResultModalOpen(true); // Sonuç modal'ını aç
 
       toast({
-        title: "Cevap Yazısı Hazır",
-        description: "AI tarafından oluşturulan cevap yazısı hazır.",
+        title: "Response Letter Ready",
+        description: "The AI-generated response letter is ready.",
       });
 
     } catch (error) {
       console.error('Response letter generation error:', error);
       toast({
-        title: "Cevap Yazısı Hatası",
-        description: "Cevap yazısı oluşturulurken bir hata oluştu. API key'ini kontrol edin.",
+        title: "Response Letter Error",
+        description: "An error occurred while generating the response letter. Check your API key.",
         variant: "destructive",
       });
     } finally {
@@ -820,7 +820,7 @@ Lütfen sadece cevap yazısının içeriğini döndür, başka açıklama ekleme
     const printContent = `
       <html>
         <head>
-          <title>Cevap Yazısı</title>
+          <title>Response Letter</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 40px; }
             .header { text-align: center; margin-bottom: 30px; }
@@ -830,14 +830,14 @@ Lütfen sadece cevap yazısının içeriğini döndür, başka açıklama ekleme
         </head>
         <body>
           <div class="header">
-            <h2>CEVAP YAZISI</h2>
-            <p>Oluşturulma Tarihi: ${new Date(generatedResponseLetter.generatedAt).toLocaleDateString('tr-TR')}</p>
+            <h2>RESPONSE LETTER</h2>
+            <p>Generated At: ${new Date(generatedResponseLetter.generatedAt).toLocaleDateString('en-US')}</p>
           </div>
           <div class="content">
             ${generatedResponseLetter.content.replace(/\n/g, '<br>')}
           </div>
           <div class="footer">
-            <p>Sayın Yetkili</p>
+            <p>Sincerely,</p>
           </div>
         </body>
       </html>
@@ -855,15 +855,15 @@ Lütfen sadece cevap yazısının içeriğini döndür, başka açıklama ekleme
   const exportAsWord = () => {
     if (!generatedResponseLetter) return;
 
-    const content = `CEVAP YAZISI
+  const content = `RESPONSE LETTER
 
-Oluşturulma Tarihi: ${new Date(generatedResponseLetter.generatedAt).toLocaleDateString('tr-TR')}
+Generated At: ${new Date(generatedResponseLetter.generatedAt).toLocaleDateString('en-US')}
 
 ${generatedResponseLetter.content}
 
-Saygılarımla,
-Yetkili
-    `;
+Sincerely,
+Authorized
+  `;
 
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -880,8 +880,8 @@ Yetkili
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">🧠 Karar Destek Sistemi</h1>
-          <p className="text-muted-foreground">AI destekli yazışma analizi ve karar verme sistemi</p>
+          <h1 className="text-3xl font-bold text-foreground">🧠 Decision Support System</h1>
+          <p className="text-muted-foreground">AI-assisted correspondence analysis and decision support</p>
         </div>
       </div>
 
@@ -889,8 +889,8 @@ Yetkili
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            Karar destek sistemi için Supabase bağlantısı yapılandırılmamış.
-            Lütfen ayarlar sekmesinden Supabase URL ve Anon Key bilgilerini girin.
+            Decision support requires a configured Supabase connection.
+            Please enter Supabase URL and Anon Key in Settings.
           </AlertDescription>
         </Alert>
       )}
@@ -898,10 +898,10 @@ Yetkili
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="correspondence">Yazışmalar</TabsTrigger>
-          <TabsTrigger value="analysis">AI Analiz</TabsTrigger>
-          <TabsTrigger value="templates">Şablonlar</TabsTrigger>
-          <TabsTrigger value="reports">Raporlar</TabsTrigger>
+          <TabsTrigger value="correspondence">Correspondence</TabsTrigger>
+          <TabsTrigger value="analysis">AI Analysis</TabsTrigger>
+          <TabsTrigger value="templates">Templates</TabsTrigger>
+          <TabsTrigger value="reports">Reports</TabsTrigger>
         </TabsList>
 
         {/* Correspondence Tab */}
@@ -912,27 +912,27 @@ Yetkili
               {/* Search Filters */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Yazışma Arama</CardTitle>
+                  <CardTitle>Correspondence Search</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
-                      <Label htmlFor="searchQuery">Arama Kelimesi</Label>
+                      <Label htmlFor="searchQuery">Search Query</Label>
                       <Input
                         id="searchQuery"
-                        placeholder="Konu, içerik veya anahtar kelime..."
+                        placeholder="Subject, content or keyword..."
                         value={searchFilters.query}
                         onChange={(e) => setSearchFilters(prev => ({ ...prev, query: e.target.value }))}
                       />
                     </div>
                     <div>
-                      <Label htmlFor="type_of_corr">Yazışma Tipi</Label>
+                      <Label htmlFor="type_of_corr">Type of Correspondence</Label>
                       <Select value={searchFilters.type_of_corr} onValueChange={(value) => setSearchFilters(prev => ({ ...prev, type_of_corr: value }))}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Tümü" />
+                          <SelectValue placeholder="All" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">Tümü</SelectItem>
+                          <SelectItem value="all">All</SelectItem>
                           <SelectItem value="HardCopy">HardCopy</SelectItem>
                           <SelectItem value="Email">Email</SelectItem>
                           <SelectItem value="Digital">Digital</SelectItem>
@@ -940,31 +940,31 @@ Yetkili
                       </Select>
                     </div>
                     <div>
-                      <Label htmlFor="inc_out">Gelen/Giden</Label>
+                      <Label htmlFor="inc_out">Incoming/Outgoing</Label>
                       <Select value={searchFilters.inc_out} onValueChange={(value) => setSearchFilters(prev => ({ ...prev, inc_out: value }))}>
                         <SelectTrigger>
                           <SelectValue placeholder="Tümü" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">Tümü</SelectItem>
-                          <SelectItem value="incoming">Gelen</SelectItem>
-                          <SelectItem value="outgoing">Giden</SelectItem>
+                          <SelectItem value="all">All</SelectItem>
+                          <SelectItem value="incoming">Incoming</SelectItem>
+                          <SelectItem value="outgoing">Outgoing</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div>
-                      <Label htmlFor="severity_rate">Önem Derecesi</Label>
+                      <Label htmlFor="severity_rate">Severity</Label>
                       <Select value={searchFilters.severity_rate} onValueChange={(value) => setSearchFilters(prev => ({ ...prev, severity_rate: value }))}>
                         <SelectTrigger>
                           <SelectValue placeholder="Tümü" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">Tümü</SelectItem>
-                          <SelectItem value="1">Düşük (1)</SelectItem>
-                          <SelectItem value="2">Orta (2)</SelectItem>
-                          <SelectItem value="3">Yüksek (3)</SelectItem>
-                          <SelectItem value="4">Kritik (4)</SelectItem>
-                          <SelectItem value="5">Acil (5)</SelectItem>
+                          <SelectItem value="all">All</SelectItem>
+                          <SelectItem value="1">Low (1)</SelectItem>
+                          <SelectItem value="2">Medium (2)</SelectItem>
+                          <SelectItem value="3">High (3)</SelectItem>
+                          <SelectItem value="4">Critical (4)</SelectItem>
+                          <SelectItem value="5">Urgent (5)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -972,7 +972,7 @@ Yetkili
                   <div className="flex gap-2 mt-4 items-center">
                     <Button onClick={loadCorrespondenceData} disabled={isLoading || !isConfigured}>
                       {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-                      Ara
+                      Search
                     </Button>
                     <div className="flex items-center space-x-2">
                       <Checkbox
@@ -980,13 +980,13 @@ Yetkili
                         checked={useVectorSearch}
                         onCheckedChange={(checked) => setUseVectorSearch(checked as boolean)}
                       />
-                      <Label htmlFor="vectorSearch" className="text-sm">Vektör Arama</Label>
+                      <Label htmlFor="vectorSearch" className="text-sm">Vector Search</Label>
                     </div>
                     <Button variant="outline" onClick={() => {
                       setSearchFilters({ query: '', type_of_corr: '', inc_out: 'all', severity_rate: 'all' });
                       setUseVectorSearch(false);
                     }}>
-                      Temizle
+                      Clear
                     </Button>
                   </div>
                 </CardContent>
@@ -995,16 +995,16 @@ Yetkili
               {/* Search Results */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Arama Sonuçları ({correspondenceData.length})</CardTitle>
+                  <CardTitle>Search Results ({correspondenceData.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {isLoading ? (
                     <div className="flex justify-center py-8">
                       <Loader2 className="h-8 w-8 animate-spin" />
                     </div>
-                  ) : correspondenceData.length === 0 ? (
+                    ) : correspondenceData.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
-                      Arama sonuçları bulunamadı.
+                      No search results found.
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -1014,12 +1014,12 @@ Yetkili
                             <div className="flex-1">
                               <h4 className="font-semibold">{item.short_desc}</h4>
                               <p className="text-sm text-muted-foreground">
-                                Yazışma No: {item.letter_no} | Tarih: {new Date(item.letter_date).toLocaleDateString('tr-TR')} | {item.incout === 'incoming' ? 'Gelen' : 'Giden'}
+                                Letter No: {item.letter_no} | Date: {new Date(item.letter_date).toLocaleDateString('en-US')} | {item.incout === 'incoming' ? 'Incoming' : 'Outgoing'}
                               </p>
                             </div>
                             <div className="flex gap-2">
                               <Badge variant={item.severity_rate === '5' ? 'destructive' : item.severity_rate === '4' ? 'secondary' : 'default'}>
-                                Önem: {item.severity_rate}
+                                Severity: {item.severity_rate}
                               </Badge>
                               <Badge variant="outline">
                                 {item.type_of_corr}
@@ -1027,8 +1027,8 @@ Yetkili
                             </div>
                           </div>
                           <p className="text-sm mb-3 line-clamp-2">{item.content}</p>
-                          {item.keywords && (
-                            <p className="text-xs text-muted-foreground mb-3">Anahtar Kelimeler: {item.keywords}</p>
+                              {item.keywords && (
+                            <p className="text-xs text-muted-foreground mb-3">Keywords: {item.keywords}</p>
                           )}
                           <div className="flex gap-2">
                             <Button
@@ -1038,7 +1038,7 @@ Yetkili
                               disabled={isAnalyzing || !isConfigured}
                             >
                               {isAnalyzing ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : <Brain className="mr-2 h-3 w-3" />}
-                              AI Analiz
+                              AI Analyze
                             </Button>
                             <Button
                               size="sm"
@@ -1047,7 +1047,7 @@ Yetkili
                               disabled={correspondenceBasket.some(b => b.id === item.id)}
                             >
                               <Plus className="mr-2 h-3 w-3" />
-                              Sepete Ekle
+                              Add to Basket
                             </Button>
                             <Button
                               size="sm"
@@ -1056,7 +1056,7 @@ Yetkili
                               disabled={referenceDocuments.some(r => r.id === item.id)}
                             >
                               <FileText className="mr-2 h-3 w-3" />
-                              Referans Ekle
+                              Add as Reference
                             </Button>
                           </div>
                         </Card>
@@ -1071,16 +1071,16 @@ Yetkili
             <div className="space-y-6">
               {/* Correspondence Basket */}
               <Card>
-                <CardHeader>
+                  <CardHeader>
                   <CardTitle className="flex items-center justify-between">
-                    Yazışma Sepeti
+                    Correspondence Basket
                     <Badge variant="secondary">{correspondenceBasket.length}</Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {correspondenceBasket.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-4">
-                      Sepetiniz boş. Arama sonuçlarından yazışma ekleyin.
+                      Your basket is empty. Add correspondence from search results.
                     </p>
                   ) : (
                     <div className="space-y-2">
@@ -1095,7 +1095,7 @@ Yetkili
                               size="sm"
                               variant="ghost"
                               onClick={() => setAsResponseTarget(item)}
-                              title="Cevap yazılacak yazışma olarak ayarla"
+                              title="Set as response target"
                             >
                               <Reply className="h-3 w-3" />
                             </Button>
@@ -1103,7 +1103,7 @@ Yetkili
                               size="sm"
                               variant="ghost"
                               onClick={() => removeFromBasket(item.id)}
-                              title="Sepetten çıkar"
+                              title="Remove from basket"
                             >
                               <X className="h-3 w-3" />
                             </Button>
@@ -1115,7 +1115,7 @@ Yetkili
                   {selectedForResponse && (
                     <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950 rounded">
                       <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                        Cevap Yazılacak: {selectedForResponse.short_desc}
+                        Response Target: {selectedForResponse.short_desc}
                       </p>
                     </div>
                   )}
@@ -1125,23 +1125,23 @@ Yetkili
                     disabled={correspondenceBasket.length === 0 || isAnalyzing || !isConfigured}
                   >
                     {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
-                    Karar Raporu Oluştur
+                    Generate Decision Report
                   </Button>
                 </CardContent>
               </Card>
 
               {/* Reference Documents */}
               <Card>
-                <CardHeader>
+                  <CardHeader>
                   <CardTitle className="flex items-center justify-between">
-                    Referans Belgeler
+                    Reference Documents
                     <Badge variant="secondary">{referenceDocuments.length}</Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {referenceDocuments.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-4">
-                      Referans belgeniz yok. Arama sonuçlarından referans ekleyin.
+                      No reference documents. Add references from search results.
                     </p>
                   ) : (
                     <div className="space-y-2">
@@ -1155,7 +1155,7 @@ Yetkili
                             size="sm"
                             variant="ghost"
                             onClick={() => removeReference(item.id)}
-                            title="Referanstan çıkar"
+                            title="Remove from references"
                           >
                             <X className="h-3 w-3" />
                           </Button>
@@ -1173,27 +1173,27 @@ Yetkili
         <TabsContent value="analysis" className="space-y-4">
           {/* OpenAI Connection Status */}
           <Card>
-            <CardHeader>
+              <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${
+                  <div className={`w-3 h-3 rounded-full ${
                   openaiConnectionStatus.isConnected ? 'bg-green-500' :
                   openaiConnectionStatus.isChecking ? 'bg-yellow-500 animate-pulse' :
                   openaiConnectionStatus.error ? 'bg-red-500' : 'bg-gray-400'
                 }`} />
-                OpenAI API Bağlantı Durumu
+                OpenAI API Connection Status
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">
-                    {openaiConnectionStatus.isChecking ? 'Bağlantı kontrol ediliyor...' :
-                     openaiConnectionStatus.isConnected ? '✅ Bağlantı başarılı' :
-                     openaiConnectionStatus.error ? '❌ Bağlantı hatası' : '⏳ Bağlantı kontrol edilmedi'}
-                  </span>
+              <span className="text-sm">
+              {openaiConnectionStatus.isChecking ? 'Checking connection...' :
+              openaiConnectionStatus.isConnected ? '✅ Connection successful' :
+              openaiConnectionStatus.error ? '❌ Connection error' : '⏳ Connection not checked'}
+            </span>
                   {openaiConnectionStatus.lastChecked && (
-                    <span className="text-xs text-muted-foreground">
-                      Son kontrol: {new Date(openaiConnectionStatus.lastChecked).toLocaleTimeString('tr-TR')}
+                      <span className="text-xs text-muted-foreground">
+                      Last checked: {new Date(openaiConnectionStatus.lastChecked).toLocaleTimeString('en-US')}
                     </span>
                   )}
                 </div>
@@ -1206,8 +1206,8 @@ Yetkili
                   </Alert>
                 )}
                 {openaiConnectionStatus.isConnected && (
-                  <div className="text-xs text-green-600 dark:text-green-400">
-                    ✓ Gerçek OpenAI API (gpt-4o-mini) kullanılıyor - Mock veri kullanılmıyor
+                    <div className="text-xs text-green-600 dark:text-green-400">
+                    ✓ Real OpenAI API (gpt-4o-mini) is used - no mock data
                   </div>
                 )}
               </div>
@@ -1221,14 +1221,14 @@ Yetkili
                   <Brain className="h-5 w-5" />
                   AI Analiz Paneli
                 </div>
-                <div className="flex gap-2">
+                  <div className="flex gap-2">
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={selectAllDocuments}
                     disabled={basketSummaries.length === 0 && referenceSummaries.length === 0}
                   >
-                    Tümünü Seç
+                    Select All
                   </Button>
                   <Button
                     size="sm"
@@ -1236,7 +1236,7 @@ Yetkili
                     onClick={clearSelection}
                     disabled={selectedDocuments.size === 0}
                   >
-                    Seçimi Temizle
+                    Clear Selection
                   </Button>
                   <Button
                     size="sm"
@@ -1244,15 +1244,15 @@ Yetkili
                     disabled={selectedDocuments.size === 0 || isAnalyzing}
                   >
                     {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Seçili Belgeleri İşle ({selectedDocuments.size})
+                    Process Selected Documents ({selectedDocuments.size})
                   </Button>
                 </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-sm text-muted-foreground">
-                Sepetinizde {correspondenceBasket.length} yazışma, referanslarınızda {referenceDocuments.length} belge bulunmaktadır.
-                {isGeneratingSummaries && " AI özetleri hazırlanıyor..."}
+                  <div className="text-sm text-muted-foreground">
+                You have {correspondenceBasket.length} correspondence in your basket and {referenceDocuments.length} reference documents.
+                {isGeneratingSummaries && " AI summaries are being prepared..."}
               </div>
             </CardContent>
           </Card>
@@ -1261,11 +1261,11 @@ Yetkili
           {basketSummaries.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  🛒 Sepet Belgeleri ({basketSummaries.length})
+                  <CardTitle className="flex items-center gap-2">
+                  🛒 Basket Documents ({basketSummaries.length})
                   {selectedForResponse && (
                     <Badge variant="secondary" className="ml-2">
-                      Cevap: {selectedForResponse.short_desc}
+                      Response: {selectedForResponse.short_desc}
                     </Badge>
                   )}
                 </CardTitle>
@@ -1286,8 +1286,8 @@ Yetkili
                       <div className="col-span-4">
                         <h4 className="font-semibold text-sm mb-1">{summary.title}</h4>
                         <Badge
-                          variant={summary.riskLevel === 'Yüksek' ? 'destructive' :
-                                 summary.riskLevel === 'Orta' ? 'secondary' : 'default'}
+                          variant={summary.riskLevel === 'High' ? 'destructive' :
+                                 summary.riskLevel === 'Medium' ? 'secondary' : 'default'}
                           className="text-xs"
                         >
                           Risk: {summary.riskLevel}
@@ -1298,7 +1298,7 @@ Yetkili
                       <div className="col-span-6">
                         <p className="text-sm text-muted-foreground mb-2">{summary.summary}</p>
                         <div className="text-xs">
-                          <strong>Ana Noktalar:</strong>
+                          <strong>Key Points:</strong>
                           <ul className="list-disc list-inside mt-1 space-y-1">
                             {summary.keyPoints.map((point, idx) => (
                               <li key={idx}>{point}</li>
@@ -1316,7 +1316,7 @@ Yetkili
                             const doc = correspondenceBasket.find(d => d.id === summary.id);
                             if (doc) setSelectedCorrespondence(doc);
                           }}
-                          title="Detaylı analiz"
+                          title="Detailed analysis"
                         >
                           <Brain className="h-3 w-3" />
                         </Button>
@@ -1332,8 +1332,8 @@ Yetkili
           {referenceSummaries.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  📄 Referans Belgeler ({referenceSummaries.length})
+                  <CardTitle className="flex items-center gap-2">
+                  📄 Reference Documents ({referenceSummaries.length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -1364,7 +1364,7 @@ Yetkili
                       <div className="col-span-6">
                         <p className="text-sm text-muted-foreground mb-2">{summary.summary}</p>
                         <div className="text-xs">
-                          <strong>Ana Noktalar:</strong>
+                          <strong>Key Points:</strong>
                           <ul className="list-disc list-inside mt-1 space-y-1">
                             {summary.keyPoints.map((point, idx) => (
                               <li key={idx}>{point}</li>
@@ -1397,14 +1397,14 @@ Yetkili
           {/* No Documents Message */}
           {basketSummaries.length === 0 && referenceSummaries.length === 0 && (
             <Card>
-              <CardContent className="text-center py-12">
+                <CardContent className="text-center py-12">
                 <Brain className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">AI Analiz İçin Belge Yok</h3>
+                <h3 className="text-lg font-semibold mb-2">No Documents for AI Analysis</h3>
                 <p className="text-muted-foreground mb-4">
-                  AI analiz yapmak için önce yazışmaları sepetinize veya referanslarınıza ekleyin.
+                  To perform AI analysis, first add correspondence to your basket or references.
                 </p>
                 <Button onClick={() => setActiveTab('correspondence')}>
-                  Yazışmalara Git
+                  Go to Correspondence
                 </Button>
               </CardContent>
             </Card>
@@ -1426,22 +1426,22 @@ Yetkili
                         setResponseLetterInstruction('');
                       }
                     }}>
-                      <DialogTrigger asChild>
+                        <DialogTrigger asChild>
                         <Button onClick={() => setIsResponseLetterModalOpen(true)}>
                           <FileText className="mr-2 h-4 w-4" />
-                          Cevap Yazısı Oluştur
+                          Generate Response Letter
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-2xl">
                         <DialogHeader>
-                          <DialogTitle>Cevap Yazısı Oluştur</DialogTitle>
+                          <DialogTitle>Generate Response Letter</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4">
                           <div>
-                            <Label htmlFor="responseInstruction">Nasıl bir cevap yazısı oluşturulsun?</Label>
+                            <Label htmlFor="responseInstruction">How should the response letter be written?</Label>
                             <Textarea
                               id="responseInstruction"
-                              placeholder="Örneğin: İdareye gerekçeleri ile birlikte süre uzatımı istiyorum..."
+                              placeholder="e.g.: I request an extension with reasons..."
                               value={responseLetterInstruction}
                               onChange={(e) => setResponseLetterInstruction(e.target.value)}
                               rows={4}
@@ -1452,7 +1452,7 @@ Yetkili
                               variant="outline"
                               onClick={() => setIsResponseLetterModalOpen(false)}
                             >
-                              İptal
+                              Cancel
                             </Button>
                             <Button
                               onClick={generateResponseLetter}
@@ -1463,7 +1463,7 @@ Yetkili
                               ) : (
                                 <FileText className="mr-2 h-4 w-4" />
                               )}
-                              Oluştur
+                              Generate
                             </Button>
                           </div>
                         </div>
@@ -1476,21 +1476,21 @@ Yetkili
                         <DialogHeader>
                           <DialogTitle className="flex items-center gap-2">
                             <FileText className="h-5 w-5" />
-                            Oluşturulan Cevap Yazısı
+                            Generated Response Letter
                           </DialogTitle>
                         </DialogHeader>
                         <div className="space-y-6">
                           {generatedResponseLetter && (
                             <>
                               <div className="p-4 border rounded-lg bg-muted/50">
-                                <h4 className="font-semibold mb-2">Talimatınız:</h4>
+                                <h4 className="font-semibold mb-2">Your Instruction:</h4>
                                 <p className="text-sm text-muted-foreground italic">
                                   "{generatedResponseLetter.instruction}"
                                 </p>
                               </div>
 
                               <div className="p-4 border rounded-lg">
-                                <h4 className="font-semibold mb-4">Cevap Yazısı İçeriği:</h4>
+                                <h4 className="font-semibold mb-4">Response Letter Content:</h4>
                                 <div className="whitespace-pre-wrap text-sm leading-relaxed bg-white p-4 rounded border min-h-[300px]">
                                   {generatedResponseLetter.content}
                                 </div>
@@ -1498,7 +1498,7 @@ Yetkili
 
                               <div className="flex gap-2 justify-between items-center pt-4 border-t">
                                 <div className="text-xs text-muted-foreground">
-                                  Oluşturulma Tarihi: {new Date(generatedResponseLetter.generatedAt).toLocaleString('tr-TR')}
+                                  Generated At: {new Date(generatedResponseLetter.generatedAt).toLocaleString('en-US')}
                                 </div>
                                 <div className="flex gap-2">
                                   <Button
@@ -1507,7 +1507,7 @@ Yetkili
                                     onClick={exportAsPDF}
                                   >
                                     <Printer className="mr-2 h-4 w-4" />
-                                    PDF Yazdır
+                                    Print PDF
                                   </Button>
                                   <Button
                                     variant="outline"
@@ -1515,12 +1515,12 @@ Yetkili
                                     onClick={exportAsWord}
                                   >
                                     <Download className="mr-2 h-4 w-4" />
-                                    Word İndir
+                                    Download Word
                                   </Button>
                                   <Button
                                     onClick={() => setIsResponseLetterResultModalOpen(false)}
                                   >
-                                    Kapat
+                                    Close
                                   </Button>
                                 </div>
                               </div>
@@ -1601,7 +1601,7 @@ Yetkili
                 </div>
 
                 <div className="text-xs text-muted-foreground text-center pt-4 border-t">
-                  Analiz Tarihi: {new Date(selectedDocumentsAnalysis.generatedAt).toLocaleString('tr-TR')}
+                  Analiz Datei: {new Date(selectedDocumentsAnalysis.generatedAt).toLocaleString('tr-TR')}
                 </div>
               </CardContent>
             </Card>
@@ -1653,7 +1653,7 @@ Yetkili
                   </div>
 
                   <div className="text-xs text-muted-foreground text-center pt-4 border-t">
-                    Oluşturulma Tarihi: {new Date(generatedResponseLetter.generatedAt).toLocaleString('tr-TR')}
+                    Oluşturulma Datei: {new Date(generatedResponseLetter.generatedAt).toLocaleString('tr-TR')}
                   </div>
                 </div>
               </CardContent>
