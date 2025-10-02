@@ -44,7 +44,7 @@ function ContentPreviewBody(rowData: any, { onPreview }: any) {
       type="button"
       className="p-button p-button-text"
       onClick={() => onPreview(rowData)}
-      title="İçeriği Preview"
+      title="Preview Content"
       style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}
     >
       <i className="pi pi-search" style={{ fontSize: '1.1rem', color: '#0b5cff' }} aria-hidden />
@@ -216,7 +216,7 @@ export default function InfoCenterPage(): JSX.Element {
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <span style={{ marginRight: 8 }}>
                     <InputText
-                      placeholder="Anahtar kelime ara..."
+                      placeholder="Search keywords..."
                       value={globalFilter}
                       onChange={(e) => {
                         const v = (e.target as HTMLInputElement).value;
@@ -247,15 +247,15 @@ export default function InfoCenterPage(): JSX.Element {
                     
                   </button>
                   {/* Gear / columns settings button */}
-                  <PButton icon="pi pi-cog" className="p-button-text" onClick={openColumnsModal} aria-label="Sütun ayarları" />
+                  <PButton icon="pi pi-cog" className="p-button-text" onClick={openColumnsModal} aria-label="Column settings" />
                 </div>
             </div>
           </CardHeader>
           <CardContent>
           {isLoading ? (
-            <div className="p-6">Veriler Yükleniyor...</div>
+            <div className="p-6">Loading data...</div>
           ) : error ? (
-            <div className="p-6 text-red-600">Veri Çekilemedi: {String(error)}</div>
+            <div className="p-6 text-red-600">Failed to fetch data: {String(error)}</div>
           ) : (
             <div>
               <DataTable
@@ -295,11 +295,11 @@ export default function InfoCenterPage(): JSX.Element {
               >
                 {visibleColumns.inc_out && (
                   <Column
-                    header="Tip"
+                    header="Type"
                     body={(rowData: any) => {
                       const v = (rowData?.inc_out ?? rowData?.['incout'] ?? rowData?.inc_out)?.toString().toLowerCase();
                       const isIncoming = v === 'incoming' || v === 'gelen' || v === 'in';
-                      const label = isIncoming ? 'Gelen' : (v ? 'Giden' : '—');
+                      const label = isIncoming ? 'Incoming' : (v ? 'Outgoing' : '—');
                       const color = isIncoming ? '#10b981' : (v ? '#ef4444' : '#9ca3af');
                       return (
                         <span style={{ display: 'inline-block', padding: '4px 8px', borderRadius: 12, background: color, color: 'white', fontSize: 12 }}>
@@ -313,14 +313,14 @@ export default function InfoCenterPage(): JSX.Element {
                 {visibleColumns.letter_no && (
                   <Column
                     field="letter_no"
-                    header="letter_no"
+                    header="Letter No"
                     sortable
                   />
                 )}
                 {visibleColumns.letter_date && (
                   <Column
                     field="letter_date"
-                    header="letter_date"
+                    header="Letter Date"
                     sortable
                     body={DateBody}
                   />
@@ -328,21 +328,21 @@ export default function InfoCenterPage(): JSX.Element {
                 {visibleColumns.short_desc && (
                   <Column
                     field="short_desc"
-                    header="short_desc"
+                    header="Description"
                     sortable
                   />
                 )}
                 {visibleColumns.ref_letters && (
                   <Column
                     field="ref_letters"
-                    header="ref_letters"
+                    header="Reference Letters"
                     sortable
                   />
                 )}
                 {visibleColumns.severity_rate && (
                   <Column
                     field="severity_rate"
-                    header="severity_rate"
+                    header="Severity"
                     sortable
                     body={SeverityBody}
                   />
@@ -350,7 +350,7 @@ export default function InfoCenterPage(): JSX.Element {
                 {visibleColumns.keywords && (
                   <Column
                     field="keywords"
-                    header="keywords"
+                    header="Keywords"
                     sortable
                   />
                 )}
@@ -364,15 +364,15 @@ export default function InfoCenterPage(): JSX.Element {
                 {visibleColumns.web_url && (
                   <Column
                     field="web_url"
-                    header="web_url"
+                    header="Web URL"
                     body={WebUrlBody}
                   />
                 )}
               </DataTable>
               {/* Preview dialog */}
-              <Dialog header="Belge İçeriği" visible={previewOpen} style={{ width: '60vw' }} onHide={() => setPreviewOpen(false)}>
+              <Dialog header="Document Content" visible={previewOpen} style={{ width: '60vw' }} onHide={() => setPreviewOpen(false)}>
                 <div style={{ maxHeight: '60vh', overflow: 'auto', whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
-                  {previewContent || <i>İçerik bulunamadı</i>}
+                  {previewContent || <i>Content not found</i>}
                 </div>
               </Dialog>
               {/* Columns settings dialog (extracted to reusable component) */}

@@ -167,23 +167,23 @@ export default function DocumentSearchPage() {
         setConfigs(newConfigs);
         prevConfigsRef.current = newConfigs; // Ref'i güncelle
         
-        // Ayarlar tam ise servisleri otomatik konfigüre et
+        // If settings are complete, auto-configure services
         if (settings.supabase?.url && settings.supabase?.anonKey) {
           try {
             configureServices(newConfigs);
-            console.log('✅ Servisler başarıyla konfigüre edildi');
+            console.log('✅ Services configured successfully');
           } catch (error) {
-            console.error('❌ Otomatik servis konfigürasyonu başarısız:', error);
+            console.error('❌ Automatic service configuration failed:', error);
           }
         }
       } else {
         console.log('ℹ️ Config değişikliği yok, servis konfigürasyonu atlandı');
         // If configs didn't change but services are not connected yet (first login),
         // force a one-time configure + test so the UI applies the Firestore-provided settings.
-        // This avoids the kısır döngü where the checkbox toggle or other UI tries to save
+        // This avoids the vicious cycle where the checkbox toggle or other UI tries to save
         // before an initial connection is established.
         if (!isAnyDatabaseConnected) {
-          console.log('⚙️ Servisler bağlı değil; bir kerelik otomatik konfigürasyon ve test çalıştırılıyor');
+          console.log('⚙️ Services not connected; running one-time automatic configuration and test');
           // avoid blocking the effect
           (async () => {
             try {
@@ -194,28 +194,28 @@ export default function DocumentSearchPage() {
               try {
                 configureServices(newConfigs);
               } catch (err) {
-                console.warn('Otomatik konfigürasyon hatası (ignore):', err);
+                console.warn('Automatic configuration error (ignore):', err);
               }
               // run connection tests (hook has cooldown/guards)
               try {
                 await testConnections();
               } catch (err) {
-                console.warn('Otomatik bağlantı testi hatası (ignore):', err);
+                console.warn('Automatic connection test error (ignore):', err);
               }
               // After initial configure + test, trigger the same action as the
-              // "Kaydet ve Senkronize Et" button once (save settings & sync)
+              // "Save and Synchronize" button once (save settings & sync)
               try {
                 if (!autoSaveOnLoginRef.current) {
                   autoSaveOnLoginRef.current = true;
-                  console.log('🔔 Otomatik olarak "Kaydet ve Senkronize Et" tetikleniyor');
+                  console.log('🔔 Automatically triggering "Save and Synchronize"');
                   // call default: persistEnableAI = true (button behavior)
                   await handleConfigSave();
                 }
               } catch (saveErr) {
-                console.warn('Otomatik kaydet/senkronize başarısız (ignore):', saveErr);
+                console.warn('Automatic save/synchronize failed (ignore):', saveErr);
               }
             } catch (e) {
-              console.error('Otomatik konfigürasyon sırasında hata:', e);
+              console.error('Error during automatic configuration:', e);
             }
           })();
         }
@@ -265,10 +265,10 @@ export default function DocumentSearchPage() {
           return newConfigs;
         });
         
-        // Auto-configure services if we have the data and configs are empty
+                  // Auto-configure services if we have the data and configs are empty
         if (newConfigs.supabase.url && newConfigs.supabase.anonKey && !configs.supabase.url) {
           configureServices(newConfigs);
-          // Otomatik test kaldırıldı - manuel test için buton kullanın
+          // Automatic test removed - use button for manual test
         }
       }
     };
@@ -308,9 +308,9 @@ export default function DocumentSearchPage() {
       await testConnections();
       setShowSettings(false);
       
-      console.log('💾 Ayarlar kaydedildi ve test edildi');
+      console.log('💾 Settings saved and tested');
     } catch (error) {
-      console.error('Ayarlar kaydedilemedi:', error);
+      console.error('Settings could not be saved:', error);
     }
   };
 
@@ -328,10 +328,10 @@ export default function DocumentSearchPage() {
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     
-    console.log('🔍 Arama başlatılıyor...');
-    console.log('Sorgu:', searchQuery);
-    console.log('AI Destekli:', enableAI);
-    console.log('Bağlantı durumları:', connectionState);
+    console.log('🔍 Starting search...');
+    console.log('Query:', searchQuery);
+    console.log('AI Enabled:', enableAI);
+    console.log('Connection statuses:', connectionState);
     console.log('Configs:', configs);
     
     const searchFilters = {
@@ -347,32 +347,32 @@ export default function DocumentSearchPage() {
     try {
       await search(searchQuery, searchFilters, enableAI);
     } catch (error) {
-      console.error('Arama hatası:', error);
+      console.error('Search error:', error);
     }
   };
 
 
   // Format date
   const formatDate = (dateString?: string): string => {
-    if (!dateString) return 'Date belirtilmemiş';
-    return new Date(dateString).toLocaleDateString('tr-TR', {
+    if (!dateString) return 'Date not specified';
+    return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
     });
   };
 
-  // Get document title (short_desc veya letter_no)
+  // Get document title (short_desc or letter_no)
   const getDocumentTitle = (doc: any): string => {
-    return doc.short_desc || doc.letter_no || doc.internal_no || `Belge #${doc.id}`;
+    return doc.short_desc || doc.letter_no || doc.internal_no || `Document #${doc.id}`;
   };
 
   // Get document subtitle
   const getDocumentSubtitle = (doc: any): string => {
     const parts = [];
-    if (doc.letter_no) parts.push(`Mektup No: ${doc.letter_no}`);
-    if (doc.internal_no) parts.push(`Dahili No: ${doc.internal_no}`);
-    return parts.join(' • ') || 'Detay bilgisi yok';
+    if (doc.letter_no) parts.push(`Letter No: ${doc.letter_no}`);
+    if (doc.internal_no) parts.push(`Internal No: ${doc.internal_no}`);
+    return parts.join(' • ') || 'No detailed info available';
   };
 
   // Quick preview state for Supabase results (Ön İzle)
@@ -393,18 +393,18 @@ export default function DocumentSearchPage() {
           <CardHeader>
             <CardTitle className="text-red-800 flex items-center gap-2">
               <User className="h-5 w-5" />
-              Giriş Gerekli
+              Login Required
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-red-700">
-              🔒 <strong>Güvenlik:</strong> API anahtarları ve yapılandırma bilgileriniz güvenli bir şekilde saklanmaktadır. 
-              Bu bilgilere erişmek ve sistemi kullanmak için lütfen giriş yapın.
+              🔒 <strong>Security:</strong> Your API keys and configuration information are stored securely. 
+              Please log in to access this information and use the system.
             </p>
             <div className="mt-3 text-sm text-red-600">
-              ✅ Tüm hassas veriler Firestore'da şifrelenerek saklanır<br/>
-              ✅ Her kullanıcı sadece kendi verilerine erişebilir<br/>
-              ✅ LocalStorage'da hassas veri saklanmaz
+              ✅ All sensitive data is stored encrypted in Firestore<br/>
+              ✅ Each user can access only their own data<br/>
+              ✅ No sensitive data is stored in LocalStorage
             </div>
           </CardContent>
         </Card>
@@ -414,30 +414,30 @@ export default function DocumentSearchPage() {
       {SHOW_DEBUG_PANEL && (
         <Card className="border-blue-200 bg-blue-50">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-blue-800">🔧 Debug Bilgileri</CardTitle>
+            <CardTitle className="text-sm text-blue-800">🔧 Debug Info</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-xs text-blue-700">
-            <div><strong>App Config:</strong> {(window as any).__APP_CONFIG__ ? 'Yüklendi' : 'Yüklenemedi'}</div>
-            <div><strong>User Auth:</strong> {user?.uid ? '✅ Giriş yapmış' : '❌ Giriş yapmamış'}</div>
-            <div><strong>Settings Loading:</strong> {settingsLoading ? '🔄 Yükleniyor' : '✅ Yüklendi'}</div>
-            <div><strong>Settings Error:</strong> {settingsError || 'Yok'}</div>
+            <div><strong>App Config:</strong> {(window as any).__APP_CONFIG__ ? 'Loaded' : 'Not Loaded'}</div>
+            <div><strong>User Auth:</strong> {user?.uid ? '✅ Logged In' : '❌ Not Logged In'}</div>
+            <div><strong>Settings Loading:</strong> {settingsLoading ? '🔄 Loading' : '✅ Loaded'}</div>
+            <div><strong>Settings Error:</strong> {settingsError || 'None'}</div>
             <div className="border-t pt-2 mt-2">
               <div><strong>Supabase (Legacy):</strong></div>
-              <div className="ml-2">URL: {settings?.supabase?.url || 'Boş'}</div>
-              <div className="ml-2">Key: {settings?.supabase?.anonKey ? `${settings.supabase.anonKey.substring(0, 20)}...` : 'Boş'}</div>
+              <div className="ml-2">URL: {settings?.supabase?.url || 'Empty'}</div>
+              <div className="ml-2">Key: {settings?.supabase?.anonKey ? `${settings.supabase.anonKey.substring(0, 20)}...` : 'Empty'}</div>
             </div>
             <div className="border-t pt-2 mt-2">
-              <div><strong>Config State (Eski):</strong></div>
-              <div className="ml-2">Supabase URL: {configs.supabase.url || 'Boş'}</div>
-              <div className="ml-2">Supabase Key: {configs.supabase.anonKey ? `${configs.supabase.anonKey.substring(0, 20)}...` : 'Boş'}</div>
-              <div className="ml-2">DeepSeek Key: {configs.deepseek.apiKey || 'Boş'}</div>
-              <div className="ml-2">OpenAI Key: {configs.openai.apiKey || 'Boş'}</div>
+              <div><strong>Config State (Old):</strong></div>
+              <div className="ml-2">Supabase URL: {configs.supabase.url || 'Empty'}</div>
+              <div className="ml-2">Supabase Key: {configs.supabase.anonKey ? `${configs.supabase.anonKey.substring(0, 20)}...` : 'Empty'}</div>
+              <div className="ml-2">DeepSeek Key: {configs.deepseek.apiKey || 'Empty'}</div>
+              <div className="ml-2">OpenAI Key: {configs.openai.apiKey || 'Empty'}</div>
             </div>
-            <div><strong>Bağlantı Durumları:</strong> Supabase: {connectionState.supabase}, DeepSeek: {connectionState.deepseek}, OpenAI: {connectionState.openai}</div>
-            <div><strong>Toplam Doküman:</strong> {stats.totalDocuments}</div>
-            <div><strong>Son Sorgu:</strong> {lastQuery || 'Henüz arama yapılmadı'}</div>
-            <div><strong>Sonuç Sayısı:</strong> Supabase: {supabaseResults.length}</div>
-            {error && <div className="text-red-600"><strong>Hata:</strong> {error}</div>}
+            <div><strong>Connection Status:</strong> Supabase: {connectionState.supabase}, DeepSeek: {connectionState.deepseek}, OpenAI: {connectionState.openai}</div>
+            <div><strong>Total Documents:</strong> {stats.totalDocuments}</div>
+            <div><strong>Last Query:</strong> {lastQuery || 'No search performed yet'}</div>
+            <div><strong>Result Count:</strong> Supabase: {supabaseResults.length}</div>
+            {error && <div className="text-red-600"><strong>Error:</strong> {error}</div>}
           </CardContent>
         </Card>
       )}
@@ -445,9 +445,9 @@ export default function DocumentSearchPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">🔍 Belge Arama Sistemi</h1>
+          <h1 className="text-3xl font-bold text-gray-900">🔍 Document Search System</h1>
           <p className="text-gray-600 mt-1">
-            AI destekli akıllı belge arama - Supabase PostgreSQL
+            AI-powered smart document search - Supabase PostgreSQL
           </p>
         </div>
         
@@ -497,7 +497,7 @@ export default function DocumentSearchPage() {
           <div className="flex gap-3">
             <div className="flex-1">
               <Input
-                placeholder="Arama sorgunuzu yazın... (örn: 'sözleşme belgelerine benzer dokümanlar')"
+                placeholder="Enter your search query... (e.g., 'documents similar to contract documents')"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
@@ -517,11 +517,11 @@ export default function DocumentSearchPage() {
                 className="text-sm font-medium cursor-pointer flex items-center gap-1"
               >
                 <Brain className="h-4 w-4" />
-                {enableAI ? 'AI Vector Search' : 'Basit Arama'}
+                {enableAI ? 'AI Vector Search' : 'Simple Search'}
               </Label>
             </div>
             
-            <Button
+                          <Button
               onClick={handleSearch}
               disabled={isLoading || !searchQuery.trim() || !isAnyDatabaseConnected}
               className="h-12 px-8"
@@ -531,7 +531,7 @@ export default function DocumentSearchPage() {
               ) : (
                 <Search className="h-5 w-5 mr-2" />
               )}
-              Ara
+              Search
             </Button>
           </div>
 
@@ -541,32 +541,32 @@ export default function DocumentSearchPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Date Range */}
                 <div className="space-y-2">
-                  <Label>Mektup Datei Range</Label>
+                  <Label>Letter Date Range</Label>
                   <div className="flex gap-2">
                     <Input
                       type="date"
                       value={filters.dateFrom}
                       onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
-                      placeholder="Başlangıç"
+                      placeholder="Start"
                     />
                     <Input
                       type="date"
                       value={filters.dateTo}
                       onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
-                      placeholder="Bitiş"
+                      placeholder="End"
                     />
                   </div>
                 </div>
 
                 {/* Correspondence Type */}
                 <div className="space-y-2">
-                  <Label>Yazışma Türü</Label>
+                  <Label>Correspondence Type</Label>
                   <Select value={filters.type_of_corr} onValueChange={(value) => setFilters(prev => ({ ...prev, type_of_corr: value }))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Yazışma türü seçin" />
+                      <SelectValue placeholder="Select correspondence type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Tümü</SelectItem>
+                      <SelectItem value="">All</SelectItem>
                       {availableOptions.correspondenceTypes.map(type => (
                         <SelectItem key={type} value={type}>{type}</SelectItem>
                       ))}
@@ -576,13 +576,13 @@ export default function DocumentSearchPage() {
 
                 {/* Severity Rate */}
                 <div className="space-y-2">
-                  <Label>Önem Derecesi</Label>
+                  <Label>Severity Rate</Label>
                   <Select value={filters.severity_rate} onValueChange={(value) => setFilters(prev => ({ ...prev, severity_rate: value }))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Önem derecesi seçin" />
+                      <SelectValue placeholder="Select severity rate" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Tümü</SelectItem>
+                      <SelectItem value="">All</SelectItem>
                       {availableOptions.severityRates.map(rate => (
                         <SelectItem key={rate} value={rate}>{rate}</SelectItem>
                       ))}
@@ -594,26 +594,26 @@ export default function DocumentSearchPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Incoming/Outgoing */}
                 <div className="space-y-2">
-                  <Label>Gelen/Giden</Label>
+                  <Label>Incoming/Outgoing</Label>
                   <Select value={filters.inc_out} onValueChange={(value) => setFilters(prev => ({ ...prev, inc_out: value }))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Gelen/Giden seçin" />
+                      <SelectValue placeholder="Select Incoming/Outgoing" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Tümü</SelectItem>
-                      <SelectItem value="Gelen">Gelen</SelectItem>
-                      <SelectItem value="Giden">Giden</SelectItem>
+                      <SelectItem value="">All</SelectItem>
+                      <SelectItem value="Gelen">Incoming</SelectItem>
+                      <SelectItem value="Giden">Outgoing</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 {/* Internal Number */}
                 <div className="space-y-2">
-                  <Label>Dahili Numara</Label>
+                  <Label>Internal Number</Label>
                   <Input
                     value={filters.internal_no}
                     onChange={(e) => setFilters(prev => ({ ...prev, internal_no: e.target.value }))}
-                    placeholder="Dahili numara girin"
+                    placeholder="Enter internal number"
                   />
                 </div>
               </div>
@@ -621,7 +621,7 @@ export default function DocumentSearchPage() {
               {/* Keywords */}
               {availableOptions.keywords.length > 0 && (
                 <div className="space-y-2">
-                  <Label>Anahtar Kelimeler</Label>
+                  <Label>Keywords</Label>
                   <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
                     {availableOptions.keywords.slice(0, 20).map(keyword => (
                       <div key={keyword} className="flex items-center space-x-2">
@@ -647,7 +647,7 @@ export default function DocumentSearchPage() {
                 <Button variant="outline" onClick={() => setFilters({
                   dateFrom: '', dateTo: '', type_of_corr: '', severity_rate: '', inc_out: '', keywords: [], internal_no: ''
                 })}>
-                  Temizle
+                  Clear
                 </Button>
               </div>
             </div>
@@ -661,7 +661,7 @@ export default function DocumentSearchPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Brain className="h-5 w-5 text-purple-600" />
-              AI Arama Stratejisi
+              AI Search Strategy
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -670,10 +670,10 @@ export default function DocumentSearchPage() {
                 <Badge variant={searchDecision.searchType === 'both' ? 'default' : 'secondary'}>
                   {searchDecision.searchType === 'neo4j' && '📊 Graph Database'}
                   {searchDecision.searchType === 'supabase' && '🗃️ Supabase'}
-                  {searchDecision.searchType === 'both' && '🔄 Her İki Sistem'}
+                  {searchDecision.searchType === 'both' && '🔄 Both Systems'}
                 </Badge>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">Güven Skoru:</span>
+                  <span className="text-sm text-gray-600">Confidence Score:</span>
                   <Progress value={searchDecision.confidence * 100} className="w-20 h-2" />
                   <span className="text-sm font-medium">{Math.round(searchDecision.confidence * 100)}%</span>
                 </div>
@@ -681,7 +681,7 @@ export default function DocumentSearchPage() {
               <p className="text-sm text-gray-700">{searchDecision.reasoning}</p>
               {searchDecision.queryOptimization && (
                 <div className="text-xs text-gray-600">
-                  <strong>Optimize edilmiş sorgu:</strong> {searchDecision.queryOptimization.optimizedQuery}
+                  <strong>Optimized query:</strong> {searchDecision.queryOptimization.optimizedQuery}
                 </div>
               )}
             </div>
@@ -705,8 +705,8 @@ export default function DocumentSearchPage() {
               <RefreshCw className="h-6 w-6 animate-spin text-blue-600" />
               <span className="text-lg text-gray-600">
                 {searchDecision ? 
-                  `Supabase'de arama yapılıyor...` : 
-                  'AI arama stratejisi belirleniyor...'
+                  `Searching in Supabase...` : 
+                  'Determining AI search strategy...'
                 }
               </span>
             </div>
@@ -723,13 +723,13 @@ export default function DocumentSearchPage() {
                 <>
                   <TabsTrigger value="search" className="flex items-center gap-2">
                     <Search className="h-4 w-4" />
-                    Sonuçlar ({totalResults})
+                    Results ({totalResults})
                   </TabsTrigger>
                 </>
               )}
               <TabsTrigger value="config" className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
-                {activeTab === 'config' ? 'Gelişmiş Konfigürasyon' : 'Ayarlar'}
+                {activeTab === 'config' ? 'Advanced Configuration' : 'Settings'}
               </TabsTrigger>
             </TabsList>
 
@@ -741,17 +741,17 @@ export default function DocumentSearchPage() {
                   onClick={() => setActiveTab('search')}
                   className="mr-2"
                 >
-                  ← Aramaya Dön
+                  ← Back to Search
                 </Button>
               )}
               {activeTab !== 'config' && (
                 <>
                   <Button variant="outline" size="sm" onClick={clearResults}>
-                    Temizle
+                    Clear
                   </Button>
                   <Button variant="outline" size="sm">
                     <Download className="h-4 w-4 mr-2" />
-                    Dışa Aktar
+                    Export
                   </Button>
                 </>
               )}
@@ -766,16 +766,16 @@ export default function DocumentSearchPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Zap className="h-5 w-5 text-blue-600" />
-                    Arama Bilgileri
+                    Search Information
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <h4 className="font-medium mb-2">Arama Detayları</h4>
+                      <h4 className="font-medium mb-2">Search Details</h4>
                       <div className="space-y-1 text-sm">
-                        <div><strong>Sorgu:</strong> {lastQuery}</div>
-                        <div><strong>Yöntem:</strong> 
+                        <div><strong>Query:</strong> {lastQuery}</div>
+                        <div><strong>Method:</strong> 
                           <Badge variant="outline" className="ml-2">
                             {searchMethod === 'vector' ? '🧠 Vector Search' : 
                              searchMethod === 'hybrid' ? '🔀 Hybrid Search' : '📝 Text Search'}
@@ -783,22 +783,22 @@ export default function DocumentSearchPage() {
                         </div>
                         {queryEnhancement && (
                           <>
-                            <div><strong>Geliştirilmiş Sorgu:</strong> {queryEnhancement.enhancedQuery}</div>
-                            <div><strong>Dil:</strong> {queryEnhancement.language === 'turkish' ? '🇹🇷 Türkçe' : '🇺🇸 İngilizce'}</div>
+                            <div><strong>Enhanced Query:</strong> {queryEnhancement.enhancedQuery}</div>
+                            <div><strong>Language:</strong> {queryEnhancement.language === 'turkish' ? '🇹🇷 Turkish' : '🇺🇸 English'}</div>
                           </>
                         )}
                       </div>
                     </div>
                     <div>
-                      <h4 className="font-medium mb-2">Arama Stratejisi</h4>
+                      <h4 className="font-medium mb-2">Search Strategy</h4>
                       <div className="space-y-1 text-sm">
                         {queryEnhancement && (queryEnhancement as any).searchTerms && (
-                          <div><strong>Anahtar Kelimeler:</strong> {(queryEnhancement as any).searchTerms.join(', ')}</div>
+                          <div><strong>Keywords:</strong> {(queryEnhancement as any).searchTerms.join(', ')}</div>
                         )}
                         {queryEnhancement && (queryEnhancement as any).intent && (
-                          <div><strong>Arama Amacı:</strong> {(queryEnhancement as any).intent}</div>
+                          <div><strong>Search Intent:</strong> {(queryEnhancement as any).intent}</div>
                         )}
-                        <div><strong>Toplam Sonuç:</strong> {totalResults}</div>
+                        <div><strong>Total Results:</strong> {totalResults}</div>
                       </div>
                     </div>
                   </div>
@@ -811,13 +811,13 @@ export default function DocumentSearchPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5 text-green-600" />
-                    AI Analiz Sonuçları
+                    AI Analysis Results
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <h4 className="font-medium mb-2">Alakalılık Skorları</h4>
+                      <h4 className="font-medium mb-2">Relevance Scores</h4>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-sm">Supabase:</span>
@@ -836,7 +836,7 @@ export default function DocumentSearchPage() {
                       </div>
                     </div>
                     <div>
-                      <h4 className="font-medium mb-2">AI Önerileri</h4>
+                      <h4 className="font-medium mb-2">AI Recommendations</h4>
                       <ul className="text-sm text-gray-600 space-y-1">
                         {aiAnalysis.recommendations.map((rec, index) => (
                           <li key={index} className="flex items-start gap-2">
@@ -867,12 +867,12 @@ export default function DocumentSearchPage() {
                             type="button"
                             className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white border"
                             onClick={() => openQuickPreview(result)}
-                            title="Ön İzle"
+                            title="Preview"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-green-600">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 15l5 5M21 21l-5-5M10 14a4 4 0 100-8 4 4 0 000 8z" />
                             </svg>
-                            <span className="text-xs text-green-600">Ön İzle</span>
+                            <span className="text-xs text-green-600">Preview</span>
                           </button>
                           <Badge variant="outline" className="text-green-600">
                             <Database className="h-3 w-3 mr-1" />
@@ -903,7 +903,7 @@ export default function DocumentSearchPage() {
                           )}
                           {result["incout"] && (
                             <Badge variant="secondary">
-                              {result["incout"] === 'Gelen' ? '📨 Gelen' : '📤 Giden'}
+                              {result["incout"] === 'Gelen' ? '📨 Incoming' : '📤 Outgoing'}
                             </Badge>
                           )}
                         </div>
@@ -927,13 +927,13 @@ export default function DocumentSearchPage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-gray-600 mb-3">
                       {result.ref_letters && (
                         <div>
-                          <span className="font-medium">Ref. Mektuplar:</span>
+                          <span className="font-medium">Ref. Letters:</span>
                           <div className="truncate">{result.ref_letters}</div>
                         </div>
                       )}
                       {result.reply_letter && (
                         <div>
-                          <span className="font-medium">Cevap:</span>
+                          <span className="font-medium">Reply:</span>
                           <div className="truncate">{result.reply_letter}</div>
                         </div>
                       )}
@@ -942,14 +942,14 @@ export default function DocumentSearchPage() {
                           <span className="font-medium">Web URL:</span>
                           <a href={result.weburl} target="_blank" rel="noopener noreferrer" 
                              className="text-blue-600 hover:underline truncate block">
-                            Bağlantı
+                            Link
                           </a>
                         </div>
                       )}
                       {result.metadata && Object.keys(result.metadata).length > 0 && (
                         <div>
                           <span className="font-medium">Metadata:</span>
-                          <div className="text-xs">{Object.keys(result.metadata).length} alan</div>
+                          <div className="text-xs">{Object.keys(result.metadata).length} fields</div>
                         </div>
                       )}
                     </div>
@@ -964,7 +964,7 @@ export default function DocumentSearchPage() {
                         ))}
                         {result.keywords.split(',').length > 5 && (
                           <Badge variant="outline" className="text-xs">
-                            +{result.keywords.split(',').length - 5} daha
+                            +{result.keywords.split(',').length - 5} more
                           </Badge>
                         )}
                       </div>
@@ -992,7 +992,7 @@ export default function DocumentSearchPage() {
                     <div className="whitespace-pre-wrap text-gray-800">{quickPreviewData.content || ''}</div>
                   </div>
                 ) : (
-                  <div>Yükleniyor...</div>
+                  <div>Loading...</div>
                 )}
               </div>
             </DialogContent>
@@ -1004,16 +1004,16 @@ export default function DocumentSearchPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Database className="h-5 w-5" />
-                  Supabase Database Sonuçları
+                  Supabase Database Results
                 </CardTitle>
                 <CardDescription>
-                  Yazışma kayıtları ve belge verileri
+                  Correspondence records and document data
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {supabaseResults.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
-                    Supabase'de sonuç bulunamadı
+                    No results found in Supabase
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -1032,7 +1032,7 @@ export default function DocumentSearchPage() {
 
                         {result.content && (
                           <div className="mb-3">
-                            <h4 className="text-sm font-medium text-gray-700 mb-1">İçerik:</h4>
+                            <h4 className="text-sm font-medium text-gray-700 mb-1">Content:</h4>
                             <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded max-h-20 overflow-y-auto">
                               {result.content}
                             </p>
@@ -1041,20 +1041,20 @@ export default function DocumentSearchPage() {
 
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
                           <div>
-                            <span className="font-medium text-gray-700">Yazışma Türü:</span>
-                            <div className="text-gray-600">{result.type_of_corr || 'Belirtilmemiş'}</div>
+                            <span className="font-medium text-gray-700">Correspondence Type:</span>
+                            <div className="text-gray-600">{result.type_of_corr || 'Not Specified'}</div>
                           </div>
                           <div>
-                            <span className="font-medium text-gray-700">Önem:</span>
-                            <div className="text-gray-600">{result.severity_rate || 'Belirtilmemiş'}</div>
+                            <span className="font-medium text-gray-700">Importance:</span>
+                            <div className="text-gray-600">{result.severity_rate || 'Not Specified'}</div>
                           </div>
                           <div>
-                            <span className="font-medium text-gray-700">Gelen/Giden:</span>
-                            <div className="text-gray-600">{result["incout"] || 'Belirtilmemiş'}</div>
+                            <span className="font-medium text-gray-700">Incoming/Outgoing:</span>
+                            <div className="text-gray-600">{result["incout"] || 'Not Specified'}</div>
                           </div>
                           <div>
-                            <span className="font-medium text-gray-700">Dahili No:</span>
-                            <div className="text-gray-600">{result.internal_no || 'Yok'}</div>
+                            <span className="font-medium text-gray-700">Internal No:</span>
+                            <div className="text-gray-600">{result.internal_no || 'None'}</div>
                           </div>
                         </div>
 
@@ -1062,19 +1062,19 @@ export default function DocumentSearchPage() {
                           <div className="mt-3 pt-3 border-t border-gray-200">
                             {result.ref_letters && (
                               <div className="mb-2">
-                                <span className="text-xs font-medium text-gray-700">Referans Mektuplar: </span>
+                                <span className="text-xs font-medium text-gray-700">Reference Letters: </span>
                                 <span className="text-xs text-gray-600">{result.ref_letters}</span>
                               </div>
                             )}
                             {result.reply_letter && (
                               <div className="mb-2">
-                                <span className="text-xs font-medium text-gray-700">Cevap Mektubu: </span>
+                                <span className="text-xs font-medium text-gray-700">Reply Letter: </span>
                                 <span className="text-xs text-gray-600">{result.reply_letter}</span>
                               </div>
                             )}
                             {result.keywords && (
                               <div>
-                                <span className="text-xs font-medium text-gray-700">Anahtar Kelimeler: </span>
+                                <span className="text-xs font-medium text-gray-700">Keywords: </span>
                                 <span className="text-xs text-gray-600">{result.keywords}</span>
                               </div>
                             )}
@@ -1085,7 +1085,7 @@ export default function DocumentSearchPage() {
                           <div className="mt-3">
                             <a href={result.weburl} target="_blank" rel="noopener noreferrer"
                                className="text-xs text-blue-600 hover:underline">
-                              🔗 Web Bağlantısı
+                              🔗 Web Link
                             </a>
                           </div>
                         )}
@@ -1113,7 +1113,7 @@ export default function DocumentSearchPage() {
                 <FileText className="h-8 w-8 text-blue-600" />
                 <div>
                   <div className="text-2xl font-bold">{stats.totalDocuments}</div>
-                  <div className="text-sm text-gray-600">Toplam Yazışma</div>
+                  <div className="text-sm text-gray-600">Total Correspondence</div>
                 </div>
               </div>
             </CardContent>
@@ -1125,7 +1125,7 @@ export default function DocumentSearchPage() {
                 <Clock className="h-8 w-8 text-green-600" />
                 <div>
                   <div className="text-2xl font-bold">{stats.recentDocuments}</div>
-                  <div className="text-sm text-gray-600">Bu Hafta</div>
+                  <div className="text-sm text-gray-600">This Week</div>
                 </div>
               </div>
             </CardContent>
@@ -1137,7 +1137,7 @@ export default function DocumentSearchPage() {
                 <Folder className="h-8 w-8 text-purple-600" />
                 <div>
                   <div className="text-2xl font-bold">{Object.keys(stats.correspondenceTypeCounts).length}</div>
-                  <div className="text-sm text-gray-600">Yazışma Türü</div>
+                  <div className="text-sm text-gray-600">Correspondence Type</div>
                 </div>
               </div>
             </CardContent>
@@ -1151,7 +1151,7 @@ export default function DocumentSearchPage() {
                   <div className="text-2xl font-bold">
                     {(stats.incomingOutgoing['Gelen'] || 0) + (stats.incomingOutgoing['Giden'] || 0)}
                   </div>
-                  <div className="text-sm text-gray-600">Gelen/Giden</div>
+                  <div className="text-sm text-gray-600">Incoming/Outgoing</div>
                 </div>
               </div>
             </CardContent>
@@ -1165,11 +1165,11 @@ export default function DocumentSearchPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Settings className="h-5 w-5" />
-              Veritabanı Ayarları
+              Database Settings
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
-            <div className="text-sm text-gray-600">Supabase, DeepSeek ve OpenAI API bağlantı bilgilerini girin</div>
+            <div className="text-sm text-gray-600">Enter Supabase, DeepSeek and OpenAI API connection information</div>
             <ConfigSettings />
           </div>
         </DialogContent>

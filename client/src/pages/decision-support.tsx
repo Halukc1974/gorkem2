@@ -9,7 +9,7 @@ import { Progress } from '../components/ui/progress';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Label } from '../components/ui/label';
 import { useToast } from '../hooks/use-toast';
-import { Brain, Search, FileText, AlertTriangle, Lightbulb, File, MessageSquare, TrendingUp, BarChart3, Clock, Users } from 'lucide-react';
+import { Brain, Search, FileText, AlertTriangle, Lightbulb, File, MessageSquare, TrendingUp, BarChart3, Clock, Users, Filter } from 'lucide-react';
 
 // PrimeReact components for advanced features
 import 'primereact/resources/themes/saga-blue/theme.css';
@@ -63,8 +63,8 @@ const DecisionSupportPage: React.FC = () => {
     } catch (error) {
       console.error('Error loading correspondence data:', error);
       toast({
-        title: "Veri Yükleme Hatası",
-        description: "Yazışma verileri yüklenirken bir hata oluştu.",
+        title: "Data Loading Error",
+        description: "An error occurred while loading correspondence data.",
         variant: "destructive",
       });
     } finally {
@@ -82,14 +82,14 @@ const DecisionSupportPage: React.FC = () => {
       setHasMore(result.hasMore);
 
       toast({
-        title: "Arama Tamamlandı",
-        description: `${result.total} sonuç bulundu.`,
+        title: "Search Completed",
+        description: `${result.total} results found.`,
       });
     } catch (error) {
       console.error('Search error:', error);
       toast({
-        title: "Arama Hatası",
-        description: "Arama sırasında bir hata oluştu.",
+        title: "Search Error",
+        description: "An error occurred during search.",
         variant: "destructive",
       });
     } finally {
@@ -118,18 +118,32 @@ const DecisionSupportPage: React.FC = () => {
       await decisionSupportService.saveAIAnalysis(correspondence.id, analysis);
 
       toast({
-        title: "AI Analiz Tamamlandı",
-        description: `${selectedApi.toUpperCase()} API ile analiz başarıyla gerçekleştirildi.`,
+        title: "AI Analysis Completed",
+        description: `Analysis successfully performed with ${selectedApi.toUpperCase()} API.`,
       });
     } catch (error) {
       console.error('AI analysis error:', error);
       toast({
-        title: "Analiz Hatası",
-        description: `AI analiz sırasında bir hata oluştu: ${(error as Error).message}`,
+        title: "Analysis Error",
+        description: `An error occurred during AI analysis: ${(error as Error).message}`,
         variant: "destructive",
       });
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const handlePreview = async (correspondence: CorrespondenceMetadata) => {
+    try {
+      setPreviewContent(correspondence.content);
+      setPreviewOpen(true);
+    } catch (error) {
+      console.error('Error opening preview:', error);
+      toast({
+        title: "Preview Error",
+        description: "Could not load document content.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -244,8 +258,8 @@ const DecisionSupportPage: React.FC = () => {
                     <Label>Correspondence Type</Label>
                     <select
                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                      value={searchFilters.contentType || ''}
-                      onChange={(e) => setSearchFilters(prev => ({ ...prev, contentType: e.target.value || undefined }))}
+                      value={searchFilters.type_of_corr || ''}
+                      onChange={(e) => setSearchFilters(prev => ({ ...prev, type_of_corr: e.target.value || undefined }))}
                     >
                       <option value="">All</option>
                       <option value="Bilgilendirme">Information</option>
@@ -262,8 +276,8 @@ const DecisionSupportPage: React.FC = () => {
                     <Label>Risk Level</Label>
                     <select
                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                      value={searchFilters.riskLevel || ''}
-                      onChange={(e) => setSearchFilters(prev => ({ ...prev, riskLevel: e.target.value || undefined }))}
+                      value={searchFilters.severity_rate || ''}
+                      onChange={(e) => setSearchFilters(prev => ({ ...prev, severity_rate: e.target.value || undefined }))}
                     >
                       <option value="">All</option>
                       <option value="Düşük">Low</option>
@@ -278,8 +292,8 @@ const DecisionSupportPage: React.FC = () => {
                   <div className="space-y-2">
                     <Label>Project Name</Label>
                     <Input
-                      value={searchFilters.projectName || ''}
-                      onChange={(e) => setSearchFilters(prev => ({ ...prev, projectName: e.target.value || undefined }))}
+                      value={searchFilters.sp_id || ''}
+                      onChange={(e) => setSearchFilters(prev => ({ ...prev, sp_id: e.target.value || undefined }))}
                       placeholder="Enter project name"
                     />
                   </div>
@@ -288,8 +302,8 @@ const DecisionSupportPage: React.FC = () => {
                   <div className="space-y-2">
                     <Label>Parties</Label>
                     <Input
-                      value={searchFilters.parties || ''}
-                      onChange={(e) => setSearchFilters(prev => ({ ...prev, parties: e.target.value || undefined }))}
+                      value={searchFilters.sp_id || ''}
+                      onChange={(e) => setSearchFilters(prev => ({ ...prev, sp_id: e.target.value || undefined }))}
                       placeholder="Enter party name"
                     />
                   </div>
@@ -300,33 +314,10 @@ const DecisionSupportPage: React.FC = () => {
                   <div className="space-y-2">
                     <Label>Letter Number</Label>
                     <Input
-                      value={searchFilters.letterNo || ''}
-                      onChange={(e) => setSearchFilters(prev => ({ ...prev, letterNo: e.target.value || undefined }))}
+                      value={searchFilters.letter_no || ''}
+                      onChange={(e) => setSearchFilters(prev => ({ ...prev, letter_no: e.target.value || undefined }))}
                       placeholder="Enter letter number"
                     />
-                  </div>
-
-                  {/* Criticality Range */}
-                  <div className="space-y-2">
-                    <Label>Criticality Range</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="number"
-                        min="1"
-                        max="10"
-                        value={searchFilters.criticalityMin || ''}
-                        onChange={(e) => setSearchFilters(prev => ({ ...prev, criticalityMin: e.target.value ? parseInt(e.target.value) : undefined }))}
-                        placeholder="Min"
-                      />
-                      <Input
-                        type="number"
-                        min="1"
-                        max="10"
-                        value={searchFilters.criticalityMax || ''}
-                        onChange={(e) => setSearchFilters(prev => ({ ...prev, criticalityMax: e.target.value ? parseInt(e.target.value) : undefined }))}
-                        placeholder="Max"
-                      />
-                    </div>
                   </div>
                 </div>
 
@@ -382,23 +373,23 @@ const DecisionSupportPage: React.FC = () => {
                       }}
                     >
                       <div className="flex justify-between items-start mb-2">
-                        <span className="font-medium text-sm">{item.letterNo}</span>
-                        <Badge variant={item.criticality > 7 ? "destructive" : "secondary"}>
-                          Kritiklik: {item.criticality}/10
+                        <span className="font-medium text-sm">{item.letter_no}</span>
+                        <Badge variant={item.severity_rate?.includes('Yüksek') ? "destructive" : "secondary"}>
+                          Criticality: {item.severity_rate || 'Unknown'}/10
                         </Badge>
                       </div>
-                      <h4 className="font-medium mb-1">{item.subject}</h4>
+                      <h4 className="font-medium mb-1">{item.short_desc}</h4>
                       <p className="text-sm text-muted-foreground mb-2">
-                        {item.parties}
+                        {item.sp_id}
                       </p>
                       <div className="flex justify-between items-center text-xs text-muted-foreground">
-                        <span>{new Date(item.letterDate).toLocaleDateString('tr-TR')}</span>
-                        <span>{item.contentType}</span>
+                        <span>{new Date(item.letter_date).toLocaleDateString('en-US')}</span>
+                        <span>{item.type_of_corr}</span>
                       </div>
                       <div className="flex gap-1 mt-2">
-                        {item.keywords.slice(0, 3).map((keyword, idx) => (
+                        {item.keywords && (item.keywords as string).split(',').slice(0, 3).map((keyword, idx) => (
                           <Badge key={idx} variant="outline" className="text-xs">
-                            {keyword}
+                            {keyword.trim()}
                           </Badge>
                         ))}
                       </div>
@@ -440,31 +431,31 @@ const DecisionSupportPage: React.FC = () => {
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
                       <label className="text-sm font-medium">Subject</label>
-                      <p className="text-sm text-muted-foreground">{selectedCorrespondence.subject}</p>
+                      <p className="text-sm text-muted-foreground">{selectedCorrespondence.short_desc}</p>
                     </div>
                     <div>
                       <label className="text-sm font-medium">Date</label>
-                      <p className="text-sm text-muted-foreground">{new Date(selectedCorrespondence.letterDate).toLocaleDateString('en-US')}</p>
+                      <p className="text-sm text-muted-foreground">{new Date(selectedCorrespondence.letter_date).toLocaleDateString('en-US')}</p>
                     </div>
                     <div>
                       <label className="text-sm font-medium">Parties</label>
-                      <p className="text-sm text-muted-foreground">{selectedCorrespondence.parties}</p>
+                      <p className="text-sm text-muted-foreground">{selectedCorrespondence.sp_id}</p>
                     </div>
                     <div>
                       <label className="text-sm font-medium">Project</label>
-                      <p className="text-sm text-muted-foreground">{selectedCorrespondence.projectName}</p>
+                      <p className="text-sm text-muted-foreground">{selectedCorrespondence.sp_id}</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Badge variant="outline">{selectedCorrespondence.contentType}</Badge>
-                    <Badge variant={selectedCorrespondence.decisionMade ? "default" : "secondary"}>
-                      {selectedCorrespondence.decisionMade ? "Decision Made" : "Pending"}
+                    <Badge variant="outline">{selectedCorrespondence.type_of_corr}</Badge>
+                    <Badge variant={selectedCorrespondence.reply_letter ? "default" : "secondary"}>
+                      {selectedCorrespondence.reply_letter ? "Decision Made" : "Pending"}
                     </Badge>
                     <Badge variant={
-                      selectedCorrespondence.riskLevel === 'Yüksek' ? 'destructive' :
-                      selectedCorrespondence.riskLevel === 'Orta' ? 'default' : 'secondary'
+                      selectedCorrespondence.severity_rate === 'Yüksek' ? 'destructive' :
+                      selectedCorrespondence.severity_rate === 'Orta' ? 'default' : 'secondary'
                     }>
-                      {selectedCorrespondence.riskLevel === 'Yüksek' ? 'High' : selectedCorrespondence.riskLevel === 'Orta' ? 'Medium' : selectedCorrespondence.riskLevel === 'Düşük' ? 'Low' : selectedCorrespondence.riskLevel} Risk
+                      {selectedCorrespondence.severity_rate === 'Yüksek' ? 'High' : selectedCorrespondence.severity_rate === 'Orta' ? 'Medium' : selectedCorrespondence.severity_rate === 'Düşük' ? 'Low' : selectedCorrespondence.severity_rate} Risk
                     </Badge>
                   </div>
                 </CardContent>
@@ -527,14 +518,14 @@ const DecisionSupportPage: React.FC = () => {
                                        analyzeCorrespondence(similarDoc);
                                      }}>
                                   <div className="flex justify-between">
-                                    <span className="font-medium">{similarDoc.letterNo}</span>
-                                    <span className="text-sm text-muted-foreground">{new Date(similarDoc.letterDate).toLocaleDateString('tr-TR')}</span>
+                                    <span className="font-medium">{similarDoc.letter_no}</span>
+                                    <span className="text-sm text-muted-foreground">{new Date(similarDoc.letter_date).toLocaleDateString('en-US')}</span>
                                   </div>
-                                  <p className="text-sm mt-1">{similarDoc.subject}</p>
+                                  <p className="text-sm mt-1">{similarDoc.short_desc}</p>
                                   <div className="flex gap-1 mt-2">
-                                    {similarDoc.keywords.slice(0, 2).map((keyword, idx) => (
+                                    {similarDoc.keywords && (similarDoc.keywords as string).split(',').slice(0, 2).map((keyword, idx) => (
                                       <Badge key={idx} variant="outline" className="text-xs">
-                                        {keyword}
+                                        {keyword.trim()}
                                       </Badge>
                                     ))}
                                   </div>
@@ -816,30 +807,30 @@ const DecisionSupportPage: React.FC = () => {
                   <div>
                     <div className="flex justify-between text-sm mb-1">
                       <span>High Risk</span>
-                      <span>{correspondenceData.filter(c => c.riskLevel === 'Yüksek').length}</span>
+                      <span>{correspondenceData.filter(c => c.severity_rate === 'Yüksek').length}</span>
                     </div>
                     <Progress
-                      value={(correspondenceData.filter(c => c.riskLevel === 'Yüksek').length / correspondenceData.length) * 100}
+                      value={(correspondenceData.filter(c => c.severity_rate === 'Yüksek').length / correspondenceData.length) * 100}
                       className="h-2"
                     />
                   </div>
                   <div>
                     <div className="flex justify-between text-sm mb-1">
                       <span>Medium Risk</span>
-                      <span>{correspondenceData.filter(c => c.riskLevel === 'Orta').length}</span>
+                      <span>{correspondenceData.filter(c => c.severity_rate === 'Orta').length}</span>
                     </div>
                     <Progress
-                      value={(correspondenceData.filter(c => c.riskLevel === 'Orta').length / correspondenceData.length) * 100}
+                      value={(correspondenceData.filter(c => c.severity_rate === 'Orta').length / correspondenceData.length) * 100}
                       className="h-2"
                     />
                   </div>
                   <div>
                     <div className="flex justify-between text-sm mb-1">
                       <span>Low Risk</span>
-                      <span>{correspondenceData.filter(c => c.riskLevel === 'Düşük').length}</span>
+                      <span>{correspondenceData.filter(c => c.severity_rate === 'Düşük').length}</span>
                     </div>
                     <Progress
-                      value={(correspondenceData.filter(c => c.riskLevel === 'Düşük').length / correspondenceData.length) * 100}
+                      value={(correspondenceData.filter(c => c.severity_rate === 'Düşük').length / correspondenceData.length) * 100}
                       className="h-2"
                     />
                   </div>

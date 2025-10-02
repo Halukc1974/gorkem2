@@ -28,7 +28,7 @@ export default function SheetView() {
   const handleSaveToGoogleSheets = async () => {
     toast({
       title: 'Deprecated',
-      description: "Google Sheets kaydetme istemcisi client'ta devre dışı bırakıldı. Lütfen admin ayarlarını kullanın.",
+      description: "Google Sheets save client has been disabled on the client side. Please use admin settings.",
       variant: 'destructive'
     });
   };
@@ -36,7 +36,7 @@ export default function SheetView() {
   const handleExcelDownload = () => {
     if (!sheetData || !transformedData) return;
 
-    // CSV formatında indir
+    // Download in CSV format
     const headers = sheetData.headers || [];
     const records = transformedData.records || [];
     
@@ -46,7 +46,7 @@ export default function SheetView() {
     records.forEach((record: any) => {
       const row = headers.map((header: any) => {
         const value = record[header] || "";
-        // CSV için özel karakterleri escape et
+        // Escape special characters for CSV
         return `"${String(value).replace(/"/g, '""')}"`;
       });
       csvContent += row.join(",") + "\n";
@@ -63,8 +63,8 @@ export default function SheetView() {
     document.body.removeChild(link);
 
     toast({
-      title: "Başarılı",
-      description: "Excel dosyası indirildi",
+      title: "Success",
+      description: "Excel file downloaded",
     });
   };
 
@@ -107,7 +107,7 @@ export default function SheetView() {
             <div className="text-destructive mb-4">
               <i className="fas fa-exclamation-triangle text-4xl"></i>
             </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">Hata Oluştu</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-2">An Error Occurred</h3>
             <p className="text-muted-foreground">{(error as any)?.message ?? String(error)}</p>
           </div>
         </Card>
@@ -123,8 +123,8 @@ export default function SheetView() {
             <div className="text-muted-foreground mb-4">
               <i className="fas fa-table text-4xl"></i>
             </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">Sheet Bulunamadı</h3>
-            <p className="text-muted-foreground">Bu sheet mevcut değil veya silinmiş olabilir.</p>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Sheet Not Found</h3>
+            <p className="text-muted-foreground">This sheet may not exist or may have been deleted.</p>
           </div>
         </Card>
       </div>
@@ -142,7 +142,7 @@ export default function SheetView() {
           className="text-foreground hover:bg-primary/5"
         >
           <RefreshCw className="h-4 w-4 mr-2" />
-          Yenile
+          Refresh
         </Button>
         
         <Button
@@ -152,7 +152,7 @@ export default function SheetView() {
           className="text-foreground hover:bg-primary/5"
         >
           <Save className="h-4 w-4 mr-2" />
-          Google Sheets'e Kaydet
+          Save to Google Sheets
         </Button>
 
         <Button
@@ -162,7 +162,7 @@ export default function SheetView() {
           className="text-foreground hover:bg-primary/5"
         >
           <Download className="h-4 w-4 mr-2" />
-          Excel İndir
+          Download Excel
         </Button>
       </div>
 
@@ -173,8 +173,8 @@ export default function SheetView() {
             <div className="text-muted-foreground mb-4">
               <i className="fas fa-table text-4xl"></i>
             </div>
-            <h4 className="text-lg font-medium text-foreground mb-2">Sheet Boş</h4>
-            <p className="text-muted-foreground mb-4">Bu sheet henüz başlık veya veri içermiyor.</p>
+            <h4 className="text-lg font-medium text-foreground mb-2">Sheet Empty</h4>
+            <p className="text-muted-foreground mb-4">This sheet does not yet contain headers or data.</p>
           </div>
         </Card>
       ) : (
