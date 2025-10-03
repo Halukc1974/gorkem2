@@ -15,6 +15,7 @@ import { useDocumentGraph } from '../hooks/use-document-graph';
 import { GraphCustomizationProvider } from '../components/graph-engine/context/GraphCustomizationContext';
 import { useDocumentSearch } from '../hooks/use-document-search';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 import { useUserSettings } from '../hooks/useUserSettings';
 import { DecisionSupportService } from '../services/decision-support';
 import { useToast } from '../hooks/use-toast';
@@ -126,6 +127,8 @@ export default function AISearchPage() {
   const [starQuery, setStarQuery] = useState('');
   const [starLoading, setStarLoading] = useState(false);
   const [starError, setStarError] = useState<string | null>(null);
+  const [showAllDocsConfirm, setShowAllDocsConfirm] = useState(false);
+  const { toast } = useToast();
 
   // Timeline state
   const [timelineQuery, setTimelineQuery] = useState('');
@@ -293,6 +296,43 @@ export default function AISearchPage() {
     }
   };
  
+  // Handler to load all documents - called from "All Documents Network" tab functionality
+  const handleBringAllDocuments = async () => {
+    setStarLoading(true);
+    setStarError(null);
+    setShowAllDocsConfirm(false);
+    
+    try {
+      toast({
+        title: 'Loading All Documents',
+        description: 'This may take up to 2 minutes. Please wait...',
+      });
+      
+      // Load all document relations from Supabase
+      const records = await supabaseService.getAllDocumentRelations();
+      const fullGraph = buildStarMapGraph(records);
+      
+      // Set the preloaded star map with all documents
+      setPreloadedStarMap({ nodes: fullGraph.nodes, edges: fullGraph.edges });
+      
+      toast({
+        title: 'Success',
+        description: `Loaded ${fullGraph.nodes.length} documents and ${fullGraph.edges.length} connections.`,
+      });
+      
+      setStarLoading(false);
+    } catch (err: any) {
+      console.error('Error loading all documents:', err);
+      setStarError(String(err?.message ?? err));
+      toast({
+        title: 'Error',
+        description: 'Failed to load all documents. Please try again.',
+        variant: 'destructive',
+      });
+      setStarLoading(false);
+    }
+  };
+
   const handleFindIsland = async (query: string) => {
     if (!query || !query.trim()) return;
     setStarLoading(true);
@@ -567,10 +607,10 @@ export default function AISearchPage() {
             <Network className="h-4 w-4" />
             Document Reference Graph
           </TabsTrigger>
-          <TabsTrigger value="star-map-top" className="flex items-center gap-2">
+          {/* <TabsTrigger value="star-map-top" className="flex items-center gap-2">
             <Network className="h-4 w-4" />
             All Documents Network
-          </TabsTrigger>
+          </TabsTrigger> */}
           <TabsTrigger value="timeline" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             Timeline View
@@ -628,6 +668,14 @@ export default function AISearchPage() {
                   <Button onClick={() => handleFindIsland(starQuery)} disabled={starLoading}>
                     {starLoading ? 'Finding...' : 'Show Island'}
                   </Button>
+                  <Button 
+                    variant="default" 
+                    onClick={() => setShowAllDocsConfirm(true)} 
+                    disabled={starLoading}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    {starLoading ? 'Loading...' : 'Bring All Documents'}
+                  </Button>
                   <Button variant="ghost" onClick={() => { setPreloadedStarMap(null); setStarQuery(''); }}>
                     Reset
                   </Button>
@@ -639,7 +687,7 @@ export default function AISearchPage() {
                     data={graphData || { nodes: [], edges: [] }}
                     onNodeClick={handleNodeClickWithModal}
                     initialActiveTab="previous"
-                    openStarMap={false}
+                    openStarMap={!!preloadedStarMap && preloadedStarMap.nodes.length > 0}
                     preloadedStarMap={preloadedStarMap}
                     onAddToBasket={addToDocumentBasket}
                   />
@@ -1508,6 +1556,26 @@ export default function AISearchPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Confirmation Dialog for Bring All Documents */}
+      <AlertDialog open={showAllDocsConfirm} onOpenChange={setShowAllDocsConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Load All Documents?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This operation will load all documents from the database and may take up to 2 minutes to complete.
+              <br /><br />
+              The network graph may become very large and could affect performance.
+              <br /><br />
+              Do you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBringAllDocuments}>Yes, Load All Documents</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Timeline Tooltip - Same style as Document Graph */}
       {timelineTooltip.visible && (
         <div
@@ -1572,6 +1640,26 @@ export default function AISearchPage() {
           <div style={{ lineHeight: 1.4 }}>{timelineTooltip.body}</div>
         </div>
       )}
+
+      {/* Confirmation Dialog for Bring All Documents */}
+      <AlertDialog open={showAllDocsConfirm} onOpenChange={setShowAllDocsConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Load All Documents?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This operation will load all documents from the database and may take up to 2 minutes to complete.
+              <br /><br />
+              The network graph may become very large and could affect performance.
+              <br /><br />
+              Do you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBringAllDocuments}>Yes, Load All Documents</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
