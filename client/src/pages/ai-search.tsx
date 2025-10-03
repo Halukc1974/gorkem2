@@ -554,11 +554,15 @@ export default function AISearchPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-    <TabsList className="grid w-full md:w-auto grid-cols-5">
-          {/* <TabsTrigger value="search" className="flex items-center gap-2">
-            <Brain className="h-4 w-4 text-current stroke-2" strokeLinejoin="round" />
-            AI Search
-          </TabsTrigger> */}
+    <TabsList className="grid w-full md:w-auto grid-cols-7">
+          <TabsTrigger value="documents-search" className="flex items-center gap-2">
+            <Search className="h-4 w-4" />
+            Documents Search
+          </TabsTrigger>
+          <TabsTrigger value="vector-search" className="flex items-center gap-2">
+            <Brain className="h-4 w-4" />
+            Vector Search
+          </TabsTrigger>
           <TabsTrigger value="graph" className="flex items-center gap-2">
             <Network className="h-4 w-4" />
             Document Reference Graph
@@ -572,12 +576,36 @@ export default function AISearchPage() {
             Timeline View
           </TabsTrigger>
           <TabsTrigger value="analysis" className="flex items-center gap-2">
-            <Search className="h-4 w-4" />
+            <Cpu className="h-4 w-4" />
             Document Analysis
           </TabsTrigger>
         </TabsList>
         
-        
+        <TabsContent value="documents-search">
+          <Card>
+            <CardContent className="p-0">
+              <iframe
+                src="/document-search?embed=true&hideSidebar=true"
+                className="w-full border-0"
+                style={{ height: 'calc(100vh - 250px)', minHeight: '600px' }}
+                title="Documents Search"
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="vector-search">
+          <Card>
+            <CardContent className="p-0">
+              <iframe
+                src="/n8n-vector-search?embed=true&hideSidebar=true"
+                className="w-full border-0"
+                style={{ height: 'calc(100vh - 250px)', minHeight: '600px' }}
+                title="N8N Vector Search"
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="graph">
           <Card>
@@ -1002,6 +1030,57 @@ export default function AISearchPage() {
                               );
                             })}
                             
+                            {/* Duration Indicators - Show gaps > 10 days between consecutive documents */}
+                            {timelineDocuments.map((doc, index) => {
+                              if (index === 0) return null; // Skip first document
+                              
+                              const prevDoc = timelineDocuments[index - 1];
+                              const currentDate = new Date(doc.letter_date).getTime();
+                              const prevDate = new Date(prevDoc.letter_date).getTime();
+                              const daysDiff = Math.round((currentDate - prevDate) / (1000 * 60 * 60 * 24));
+                              
+                              // Only show if gap is more than 10 days
+                              if (daysDiff <= 10) return null;
+                              
+                              // Calculate position between the two documents
+                              const firstDate = new Date(timelineDocuments[0].letter_date).getTime();
+                              const lastDate = new Date(timelineDocuments[timelineDocuments.length - 1].letter_date).getTime();
+                              const totalRange = lastDate - firstDate || 1;
+                              
+                              const prevPosition = ((prevDate - firstDate) / totalRange) * 94 + 3;
+                              const currentPosition = ((currentDate - firstDate) / totalRange) * 94 + 3;
+                              const midPosition = (prevPosition + currentPosition) / 2;
+                              
+                              return (
+                                <div key={`duration-${doc.id}`}>
+                                  {/* Duration Badge */}
+                                  <div 
+                                    className="absolute bg-orange-500 text-white rounded-full px-2 py-1 text-[10px] font-bold shadow-md cursor-help"
+                                    style={{ 
+                                      left: `${midPosition}%`,
+                                      top: `${TIMELINE_CENTER_Y + 12}px`,
+                                      transform: 'translateX(-50%)',
+                                      zIndex: 20
+                                    }}
+                                    title={`${daysDiff} days gap between ${prevDoc.letter_no} and ${doc.letter_no}`}
+                                  >
+                                    {daysDiff}d
+                                  </div>
+                                  
+                                  {/* Warning Line - highlight the gap on timeline */}
+                                  <div 
+                                    className="absolute h-1 bg-orange-300 opacity-50"
+                                    style={{ 
+                                      left: `${prevPosition}%`,
+                                      width: `${currentPosition - prevPosition}%`,
+                                      top: `${TIMELINE_CENTER_Y - 2}px`,
+                                      zIndex: 5
+                                    }}
+                                  />
+                                </div>
+                              );
+                            })}
+                            
                             {/* Header - Outgoing */}
                             <div className="absolute left-0 right-0" style={{ top: `${TOTAL_HEIGHT - 40}px` }}>
                               <div className="text-xs font-semibold text-red-700 uppercase text-center">
@@ -1026,6 +1105,10 @@ export default function AISearchPage() {
                       <div className="flex items-center gap-2">
                         <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white"></div>
                         <span>Timeline Marker</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-orange-500 rounded-full"></div>
+                        <span>Gap &gt; 10 days</span>
                       </div>
                     </div>
 

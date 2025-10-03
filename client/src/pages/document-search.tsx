@@ -54,6 +54,16 @@ import { UserSettings } from '../services/supabase';
 const SHOW_DEBUG_PANEL = process.env.NODE_ENV === 'development';
 
 export default function DocumentSearchPage() {
+  const [isEmbedded, setIsEmbedded] = useState(false);
+
+  // Check if page is embedded
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const embed = urlParams.get('embed') === 'true';
+    const hideSidebar = urlParams.get('hideSidebar') === 'true';
+    setIsEmbedded(embed && hideSidebar);
+  }, []);
+
   const {
     // State
     isLoading,
@@ -388,7 +398,7 @@ export default function DocumentSearchPage() {
     <div className="container mx-auto p-6 space-y-6">
       
       {/* Authentication Required Warning */}
-      {!user && (
+      {!isEmbedded && !user && (
         <Card className="border-red-200 bg-red-50">
           <CardHeader>
             <CardTitle className="text-red-800 flex items-center gap-2">
@@ -411,7 +421,7 @@ export default function DocumentSearchPage() {
       )}
       
       {/* Debug Panel - Geliştirme için */}
-      {SHOW_DEBUG_PANEL && (
+      {!isEmbedded && SHOW_DEBUG_PANEL && (
         <Card className="border-blue-200 bg-blue-50">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm text-blue-800">🔧 Debug Info</CardTitle>
@@ -443,15 +453,16 @@ export default function DocumentSearchPage() {
       )}
       
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">🔍 Document Search System</h1>
-          <p className="text-gray-600 mt-1">
-            AI-powered smart document search - Supabase PostgreSQL
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-3">
+      {!isEmbedded && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">🔍 Document Search System</h1>
+            <p className="text-gray-600 mt-1">
+              AI-powered smart document search - Supabase PostgreSQL
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-3">
           {/* Connection Status */}
           <div className="flex items-center gap-2 text-sm">
             <div className="flex items-center gap-1">
@@ -488,8 +499,9 @@ export default function DocumentSearchPage() {
             Gelişmiş Ayarlar
           </Button>
           */}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Search Bar */}
       <Card>

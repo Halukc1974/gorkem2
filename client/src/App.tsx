@@ -50,10 +50,19 @@ function AuthenticatedApp() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarVisible, setIsSidebarVisible] = useState(true); // Sidebar görünürlüğü için state
   const [sidebarWidth, setSidebarWidth] = useState(320); // Sidebar genişliği için state
+  const [isEmbedded, setIsEmbedded] = useState(false); // Embedded mode detection
   const isMobile = useIsMobile();
   const { user, signOut } = useAuth();
   const { config } = useUserSettings();
   const { configureServices } = useDocumentSearch();
+
+  // Check if we're in embedded/iframe mode
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const embed = urlParams.get('embed') === 'true';
+    const hideSidebar = urlParams.get('hideSidebar') === 'true';
+    setIsEmbedded(embed && hideSidebar);
+  }, []);
 
   // Global config watcher - Otomatik servis konfigürasyonu
   useEffect(() => {
@@ -121,71 +130,76 @@ function AuthenticatedApp() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar 
-        isOpen={sidebarOpen} 
-        onClose={() => setSidebarOpen(false)}
-        isMobile={isMobile}
-        isVisible={isSidebarVisible}
-        width={sidebarWidth}
-      />
+      {/* Only show sidebar if not embedded */}
+      {!isEmbedded && (
+        <Sidebar 
+          isOpen={sidebarOpen} 
+          onClose={() => setSidebarOpen(false)}
+          isMobile={isMobile}
+          isVisible={isSidebarVisible}
+          width={sidebarWidth}
+        />
+      )}
       
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Top bar */}
-        <div className="flex h-16 flex-shrink-0 items-center justify-between px-6 bg-card border-b border-border">
-          <div className="flex items-center">
-            {isMobile ? (
-              <button 
-                className="mr-4 p-2 rounded-md hover:bg-accent"
-                onClick={() => setSidebarOpen(true)}
-                data-testid="button-toggle-sidebar"
-              >
-                <i className="fas fa-bars h-5 w-5"></i>
-              </button>
-            ) : (
-              <button 
-                className="mr-4 p-2 rounded-md hover:bg-accent flex items-center gap-2"
-                onClick={() => setIsSidebarVisible(!isSidebarVisible)}
-                data-testid="button-toggle-sidebar-desktop"
-              >
-                <i className={`fas fa-${isSidebarVisible ? 'times' : 'bars'} h-5 w-5`}></i>
-                <span>{isSidebarVisible ? 'Hide Menu' : 'Show Menu'}</span>
-              </button>
-            )}
-            <h2 className="text-xl font-semibold text-foreground" data-testid="text-page-title">
-              
-            </h2>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-3 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex h-2 w-2 rounded-full bg-green-500"></span>
-                <span className="text-green-600">Connected</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <i className="fas fa-envelope text-blue-500"></i>
-                <span className="text-muted-foreground">{(user as any)?.email || 'User'}</span>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground" title="Last synchronization time">
-                <i className="fas fa-sync-alt h-4 w-4 text-blue-500"></i>
-                <span data-testid="text-last-sync">{new Date().toLocaleTimeString('tr-TR')}</span>
-              </div>
+        {/* Top bar - Only show if not embedded */}
+        {!isEmbedded && (
+          <div className="flex h-16 flex-shrink-0 items-center justify-between px-6 bg-card border-b border-border">
+            <div className="flex items-center">
+              {isMobile ? (
+                <button 
+                  className="mr-4 p-2 rounded-md hover:bg-accent"
+                  onClick={() => setSidebarOpen(true)}
+                  data-testid="button-toggle-sidebar"
+                >
+                  <i className="fas fa-bars h-5 w-5"></i>
+                </button>
+              ) : (
+                <button 
+                  className="mr-4 p-2 rounded-md hover:bg-accent flex items-center gap-2"
+                  onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+                  data-testid="button-toggle-sidebar-desktop"
+                >
+                  <i className={`fas fa-${isSidebarVisible ? 'times' : 'bars'} h-5 w-5`}></i>
+                  <span>{isSidebarVisible ? 'Hide Menu' : 'Show Menu'}</span>
+                </button>
+              )}
+              <h2 className="text-xl font-semibold text-foreground" data-testid="text-page-title">
+                
+              </h2>
             </div>
             
-            {user && (
-              <div className="flex items-center space-x-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleLogout}
-                  data-testid="button-logout"
-                >
-                  Logout
-                </Button>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex h-2 w-2 rounded-full bg-green-500"></span>
+                  <span className="text-green-600">Connected</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <i className="fas fa-envelope text-blue-500"></i>
+                  <span className="text-muted-foreground">{(user as any)?.email || 'User'}</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground" title="Last synchronization time">
+                  <i className="fas fa-sync-alt h-4 w-4 text-blue-500"></i>
+                  <span data-testid="text-last-sync">{new Date().toLocaleTimeString('tr-TR')}</span>
+                </div>
               </div>
-            )}
+              
+              {user && (
+                <div className="flex items-center space-x-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleLogout}
+                    data-testid="button-logout"
+                  >
+                    Logout
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Main content area */}
         <main className="flex-1 overflow-auto bg-background">

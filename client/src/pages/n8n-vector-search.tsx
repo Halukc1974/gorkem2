@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -75,6 +75,15 @@ export default function N8NVectorSearch() {
   const [result, setResult] = useState<any>(null);
   const [rawResult, setRawResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isEmbedded, setIsEmbedded] = useState(false);
+
+  // Check if page is embedded
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const embed = urlParams.get('embed') === 'true';
+    const hideSidebar = urlParams.get('hideSidebar') === 'true';
+    setIsEmbedded(embed && hideSidebar);
+  }, []);
 
   const [letterNo, setLetterNo] = useState('');
   const [searchText, setSearchText] = useState('');
@@ -143,15 +152,17 @@ export default function N8NVectorSearch() {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-semibold">n8n-vector-search</h2>
-          <p className="text-sm text-muted-foreground">Webhook-based test UI — sends GET/POST requests and displays JSON output.</p>
+      {!isEmbedded && (
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-semibold">n8n-vector-search</h2>
+            <p className="text-sm text-muted-foreground">Webhook-based test UI — sends GET/POST requests and displays JSON output.</p>
+          </div>
+          <div>
+            {/* <Button variant="ghost" onClick={() => setLocation('/settings')}>Back to Settings</Button> */}
+          </div>
         </div>
-        <div>
-          {/* <Button variant="ghost" onClick={() => setLocation('/settings')}>Back to Settings</Button> */}
-        </div>
-      </div>
+      )}
 
       <div className="mb-4">
         <nav className="flex gap-2">
