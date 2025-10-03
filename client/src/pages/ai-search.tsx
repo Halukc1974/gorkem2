@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Input } from '../components/ui/input';
@@ -132,6 +132,38 @@ export default function AISearchPage() {
   const [timelineDocuments, setTimelineDocuments] = useState<any[]>([]);
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [timelineError, setTimelineError] = useState<string | null>(null);
+  // Derived arrays for timeline rendering (non-invasive)
+  const [incomingDates, setIncomingDates] = useState<string[]>([]);
+  const [outgoingDates, setOutgoingDates] = useState<string[]>([]);
+  const [incomingDocs, setIncomingDocs] = useState<any[]>([]);
+  const [outgoingDocs, setOutgoingDocs] = useState<any[]>([]);
+
+  // Timeline tooltip state
+  const [timelineTooltip, setTimelineTooltip] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    title?: string;
+    body?: string;
+    nodeId?: string;
+    doc?: any;
+  }>({ visible: false, x: 0, y: 0, title: undefined, body: undefined, nodeId: undefined, doc: undefined });
+  const timelineTooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Timeline zoom state
+  const [timelineZoom, setTimelineZoom] = useState(1);
+  const timelineContainerRef = useRef<HTMLDivElement>(null);
+
+  // Helper: format date as DD/MM/YYYY
+  const formatDDMMYYYY = (dateStr?: string) => {
+    if (!dateStr) return '-';
+    try {
+      // en-GB gives DD/MM/YYYY format
+      return new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } catch (e) {
+      return String(dateStr);
+    }
+  };
 
   // Document analysis state
   const [documentBasket, setDocumentBasket] = useState<Array<{
@@ -339,8 +371,8 @@ export default function AISearchPage() {
     const islandNodes = fullGraph.nodes.filter((n: any) => seen.has(getNodeId(n)));
     const islandNodeIds = new Set(islandNodes.map((n: any) => getNodeId(n)));
       const getEdgeEndpoints = (e: any) => {
-        const s = e.source ?? e.data?.source ?? e.data?.from ?? e[0] ?? undefined;
-        const t = e.target ?? e.data?.target ?? e.data?.to ?? e[1] ?? undefined;
+        const s = e.source ?? e.data?.source ?? e.data?.from ?? undefined;
+        const t = e.target ?? e.data?.target ?? e.data?.to ?? undefined;
         return { s: s !== undefined ? String(s) : undefined, t: t !== undefined ? String(t) : undefined };
       };
 
@@ -463,6 +495,39 @@ export default function AISearchPage() {
         .sort((a, b) => new Date(a.letter_date).getTime() - new Date(b.letter_date).getTime());
 
       setTimelineDocuments(sortedDocuments);
+      // Non-invasive: derive incoming/outgoing arrays from returned documents
+      try {
+        const canonicalType = (d: any) => {
+          if (!d) return undefined;
+          const candidates = [d.inc_out, d.incout, d.incoming, d.type_of_corr];
+          for (const c of candidates) {
+            if (!c && typeof c !== 'number') continue;
+            const s = String(c ?? '').trim().toLowerCase();
+            if (s === 'inc' || s === 'incoming' || s === 'in') return 'inc';
+            if (s === 'out' || s === 'outgoing' || s === 'ex') return 'out';
+          }
+          return undefined;
+        };
+
+        const incDocs = sortedDocuments.filter(d => canonicalType(d) === 'inc');
+        const outDocs = sortedDocuments.filter(d => canonicalType(d) === 'out');
+
+        setIncomingDocs(incDocs);
+        setOutgoingDocs(outDocs);
+        setIncomingDates(incDocs.map(d => d.letter_date).filter(Boolean));
+        setOutgoingDates(outDocs.map(d => d.letter_date).filter(Boolean));
+      } catch (e) {
+        // keep this non-invasive
+        console.debug('Timeline: deriving incoming/outgoing arrays failed', e);
+      }
+      // Debug: log counts and sample data without changing behavior
+      try {
+        console.debug('Timeline: setTimelineDocuments -> total=', sortedDocuments.length);
+        console.debug('Timeline: distinct inc_out values=', Array.from(new Set(sortedDocuments.map((d:any) => d.inc_out))));
+        if (sortedDocuments.length) console.debug('Timeline: sample document[0]=', sortedDocuments[0]);
+      } catch (e) {
+        // keep non-invasive
+      }
       setTimelineLoading(false);
 
     } catch (err: any) {
@@ -623,297 +688,329 @@ export default function AISearchPage() {
                 {/* Timeline Visualization */}
                 {timelineDocuments.length > 0 && (
                   <div className="mt-6 p-4 bg-gray-50 rounded-lg border">
-                    <div className="mb-4 text-sm text-gray-600">
-                      Found {timelineDocuments.length} documents in timeline (Incoming: {timelineDocuments.filter(d => d.inc_out === 'inc').length}, Outgoing: {timelineDocuments.filter(d => d.inc_out === 'out').length})
+                    <div className="mb-4 flex justify-between items-center">
+                      <div className="text-sm text-gray-600">
+                        Found {timelineDocuments.length} documents in timeline (Incoming: {incomingDocs.length}, Outgoing: {outgoingDocs.length})
+                      </div>
+                      {/* Zoom Controls */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-600">Zoom:</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setTimelineZoom(prev => Math.max(0.5, prev - 0.25))}
+                          disabled={timelineZoom <= 0.5}
+                        >
+                          -
+                        </Button>
+                        <span className="text-xs font-medium w-12 text-center">{Math.round(timelineZoom * 100)}%</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setTimelineZoom(prev => Math.min(3, prev + 0.25))}
+                          disabled={timelineZoom >= 3}
+                        >
+                          +
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setTimelineZoom(1)}
+                        >
+                          Reset
+                        </Button>
+                      </div>
                     </div>
                     
                     {/* Timeline Container - Horizontal scroll for all documents */}
-                    <div className="overflow-x-auto pb-4" style={{ overflowY: 'visible' }}>
-                      <div className="relative" style={{ minWidth: `${Math.max(timelineDocuments.length * 120, 1200)}px`, minHeight: '420px', paddingTop: '60px', paddingBottom: '60px' }}>
+                    <div 
+                      ref={timelineContainerRef}
+                      className="overflow-x-auto overflow-y-visible pb-4 border rounded-lg bg-white" 
+                      style={{ 
+                        overflowY: 'visible',
+                        cursor: 'grab'
+                      }}
+                      onMouseDown={(e) => {
+                        const container = timelineContainerRef.current;
+                        if (!container) return;
                         
-                        {/* Incoming Letters (Top) */}
-                        <div className="absolute top-0 left-0 right-0" style={{ height: '160px' }}>
-                          <div className="text-xs font-semibold text-green-700 mb-2 uppercase">
-                            ↓ Incoming (Administration)
-                          </div>
-                          <div className="relative h-full" style={{ paddingTop: '50px' }}>
-                            {timelineDocuments
-                              .filter(doc => doc.inc_out === 'inc')
-                              .map((doc, index) => {
-                                // Calculate position based on date range
+                        // Check if content is wider than container (needs scrolling)
+                        const needsScroll = container.scrollWidth > container.clientWidth;
+                        if (!needsScroll) return;
+                        
+                        const startX = e.pageX - container.offsetLeft;
+                        const scrollLeft = container.scrollLeft;
+                        
+                        const handleMouseMove = (e: MouseEvent) => {
+                          const x = e.pageX - container.offsetLeft;
+                          const walk = (x - startX) * 2;
+                          container.scrollLeft = scrollLeft - walk;
+                        };
+                        
+                        const handleMouseUp = () => {
+                          document.removeEventListener('mousemove', handleMouseMove);
+                          document.removeEventListener('mouseup', handleMouseUp);
+                          container.style.cursor = 'grab';
+                        };
+                        
+                        container.style.cursor = 'grabbing';
+                        document.addEventListener('mousemove', handleMouseMove);
+                        document.addEventListener('mouseup', handleMouseUp);
+                      }}
+                    >
+                      {(() => {
+                        // BASIT VE NET TIMELINE KURGUSU
+                        const NODE_SIZE = 6; // Timeline üzerindeki node boyutu
+                        const INDICATOR_SIZE = 16; // Indikatör çemberi boyutu
+                        const CONNECTOR_LENGTH = 60; // Node merkezinden indikatör merkezine mesafe
+                        const LABEL_DISTANCE = 35; // Indikatörden tarih etiketine mesafe (incoming için arttırıldı)
+                        
+                        // Timeline node'ların merkezinden geçecek
+                        const TIMELINE_CENTER_Y = 180; // Yukarı taşındı (150'den 180'e)
+                        
+                        // Yeşil (Incoming) pozisyonları - yukarıda
+                        const GREEN_INDICATOR_CENTER_Y = TIMELINE_CENTER_Y - CONNECTOR_LENGTH;
+                        const GREEN_INDICATOR_TOP_Y = GREEN_INDICATOR_CENTER_Y - (INDICATOR_SIZE / 2);
+                        
+                        // Kırmızı (Outgoing) pozisyonları - aşağıda
+                        const RED_INDICATOR_CENTER_Y = TIMELINE_CENTER_Y + CONNECTOR_LENGTH;
+                        const RED_INDICATOR_TOP_Y = RED_INDICATOR_CENTER_Y - (INDICATOR_SIZE / 2);
+                        
+                        const TOTAL_HEIGHT = 400; // Arttırıldı (350'den 400'e)
+                        
+                        // Calculate min width based on closer node spacing and zoom
+                        const MIN_NODE_SPACING = 105; // Arttırıldı (80'den 105'e)
+                        const BASE_MIN_WIDTH = Math.max(timelineDocuments.length * MIN_NODE_SPACING, 1200);
+                        const MIN_WIDTH = BASE_MIN_WIDTH * timelineZoom;
+                        
+                        return (
+                          <div className="relative" style={{ 
+                            minWidth: `${MIN_WIDTH}px`, 
+                            minHeight: `${TOTAL_HEIGHT}px`, 
+                            paddingTop: '40px', // Arttırıldı (20'den 40'a)
+                            paddingBottom: '20px',
+                            transition: 'min-width 0.2s ease-out'
+                          }}>
+                            
+                            {/* Header - Incoming */}
+                            <div className="absolute left-0 right-0" style={{ top: '15px' }}> {/* Yukarı taşındı (10px'den 15px'e) */}
+                              <div className="text-xs font-semibold text-green-700 uppercase text-center">
+                                ↓ Incoming (Administration)
+                              </div>
+                            </div>
+                            
+                            {/* Timeline Line - Node'ların tam ortasından geçer */}
+                            <div 
+                              className="absolute left-0 right-0"
+                              style={{ 
+                                top: `${TIMELINE_CENTER_Y}px`,
+                                height: '3px',
+                                transform: 'translateY(-50%)'
+                              }}
+                            >
+                              <div className="absolute left-0 right-0 h-full bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 rounded-full shadow-lg" />
+                              
+                              {/* Timeline Node'ları - her doküman için */}
+                              {timelineDocuments.map((doc, index) => {
                                 const firstDate = new Date(timelineDocuments[0].letter_date).getTime();
                                 const lastDate = new Date(timelineDocuments[timelineDocuments.length - 1].letter_date).getTime();
                                 const docDate = new Date(doc.letter_date).getTime();
                                 const totalRange = lastDate - firstDate || 1;
-                                const position = ((docDate - firstDate) / totalRange) * 98 + 1; // 1-99% to leave margins
+                                const position = ((docDate - firstDate) / totalRange) * 94 + 3; // 94% range, 3% padding
                                 
                                 return (
                                   <div
-                                    key={doc.id}
-                                    className="group absolute"
-                                    style={{ 
-                                      left: `${position}%`,
-                                      top: '25px',
-                                      transform: 'translateX(-50%)'
-                                    }}
+                                    key={`node-${doc.id}`}
+                                    className="absolute top-1/2"
+                                    style={{ left: `${position}%`, transform: 'translate(-50%, -50%)' }}
                                   >
-                                    {/* Connector line to timeline */}
-                                    <div className="absolute left-1/2 -translate-x-1/2 top-full w-0.5 h-6 bg-green-400"></div>
-                                    
-                                    {/* Document Node Circle */}
                                     <div 
-                                      className="relative bg-green-500 border-2 border-green-700 rounded-full cursor-pointer hover:shadow-xl transition-all hover:scale-125 hover:z-50"
-                                      style={{ width: '32px', height: '32px' }}
-                                      onClick={() => handleNodeClickWithModal(doc.letter_no)}
-                                    >
-                                      {/* Vertical Date Label - Always Visible */}
-                                      <div 
-                                        className="absolute left-1/2 bottom-full mb-1 text-xs font-bold text-green-900 whitespace-nowrap"
-                                        style={{ 
-                                          writingMode: 'vertical-rl',
-                                          textOrientation: 'upright',
-                                          transform: 'translateX(-50%)',
-                                          letterSpacing: '-0.05em'
-                                        }}
-                                      >
-                                        {new Date(doc.letter_date).toLocaleDateString('en-US', { 
-                                          month: 'short', 
-                                          day: 'numeric'
-                                        })}
-                                      </div>
-                                      
-                                      {/* Hover tooltip with full info - Same style as Document Graph */}
-                                      <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-16 w-80 bg-white border-2 border-green-600 rounded-lg shadow-2xl p-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                        <div className="space-y-2 text-sm">
-                                          <div className="flex items-center justify-between border-b pb-2">
-                                            <span className="font-bold text-green-900">{doc.letter_no}</span>
-                                            <span className="inline-block px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-semibold">
-                                              INCOMING
-                                            </span>
-                                          </div>
-                                          <div className="grid grid-cols-2 gap-2 text-xs">
-                                            <div>
-                                              <span className="text-gray-500">Date:</span>
-                                              <div className="font-semibold text-gray-900">
-                                                {new Date(doc.letter_date).toLocaleDateString('en-US', { 
-                                                  year: 'numeric', 
-                                                  month: 'long', 
-                                                  day: 'numeric' 
-                                                })}
-                                              </div>
-                                            </div>
-                                            {doc.ref_letters && (
-                                              <div>
-                                                <span className="text-gray-500">References:</span>
-                                                <div className="font-semibold text-gray-900 truncate" title={doc.ref_letters}>
-                                                  {doc.ref_letters}
-                                                </div>
-                                              </div>
-                                            )}
-                                          </div>
-                                          {doc.short_desc && (
-                                            <div className="pt-2 border-t">
-                                              <span className="text-gray-500 text-xs">Description:</span>
-                                              <div className="text-gray-900 text-xs mt-1">{doc.short_desc}</div>
-                                            </div>
-                                          )}
-                                          <div className="pt-2 border-t flex gap-2">
-                                            <button
-                                              className="flex-1 px-3 py-1.5 bg-green-600 text-white rounded text-xs font-semibold hover:bg-green-700 transition-colors"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                addToDocumentBasket(doc.letter_no);
-                                              }}
-                                            >
-                                              + Add to Basket
-                                            </button>
-                                            {doc.weburl && (
-                                              <button
-                                                className="px-3 py-1.5 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 transition-colors"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  window.open(doc.weburl, '_blank');
-                                                }}
-                                              >
-                                                Open
-                                              </button>
-                                            )}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
+                                      className="w-1.5 h-1.5 bg-white border-2 border-blue-600 rounded-full shadow-sm"
+                                    />
                                   </div>
                                 );
                               })}
-                          </div>
-                        </div>
-
-                        {/* Timeline Line */}
-                        <div className="absolute left-0 right-0" style={{ top: '185px', height: '30px' }}>
-                          <div className="relative h-full flex items-center">
-                            <div className="absolute left-0 right-0 h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 rounded-full shadow-lg"></div>
+                              
+                              {/* Start/End markers */}
+                              <div className="absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg z-10">
+                                <div className="absolute left-1/2 -translate-x-1/2 text-[9px] font-semibold text-gray-700 whitespace-nowrap" style={{ top: '18px' }}>
+                                  {formatDDMMYYYY(timelineDocuments[0].letter_date)}
+                                </div>
+                              </div>
+                              <div className="absolute right-0 top-1/2 translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg z-10">
+                                <div className="absolute left-1/2 -translate-x-1/2 text-[9px] font-semibold text-gray-700 whitespace-nowrap" style={{ top: '18px' }}>
+                                  {formatDDMMYYYY(timelineDocuments[timelineDocuments.length - 1].letter_date)}
+                                </div>
+                              </div>
+                            </div>
                             
-                            {/* Date markers on timeline for each document */}
-                            {timelineDocuments.map((doc, index) => {
+                            {/* Incoming (Yeşil) İndikatörler ve Bağlantılar */}
+                            {incomingDocs.map((doc, index) => {
                               const firstDate = new Date(timelineDocuments[0].letter_date).getTime();
                               const lastDate = new Date(timelineDocuments[timelineDocuments.length - 1].letter_date).getTime();
                               const docDate = new Date(doc.letter_date).getTime();
                               const totalRange = lastDate - firstDate || 1;
-                              const position = ((docDate - firstDate) / totalRange) * 98 + 1;
+                              const position = ((docDate - firstDate) / totalRange) * 94 + 3; // 94% range, 3% padding
                               
                               return (
-                                <div
-                                  key={`marker-${doc.id}`}
-                                  className="absolute"
-                                  style={{ left: `${position}%` }}
-                                >
-                                  {/* Marker dot */}
-                                  <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-white border-2 border-blue-600 rounded-full shadow-md"></div>
+                                <div key={`green-${doc.id}`}>
+                                  {/* Bağlayıcı Çizgi - Node merkezinden indikatör merkezine */}
+                                  <div 
+                                    className="absolute w-0.5 bg-green-400"
+                                    style={{ 
+                                      left: `${position}%`,
+                                      top: `${GREEN_INDICATOR_CENTER_Y}px`,
+                                      height: `${CONNECTOR_LENGTH}px`,
+                                      transform: 'translateX(-50%)'
+                                    }}
+                                  />
+                                  
+                                  {/* İndikatör Çemberi */}
+                                  <div 
+                                    className="absolute bg-green-500 border-2 border-green-700 rounded-full cursor-pointer hover:shadow-xl transition-all hover:scale-125 hover:z-50"
+                                    style={{ 
+                                      left: `${position}%`,
+                                      top: `${GREEN_INDICATOR_TOP_Y}px`,
+                                      width: `${INDICATOR_SIZE}px`,
+                                      height: `${INDICATOR_SIZE}px`,
+                                      transform: 'translateX(-50%)'
+                                    }}
+                                    onClick={() => handleNodeClickWithModal(doc.letter_no)}
+                                    onMouseEnter={(e) => {
+                                      const rect = e.currentTarget.getBoundingClientRect();
+                                      const pageX = rect.left + window.scrollX + rect.width / 2;
+                                      const pageY = rect.top + window.scrollY - 10;
+                                      
+                                      const parts: string[] = [];
+                                      if (doc.letter_date) parts.push(`Date: ${formatDDMMYYYY(doc.letter_date)}`);
+                                      if (doc.ref_letters) parts.push(`References: ${doc.ref_letters}`);
+                                      if (doc.short_desc) parts.push(`Description: ${doc.short_desc}`);
+                                      if (doc.content) parts.push(`Content: ${String(doc.content).slice(0, 200)}${String(doc.content).length > 200 ? '...' : ''}`);
+                                      
+                                      setTimelineTooltip({
+                                        visible: true,
+                                        x: pageX,
+                                        y: pageY,
+                                        title: doc.letter_no,
+                                        body: parts.join('\n\n'),
+                                        nodeId: doc.letter_no,
+                                        doc: doc
+                                      });
+                                    }}
+                                    onMouseLeave={() => {
+                                      if (timelineTooltipTimeoutRef.current) {
+                                        clearTimeout(timelineTooltipTimeoutRef.current);
+                                      }
+                                      timelineTooltipTimeoutRef.current = setTimeout(() => {
+                                        setTimelineTooltip(prev => ({ ...prev, visible: false }));
+                                      }, 500);
+                                    }}
+                                  />
+                                  
+                                  {/* Tarih Etiketi - İndikatörden daha yukarıda */}
+                                  <div 
+                                    className="absolute text-[9px] font-bold text-green-900 whitespace-nowrap"
+                                    style={{ 
+                                      left: `${position}%`,
+                                      top: `${GREEN_INDICATOR_TOP_Y - LABEL_DISTANCE - 5}px`, // Extra 5px yukarı
+                                      transform: 'translateX(-50%) rotate(-90deg)',
+                                      transformOrigin: 'center center'
+                                    }}
+                                  >
+                                    {formatDDMMYYYY(doc.letter_date)}
+                                  </div>
                                 </div>
                               );
                             })}
                             
-                            {/* Start marker */}
-                            <div className="absolute left-0 -translate-x-1/2 top-1/2 -translate-y-1/2 w-5 h-5 bg-blue-500 rounded-full border-4 border-white shadow-lg z-20">
-                              <div className="absolute left-1/2 -translate-x-1/2 top-6 text-xs font-semibold text-gray-700 whitespace-nowrap">
-                                {new Date(timelineDocuments[0].letter_date).toLocaleDateString('en-US', { 
-                                  month: 'short', 
-                                  day: 'numeric',
-                                  year: 'numeric'
-                                })}
-                              </div>
-                            </div>
-                            
-                            {/* End marker */}
-                            <div className="absolute right-0 translate-x-1/2 top-1/2 -translate-y-1/2 w-5 h-5 bg-blue-500 rounded-full border-4 border-white shadow-lg z-20">
-                              <div className="absolute left-1/2 -translate-x-1/2 top-6 text-xs font-semibold text-gray-700 whitespace-nowrap">
-                                {new Date(timelineDocuments[timelineDocuments.length - 1].letter_date).toLocaleDateString('en-US', { 
-                                  month: 'short', 
-                                  day: 'numeric',
-                                  year: 'numeric'
-                                })}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Outgoing Letters (Bottom) */}
-                        <div className="absolute left-0 right-0" style={{ top: '225px', height: '160px' }}>
-                          <div className="text-xs font-semibold text-red-700 mb-2 uppercase">
-                            ↑ Outgoing (Gorkem)
-                          </div>
-                          <div className="relative h-full" style={{ paddingBottom: '50px' }}>
-                            {timelineDocuments
-                              .filter(doc => doc.inc_out === 'out')
-                              .map((doc, index) => {
-                                // Calculate position based on date range
-                                const firstDate = new Date(timelineDocuments[0].letter_date).getTime();
-                                const lastDate = new Date(timelineDocuments[timelineDocuments.length - 1].letter_date).getTime();
-                                const docDate = new Date(doc.letter_date).getTime();
-                                const totalRange = lastDate - firstDate || 1;
-                                const position = ((docDate - firstDate) / totalRange) * 98 + 1;
-                                
-                                return (
-                                  <div
-                                    key={doc.id}
-                                    className="group absolute"
+                            {/* Outgoing (Kırmızı) İndikatörler ve Bağlantılar */}
+                            {outgoingDocs.map((doc, index) => {
+                              const firstDate = new Date(timelineDocuments[0].letter_date).getTime();
+                              const lastDate = new Date(timelineDocuments[timelineDocuments.length - 1].letter_date).getTime();
+                              const docDate = new Date(doc.letter_date).getTime();
+                              const totalRange = lastDate - firstDate || 1;
+                              const position = ((docDate - firstDate) / totalRange) * 94 + 3; // 94% range, 3% padding
+                              
+                              return (
+                                <div key={`red-${doc.id}`}>
+                                  {/* Bağlayıcı Çizgi - Node merkezinden indikatör merkezine */}
+                                  <div 
+                                    className="absolute w-0.5 bg-red-400"
                                     style={{ 
                                       left: `${position}%`,
-                                      top: '25px',
+                                      top: `${TIMELINE_CENTER_Y}px`,
+                                      height: `${CONNECTOR_LENGTH}px`,
                                       transform: 'translateX(-50%)'
                                     }}
-                                  >
-                                    {/* Connector line to timeline */}
-                                    <div className="absolute left-1/2 -translate-x-1/2 bottom-full w-0.5 h-6 bg-red-400"></div>
-                                    
-                                    {/* Document Node Circle */}
-                                    <div 
-                                      className="relative bg-red-500 border-2 border-red-700 rounded-full cursor-pointer hover:shadow-xl transition-all hover:scale-125 hover:z-50"
-                                      style={{ width: '32px', height: '32px' }}
-                                      onClick={() => handleNodeClickWithModal(doc.letter_no)}
-                                    >
-                                      {/* Vertical Date Label - Always Visible */}
-                                      <div 
-                                        className="absolute left-1/2 top-full mt-1 text-xs font-bold text-red-900 whitespace-nowrap"
-                                        style={{ 
-                                          writingMode: 'vertical-rl',
-                                          textOrientation: 'upright',
-                                          transform: 'translateX(-50%)',
-                                          letterSpacing: '-0.05em'
-                                        }}
-                                      >
-                                        {new Date(doc.letter_date).toLocaleDateString('en-US', { 
-                                          month: 'short', 
-                                          day: 'numeric'
-                                        })}
-                                      </div>
+                                  />
+                                  
+                                  {/* İndikatör Çemberi */}
+                                  <div 
+                                    className="absolute bg-red-500 border-2 border-red-700 rounded-full cursor-pointer hover:shadow-xl transition-all hover:scale-125 hover:z-50"
+                                    style={{ 
+                                      left: `${position}%`,
+                                      top: `${RED_INDICATOR_TOP_Y}px`,
+                                      width: `${INDICATOR_SIZE}px`,
+                                      height: `${INDICATOR_SIZE}px`,
+                                      transform: 'translateX(-50%)'
+                                    }}
+                                    onClick={() => handleNodeClickWithModal(doc.letter_no)}
+                                    onMouseEnter={(e) => {
+                                      const rect = e.currentTarget.getBoundingClientRect();
+                                      const pageX = rect.left + window.scrollX + rect.width / 2;
+                                      const pageY = rect.top + window.scrollY + rect.height + 10;
                                       
-                                      {/* Hover tooltip with full info - Same style as Document Graph */}
-                                      <div className="absolute left-1/2 -translate-x-1/2 top-full mt-16 w-80 bg-white border-2 border-red-600 rounded-lg shadow-2xl p-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                        <div className="space-y-2 text-sm">
-                                          <div className="flex items-center justify-between border-b pb-2">
-                                            <span className="font-bold text-red-900">{doc.letter_no}</span>
-                                            <span className="inline-block px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-semibold">
-                                              OUTGOING
-                                            </span>
-                                          </div>
-                                          <div className="grid grid-cols-2 gap-2 text-xs">
-                                            <div>
-                                              <span className="text-gray-500">Date:</span>
-                                              <div className="font-semibold text-gray-900">
-                                                {new Date(doc.letter_date).toLocaleDateString('en-US', { 
-                                                  year: 'numeric', 
-                                                  month: 'long', 
-                                                  day: 'numeric' 
-                                                })}
-                                              </div>
-                                            </div>
-                                            {doc.ref_letters && (
-                                              <div>
-                                                <span className="text-gray-500">References:</span>
-                                                <div className="font-semibold text-gray-900 truncate" title={doc.ref_letters}>
-                                                  {doc.ref_letters}
-                                                </div>
-                                              </div>
-                                            )}
-                                          </div>
-                                          {doc.short_desc && (
-                                            <div className="pt-2 border-t">
-                                              <span className="text-gray-500 text-xs">Description:</span>
-                                              <div className="text-gray-900 text-xs mt-1">{doc.short_desc}</div>
-                                            </div>
-                                          )}
-                                          <div className="pt-2 border-t flex gap-2">
-                                            <button
-                                              className="flex-1 px-3 py-1.5 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 transition-colors"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                addToDocumentBasket(doc.letter_no);
-                                              }}
-                                            >
-                                              + Add to Basket
-                                            </button>
-                                            {doc.weburl && (
-                                              <button
-                                                className="px-3 py-1.5 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 transition-colors"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  window.open(doc.weburl, '_blank');
-                                                }}
-                                              >
-                                                Open
-                                              </button>
-                                            )}
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
+                                      const parts: string[] = [];
+                                      if (doc.letter_date) parts.push(`Date: ${formatDDMMYYYY(doc.letter_date)}`);
+                                      if (doc.ref_letters) parts.push(`References: ${doc.ref_letters}`);
+                                      if (doc.short_desc) parts.push(`Description: ${doc.short_desc}`);
+                                      if (doc.content) parts.push(`Content: ${String(doc.content).slice(0, 200)}${String(doc.content).length > 200 ? '...' : ''}`);
+                                      
+                                      setTimelineTooltip({
+                                        visible: true,
+                                        x: pageX,
+                                        y: pageY,
+                                        title: doc.letter_no,
+                                        body: parts.join('\n\n'),
+                                        nodeId: doc.letter_no,
+                                        doc: doc
+                                      });
+                                    }}
+                                    onMouseLeave={() => {
+                                      if (timelineTooltipTimeoutRef.current) {
+                                        clearTimeout(timelineTooltipTimeoutRef.current);
+                                      }
+                                      timelineTooltipTimeoutRef.current = setTimeout(() => {
+                                        setTimelineTooltip(prev => ({ ...prev, visible: false }));
+                                      }, 500);
+                                    }}
+                                  />
+                                  
+                                  {/* Tarih Etiketi - İndikatörden uzakta */}
+                                  <div 
+                                    className="absolute text-[9px] font-bold text-red-900 whitespace-nowrap"
+                                    style={{ 
+                                      left: `${position}%`,
+                                      top: `${RED_INDICATOR_TOP_Y + INDICATOR_SIZE + LABEL_DISTANCE}px`,
+                                      transform: 'translateX(-50%) rotate(-90deg)',
+                                      transformOrigin: 'center center'
+                                    }}
+                                  >
+                                    {formatDDMMYYYY(doc.letter_date)}
                                   </div>
-                                );
-                              })}
+                                </div>
+                              );
+                            })}
+                            
+                            {/* Header - Outgoing */}
+                            <div className="absolute left-0 right-0" style={{ top: `${TOTAL_HEIGHT - 40}px` }}>
+                              <div className="text-xs font-semibold text-red-700 uppercase text-center">
+                                ↑ Outgoing (Gorkem)
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
+                        );
+                      })()}
                     </div>
                     
                     {/* Legend */}
@@ -929,6 +1026,55 @@ export default function AISearchPage() {
                       <div className="flex items-center gap-2">
                         <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white"></div>
                         <span>Timeline Marker</span>
+                      </div>
+                    </div>
+
+                    {/* Document List Table - Moved below timeline */}
+                    <div className="mt-6">
+                      <div className="text-sm font-medium text-gray-700 mb-2">Island documents (full list)</div>
+                      <div className="overflow-x-auto bg-white rounded border" style={{ maxHeight: 400 }}>
+                        <table className="w-full text-xs">
+                          <thead className="sticky top-0 bg-gray-50">
+                            <tr className="text-left text-gray-600">
+                              <th className="px-2 py-1 border-b">#</th>
+                              <th className="px-2 py-1 border-b">Document No</th>
+                              <th className="px-2 py-1 border-b">Date</th>
+                              <th className="px-2 py-1 border-b">Type</th>
+                              <th className="px-2 py-1 border-b">Refs</th>
+                              <th className="px-2 py-1 border-b">Short Desc</th>
+                              <th className="px-2 py-1 border-b">URL</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {timelineDocuments.map((d, i) => (
+                              <tr key={d.id || `${d.letter_no}-${i}`} className="border-t hover:bg-gray-50">
+                                <td className="px-2 py-1 align-top">{i + 1}</td>
+                                <td className="px-2 py-1 align-top font-medium">{d.letter_no || '-'}</td>
+                                <td className="px-2 py-1 align-top">{d.letter_date ? formatDDMMYYYY(d.letter_date) : '-'}</td>
+                                <td className="px-2 py-1 align-top">
+                                  {d.inc_out === 'inc' ? (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                      Inc
+                                    </span>
+                                  ) : d.inc_out === 'out' ? (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                      Out
+                                    </span>
+                                  ) : (
+                                    '-'
+                                  )}
+                                </td>
+                                <td className="px-2 py-1 align-top truncate" style={{ maxWidth: 200 }} title={d.ref_letters || ''}>{d.ref_letters || '-'}</td>
+                                <td className="px-2 py-1 align-top truncate" style={{ maxWidth: 240 }} title={d.short_desc || ''}>{d.short_desc || '-'}</td>
+                                <td className="px-2 py-1 align-top">
+                                  {d.weburl ? (
+                                    <a href={d.weburl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Open</a>
+                                  ) : ('-')}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   </div>
@@ -1278,6 +1424,71 @@ export default function AISearchPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Timeline Tooltip - Same style as Document Graph */}
+      {timelineTooltip.visible && (
+        <div
+          role="tooltip"
+          onMouseEnter={() => {
+            // Cancel hide timeout when mouse enters tooltip
+            if (timelineTooltipTimeoutRef.current) {
+              clearTimeout(timelineTooltipTimeoutRef.current);
+              timelineTooltipTimeoutRef.current = null;
+            }
+          }}
+          onMouseLeave={() => {
+            // Hide immediately when leaving tooltip
+            setTimelineTooltip(prev => ({ ...prev, visible: false }));
+          }}
+          style={{
+            position: 'fixed',
+            top: timelineTooltip.y,
+            left: timelineTooltip.x,
+            zIndex: 2000,
+            background: 'white',
+            padding: '12px',
+            borderRadius: 8,
+            boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
+            maxWidth: 420,
+            fontSize: 13,
+            color: '#0f172a',
+            whiteSpace: 'pre-wrap',
+            pointerEvents: 'auto',
+            transform: 'translateX(-50%)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between', marginBottom: 6 }}>
+            <div style={{ fontWeight: 700, flex: 1 }}>{timelineTooltip.title}</div>
+            {timelineTooltip.nodeId && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  addToDocumentBasket(timelineTooltip.nodeId!);
+                  setTimelineTooltip(prev => ({ ...prev, visible: false }));
+                }}
+                style={{
+                  background: timelineTooltip.doc?.inc_out === 'inc' ? '#10b981' : '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '4px 12px',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  marginLeft: 8,
+                  flexShrink: 0,
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = timelineTooltip.doc?.inc_out === 'inc' ? '#059669' : '#dc2626'}
+                onMouseLeave={(e) => e.currentTarget.style.background = timelineTooltip.doc?.inc_out === 'inc' ? '#10b981' : '#ef4444'}
+              >
+                + Add to Basket
+              </button>
+            )}
+          </div>
+          <div style={{ lineHeight: 1.4 }}>{timelineTooltip.body}</div>
+        </div>
+      )}
     </div>
   );
 }
