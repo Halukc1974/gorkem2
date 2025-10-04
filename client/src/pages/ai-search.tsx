@@ -238,7 +238,13 @@ export default function AISearchPage() {
   const [showDocumentModal, setShowDocumentModal] = useState(false);
 
   // Document preview modal state
-  const [previewContent, setPreviewContent] = useState<{ letter_no: string; content: string } | null>(null);
+  const [previewContent, setPreviewContent] = useState<{ 
+    letter_no: string; 
+    letter_date?: string;
+    ref_letters?: string;
+    short_desc?: string;
+    content: string 
+  } | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
   // Add document to basket function
@@ -345,7 +351,7 @@ export default function AISearchPage() {
     try {
       const { data, error } = await supabaseService.getClient()
         .from('documents')
-        .select('content')
+        .select('id, letter_no, letter_date, ref_letters, short_desc, content, weburl, inc_out')
         .eq('id', documentId)
         .single();
 
@@ -354,7 +360,13 @@ export default function AISearchPage() {
         return;
       }
 
-      setPreviewContent({ letter_no: letterNo, content: data.content || 'Content not found' });
+      setPreviewContent({ 
+        letter_no: data.letter_no || letterNo,
+        letter_date: data.letter_date,
+        ref_letters: data.ref_letters,
+        short_desc: data.short_desc,
+        content: data.content || data.short_desc || 'Content not found'
+      });
       setShowPreviewModal(true);
     } catch (error) {
       console.error('Document preview error:', error);
@@ -1476,19 +1488,28 @@ export default function AISearchPage() {
                               />
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-center">
-                              {doc.inc_out === 'inc' ? (
-                                <Badge className="bg-green-500 text-white hover:bg-green-600">
-                                  Incoming
-                                </Badge>
-                              ) : doc.inc_out === 'out' ? (
-                                <Badge className="bg-red-500 text-white hover:bg-red-600">
-                                  Outgoing
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary">
-                                  -
-                                </Badge>
-                              )}
+                              {(() => {
+                                const incOut = String(doc.inc_out || '').toLowerCase().trim();
+                                if (incOut === 'incoming' || incOut === 'gelen' || incOut === 'inc' || incOut === 'in') {
+                                  return (
+                                    <Badge className="bg-green-500 text-white hover:bg-green-600">
+                                      📨 Incoming
+                                    </Badge>
+                                  );
+                                } else if (incOut === 'outgoing' || incOut === 'giden' || incOut === 'out' || incOut === 'ex') {
+                                  return (
+                                    <Badge className="bg-red-500 text-white hover:bg-red-600">
+                                      📤 Outgoing
+                                    </Badge>
+                                  );
+                                } else {
+                                  return (
+                                    <Badge variant="secondary">
+                                      -
+                                    </Badge>
+                                  );
+                                }
+                              })()}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">{doc.letter_no}</td>
                             <td className="border border-gray-300 px-4 py-2">{doc.letter_date || '-'}</td>
@@ -1611,14 +1632,35 @@ export default function AISearchPage() {
 
       {/* Document Preview Modal */}
       <Dialog open={showPreviewModal} onOpenChange={setShowPreviewModal}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Document Preview: {previewContent?.letter_no}</DialogTitle>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle>Document Content</DialogTitle>
           </DialogHeader>
           {previewContent && (
-            <div className="space-y-4">
-              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <div className="whitespace-pre-wrap text-sm leading-relaxed">
+            <div className="flex-1 overflow-hidden flex flex-col">
+              {/* Header with document info */}
+              <div className="flex-shrink-0 pb-4 mb-4 border-b-2 border-gray-200">
+                <div className="space-y-2">
+                  <div>
+                    <strong className="text-gray-900 text-base">Letter No:</strong>{' '}
+                    <span className="text-gray-700">{previewContent.letter_no || '-'}</span>
+                  </div>
+                  <div>
+                    <strong className="text-gray-900 text-sm">Letter Date:</strong>{' '}
+                    <span className="text-gray-700 text-sm">
+                      {previewContent.letter_date ? new Date(previewContent.letter_date).toLocaleDateString('en-GB') : '-'}
+                    </span>
+                  </div>
+                  <div>
+                    <strong className="text-gray-900 text-sm">Reference Letters:</strong>{' '}
+                    <span className="text-gray-700 text-sm">{previewContent.ref_letters || '-'}</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Content - scrollable */}
+              <div className="flex-1 overflow-y-auto bg-gray-50 rounded-lg p-4">
+                <div className="whitespace-pre-wrap text-sm text-gray-700 leading-relaxed">
                   {previewContent.content}
                 </div>
               </div>
