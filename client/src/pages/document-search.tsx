@@ -40,7 +40,8 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  User
+  User,
+  ShoppingCart
 } from 'lucide-react';
 import { useDocumentSearch } from '../hooks/useDocumentSearch';
 import { useAuth } from '../hooks/useAuth';
@@ -49,12 +50,15 @@ import ConfigManagement from '../components/ConfigManagement';
 import ConfigSettings from '../components/settings/ConfigSettings';
 import { performSecurityCheck } from '../utils/security';
 import { UserSettings } from '../services/supabase';
+import { useToast } from '../hooks/use-toast';
 
 // Debug Panel kontrolü - sadece development'da ve gerektiğinde açın
 const SHOW_DEBUG_PANEL = process.env.NODE_ENV === 'development';
 
 export default function DocumentSearchPage() {
   const [isEmbedded, setIsEmbedded] = useState(false);
+  const { toast } = useToast();
+  const [isLoadingFromDB, setIsLoadingFromDB] = useState(false);
 
   // Check if page is embedded
   useEffect(() => {
@@ -355,9 +359,32 @@ export default function DocumentSearchPage() {
     };
     
     try {
+      // Show loading toast
+      setIsLoadingFromDB(true);
+      toast({
+        title: "🔄 Retrieving from Database",
+        description: "Fetching documents from Supabase database...",
+        variant: "default"
+      });
+      
+      const startTime = Date.now();
       await search(searchQuery, searchFilters, enableAI);
+      const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
+      
+      setIsLoadingFromDB(false);
+      toast({
+        title: "✅ Data Retrieved Successfully",
+        description: `Database query completed in ${elapsedTime} seconds`,
+        variant: "default"
+      });
     } catch (error) {
       console.error('Search error:', error);
+      setIsLoadingFromDB(false);
+      toast({
+        title: "❌ Database Error",
+        description: "Failed to retrieve data from database",
+        variant: "destructive"
+      });
     }
   };
 
@@ -392,6 +419,56 @@ export default function DocumentSearchPage() {
   const openQuickPreview = (r: any) => {
     setQuickPreviewData(r);
     setQuickPreviewOpen(true);
+  };
+
+  // Add to basket function (shared with other pages via localStorage)
+  const addToDocumentBasket = (doc: any) => {
+    try {
+      const basketData = {
+        id: String(doc.id || doc.letter_no),
+        letter_no: doc.letter_no || '',
+        letter_date: doc.letter_date,
+        ref_letters: doc.ref_letters,
+        short_desc: doc.short_desc || doc.subject,
+        weburl: doc.weburl,
+        inc_out: doc.inc_out
+      };
+      
+      // Get existing basket from localStorage
+      const existingBasket = JSON.parse(localStorage.getItem('documentBasket') || '[]');
+      
+      // Check if already in basket
+      if (existingBasket.some((item: any) => item.id === basketData.id)) {
+        toast({
+          title: "Already in Basket",
+          description: "This document is already in the analysis basket.",
+          variant: "default"
+        });
+        return;
+      }
+      
+      // Add to basket
+      existingBasket.push(basketData);
+      localStorage.setItem('documentBasket', JSON.stringify(existingBasket));
+      
+      // Dispatch custom event to notify other tabs/components
+      window.dispatchEvent(new CustomEvent('basketUpdated', { 
+        detail: { basket: existingBasket } 
+      }));
+      
+      toast({
+        title: "✅ Added to Basket",
+        description: `"${doc.letter_no || 'Document'}" has been added to analysis basket.`,
+        variant: "default"
+      });
+    } catch (error) {
+      console.error('Error adding document to basket:', error);
+      toast({
+        title: "❌ Error",
+        description: "Failed to add document to basket.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -445,6 +522,7 @@ export default function DocumentSearchPage() {
             </div>
             <div><strong>Connection Status:</strong> Supabase: {connectionState.supabase}, DeepSeek: {connectionState.deepseek}, OpenAI: {connectionState.openai}</div>
             <div><strong>Total Documents:</strong> {stats.totalDocuments}</div>
+            <div><strong>Incoming/Outgoing Stats:</strong> {JSON.stringify(stats.incomingOutgoing)}</div>
             <div><strong>Last Query:</strong> {lastQuery || 'No search performed yet'}</div>
             <div><strong>Result Count:</strong> Supabase: {supabaseResults.length}</div>
             {error && <div className="text-red-600"><strong>Error:</strong> {error}</div>}
@@ -913,9 +991,9 @@ export default function DocumentSearchPage() {
                               {result.severity_rate}
                             </Badge>
                           )}
-                          {result["incout"] && (
+                          {result["inc_out"] && (
                             <Badge variant="secondary">
-                              {result["incout"] === 'Gelen' ? '📨 Incoming' : '📤 Outgoing'}
+                              {result["inc_out"] === 'incoming' || result["inc_out"] === 'Gelen' ? '📨 Incoming' : '📤 Outgoing'}
                             </Badge>
                           )}
                         </div>
@@ -989,11 +1067,26 @@ export default function DocumentSearchPage() {
 
           {/* Quick preview dialog for Supabase result (Öz İzle) */}
           <Dialog open={quickPreviewOpen} onOpenChange={setQuickPreviewOpen}>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Document Preview</DialogTitle>
+            <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+              <DialogHeader className="flex-shrink-0">
+                <div className="flex items-center justify-between">
+                  <DialogTitle>Document Preview</DialogTitle>
+                  {quickPreviewData && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        addToDocumentBasket(quickPreviewData);
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <ShoppingCart className="h-4 w-4" />
+                      Add to Basket
+                    </Button>
+                  )}
+                </div>
               </DialogHeader>
-              <div className="p-4 text-sm">
+              <div className="overflow-y-auto flex-1 p-4 text-sm">
                 {quickPreviewData ? (
                   <div className="space-y-3">
                     <div><strong>{quickPreviewData.letter_no || '—'}</strong></div>
@@ -1062,7 +1155,7 @@ export default function DocumentSearchPage() {
                           </div>
                           <div>
                             <span className="font-medium text-gray-700">Incoming/Outgoing:</span>
-                            <div className="text-gray-600">{result["incout"] || 'Not Specified'}</div>
+                            <div className="text-gray-600">{result["inc_out"] || 'Not Specified'}</div>
                           </div>
                           <div>
                             <span className="font-medium text-gray-700">Internal No:</span>
@@ -1161,9 +1254,13 @@ export default function DocumentSearchPage() {
                 <TrendingUp className="h-8 w-8 text-orange-600" />
                 <div>
                   <div className="text-2xl font-bold">
-                    {(stats.incomingOutgoing['Gelen'] || 0) + (stats.incomingOutgoing['Giden'] || 0)}
+                    {(stats.incomingOutgoing['Gelen'] || stats.incomingOutgoing['incoming'] || 0) + 
+                     (stats.incomingOutgoing['Giden'] || stats.incomingOutgoing['outgoing'] || 0)}
                   </div>
                   <div className="text-sm text-gray-600">Incoming/Outgoing</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {stats.incomingOutgoing['Gelen'] || stats.incomingOutgoing['incoming'] || 0} / {stats.incomingOutgoing['Giden'] || stats.incomingOutgoing['outgoing'] || 0}
+                  </div>
                 </div>
               </div>
             </CardContent>

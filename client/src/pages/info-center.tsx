@@ -426,6 +426,12 @@ export default function InfoCenterPage(): JSX.Element {
                           
                           existingBasket.push(basketData);
                           localStorage.setItem('documentBasket', JSON.stringify(existingBasket));
+                          
+                          // Dispatch custom event to notify other pages/components
+                          window.dispatchEvent(new CustomEvent('basketUpdated', { 
+                            detail: { basket: existingBasket } 
+                          }));
+                          
                           alert(`Document "${basketData.letter_no}" added to basket!`);
                         }}
                         style={{

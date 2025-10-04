@@ -16,7 +16,7 @@ export interface CorrespondenceMetadata {
   reply_letter: string;
   severity_rate: string;
   letter_no: string;
-  incout: string;
+  inc_out: string;
   keywords: string;
   weburl: string;
   created: string;
@@ -122,8 +122,8 @@ export class DecisionSupportService {
     if (filters.type_of_corr && filters.type_of_corr !== 'all') {
       supabaseQuery = supabaseQuery.eq('type_of_corr', filters.type_of_corr);
     }
-    if (filters.inc_out && filters.inc_out !== 'all') {
-      supabaseQuery = supabaseQuery.eq('incout', filters.inc_out);
+    if (filters.inc_out) {
+      supabaseQuery = supabaseQuery.eq('inc_out', filters.inc_out);
     }
     if (filters.severity_rate && filters.severity_rate !== 'all') {
       supabaseQuery = supabaseQuery.eq('severity_rate', filters.severity_rate);
@@ -227,7 +227,7 @@ export class DecisionSupportService {
             reply_letter: result.reply_letter || '',
             severity_rate: result.severity_rate || '',
             letter_no: result.letter_no || '',
-            incout: result['incout'] || '',
+            inc_out: result['inc_out'] || '',
             keywords: result.keywords || '',
             weburl: result.weburl || '',
             created: result.created || new Date().toISOString(),
@@ -476,7 +476,7 @@ export class DecisionSupportService {
         queryBuilder = queryBuilder.eq('severity_rate', filters.severity_rate);
       }
       if (filters.inc_out) {
-        queryBuilder = queryBuilder.eq('incout', filters.inc_out);
+        queryBuilder = queryBuilder.eq('inc_out', filters.inc_out);
       }
       if (filters.keywords && filters.keywords.length > 0) {
         const keywordConditions = filters.keywords.map(k => `keywords.ilike.%${k}%`).join(',');

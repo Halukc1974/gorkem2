@@ -193,6 +193,37 @@ export default function AISearchPage() {
         console.error('Error loading basket from localStorage:', e);
       }
     }
+
+    // Listen for basket updates from other pages/components
+    const handleBasketUpdate = (event: any) => {
+      console.log('📥 Basket updated from another page');
+      if (event.detail?.basket) {
+        setDocumentBasket(event.detail.basket);
+      }
+    };
+
+    // Listen for storage events (from other tabs)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'documentBasket' && e.newValue) {
+        try {
+          const basket = JSON.parse(e.newValue);
+          if (Array.isArray(basket)) {
+            console.log('📥 Basket updated from another tab');
+            setDocumentBasket(basket);
+          }
+        } catch (err) {
+          console.error('Error parsing basket from storage event:', err);
+        }
+      }
+    };
+
+    window.addEventListener('basketUpdated', handleBasketUpdate);
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('basketUpdated', handleBasketUpdate);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   // Save basket to localStorage whenever it changes
@@ -260,7 +291,7 @@ export default function AISearchPage() {
         }
 
         console.log('Adding document to basket:', data);
-        setDocumentBasket(prev => [...prev, {
+        const newBasketItem = {
           id: String(data.id),
           letter_no: data.letter_no || '',
           letter_date: data.letter_date,
@@ -268,7 +299,19 @@ export default function AISearchPage() {
           short_desc: data.short_desc,
           weburl: data.weburl,
           inc_out: data.inc_out
-        }]);
+        };
+        
+        setDocumentBasket(prev => {
+          const newBasket = [...prev, newBasketItem];
+          // Update localStorage
+          localStorage.setItem('documentBasket', JSON.stringify(newBasket));
+          // Dispatch event to notify other components
+          window.dispatchEvent(new CustomEvent('basketUpdated', { 
+            detail: { basket: newBasket } 
+          }));
+          return newBasket;
+        });
+        
         alert(`"${data.letter_no}" document added to basket!`);
       }
     } catch (error) {
@@ -279,7 +322,17 @@ export default function AISearchPage() {
 
   // Remove document from basket function
   const removeFromDocumentBasket = (documentId: string) => {
-    setDocumentBasket(prev => prev.filter(doc => doc.id !== documentId));
+    setDocumentBasket(prev => {
+      const newBasket = prev.filter(doc => doc.id !== documentId);
+      // Update localStorage
+      localStorage.setItem('documentBasket', JSON.stringify(newBasket));
+      // Dispatch event to notify other components
+      window.dispatchEvent(new CustomEvent('basketUpdated', { 
+        detail: { basket: newBasket } 
+      }));
+      return newBasket;
+    });
+    
     setSelectedDocuments(prev => {
       const newSet = new Set(prev);
       newSet.delete(documentId);

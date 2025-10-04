@@ -35,7 +35,7 @@ interface DocumentRecord {
   reply_letter?: string;         // text - cevap mektubu
   severity_rate?: string;        // text - önem derecesi
   letter_no?: string;            // text - mektup numarası
-  "incout"?: string;           // text - gelen/giden (özel field name)
+  "inc_out"?: string;           // text - gelen/giden
   keywords?: string;             // text - anahtar kelimeler
   weburl?: string;              // text - web URL
   created?: string;              // timestamp
@@ -539,16 +539,31 @@ class SupabaseService {
       }, {}) || {};
 
       // Gelen/Giden istatistikleri
-      const { data: incOutData } = await this.client
+      console.log('📊 Fetching inc_out statistics...');
+      const { data: incOutData, error: incOutError, count: incOutCount } = await this.client
         .from('documents')
-        .select('incout')
-        .neq('incout', null);
+        .select('inc_out', { count: 'exact' });
 
+      if (incOutError) {
+        console.error('❌ inc_out fetch error details:', {
+          message: incOutError.message,
+          details: incOutError.details,
+          hint: incOutError.hint,
+          code: incOutError.code
+        });
+      }
+      console.log('📊 incOutData:', incOutData?.length, 'records fetched, total count:', incOutCount);
+
+      // Filter out null/empty values and count
       const incomingOutgoing = incOutData?.reduce((acc: any, item: any) => {
-        const direction = item['incout'];
-        acc[direction] = (acc[direction] || 0) + 1;
+        const direction = item['inc_out'];
+        if (direction && direction.trim() !== '') {
+          acc[direction] = (acc[direction] || 0) + 1;
+        }
         return acc;
       }, {}) || {};
+
+      console.log('📊 incomingOutgoing stats:', incomingOutgoing);
 
       return {
         totalDocuments: totalDocuments || 0,
@@ -656,7 +671,7 @@ class SupabaseService {
         if (filters.dateTo) query = query.lte('letter_date', filters.dateTo);
         if (filters.type_of_corr && filters.type_of_corr !== 'all') query = query.eq('type_of_corr', filters.type_of_corr);
         if (filters.severity_rate && filters.severity_rate !== 'all') query = query.eq('severity_rate', filters.severity_rate);
-        if (filters.inc_out && filters.inc_out !== 'all') query = query.eq('incout', filters.inc_out);
+        if (filters.inc_out && filters.inc_out !== 'all') query = query.eq('inc_out', filters.inc_out);
         if (filters.internal_no) query = query.ilike('internal_no', `%${filters.internal_no}%`);
         if (filters.keywords && filters.keywords.length > 0) {
           const keywordSearch = filters.keywords.map(keyword =>
