@@ -180,6 +180,28 @@ export default function AISearchPage() {
   }>>([]);
   const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set());
 
+  // Load basket from localStorage on mount (for documents added from info-center)
+  useEffect(() => {
+    const savedBasket = localStorage.getItem('documentBasket');
+    if (savedBasket) {
+      try {
+        const basket = JSON.parse(savedBasket);
+        if (Array.isArray(basket) && basket.length > 0) {
+          setDocumentBasket(basket);
+        }
+      } catch (e) {
+        console.error('Error loading basket from localStorage:', e);
+      }
+    }
+  }, []);
+
+  // Save basket to localStorage whenever it changes
+  useEffect(() => {
+    if (documentBasket.length > 0) {
+      localStorage.setItem('documentBasket', JSON.stringify(documentBasket));
+    }
+  }, [documentBasket]);
+
   // Document detail modal state
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
   const [showDocumentModal, setShowDocumentModal] = useState(false);

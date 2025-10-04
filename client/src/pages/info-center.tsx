@@ -85,12 +85,11 @@ interface PageQuery {
 
 export default function InfoCenterPage(): JSX.Element {
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewContent, setPreviewContent] = useState<string>('');
+  const [previewData, setPreviewData] = useState<any>(null);
 
   const handlePreview = (row: any) => {
-    // prefer content field, fall back to short_desc
-    const c = row?.content ?? row?.short_desc ?? '';
-    setPreviewContent(String(c));
+    // Store full row data for preview
+    setPreviewData(row);
     setPreviewOpen(true);
   };
 
@@ -370,10 +369,100 @@ export default function InfoCenterPage(): JSX.Element {
                 )}
               </DataTable>
               {/* Preview dialog */}
-              <Dialog header="Document Content" visible={previewOpen} style={{ width: '60vw' }} onHide={() => setPreviewOpen(false)}>
-                <div style={{ maxHeight: '60vh', overflow: 'auto', whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
-                  {previewContent || <i>Content not found</i>}
-                </div>
+              <Dialog 
+                header="Document Content" 
+                visible={previewOpen} 
+                style={{ width: '70vw', maxWidth: '900px' }} 
+                onHide={() => setPreviewOpen(false)}
+              >
+                {previewData && (
+                  <div>
+                    {/* Header with document info and Add to Basket button */}
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'flex-start',
+                      marginBottom: '20px',
+                      paddingBottom: '15px',
+                      borderBottom: '2px solid #e5e7eb'
+                    }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ marginBottom: '8px' }}>
+                          <strong style={{ color: '#1f2937', fontSize: '16px' }}>Letter No:</strong>{' '}
+                          <span style={{ fontSize: '15px', color: '#374151' }}>{previewData.letter_no || '-'}</span>
+                        </div>
+                        <div style={{ marginBottom: '8px' }}>
+                          <strong style={{ color: '#1f2937', fontSize: '14px' }}>Letter Date:</strong>{' '}
+                          <span style={{ fontSize: '14px', color: '#374151' }}>
+                            {previewData.letter_date ? new Date(previewData.letter_date).toLocaleDateString('en-GB') : '-'}
+                          </span>
+                        </div>
+                        <div>
+                          <strong style={{ color: '#1f2937', fontSize: '14px' }}>Reference Letters:</strong>{' '}
+                          <span style={{ fontSize: '14px', color: '#374151' }}>{previewData.ref_letters || '-'}</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          // Add to basket functionality - will be implemented
+                          const basketData = {
+                            id: previewData.id || previewData.letter_no,
+                            letter_no: previewData.letter_no,
+                            letter_date: previewData.letter_date,
+                            ref_letters: previewData.ref_letters,
+                            short_desc: previewData.short_desc,
+                            weburl: previewData.web_url,
+                            inc_out: previewData.inc_out
+                          };
+                          
+                          // Store in localStorage for now (will integrate with ai-search page basket)
+                          const existingBasket = JSON.parse(localStorage.getItem('documentBasket') || '[]');
+                          
+                          // Check if already in basket
+                          if (existingBasket.some((doc: any) => doc.id === basketData.id)) {
+                            alert('This document is already in the basket!');
+                            return;
+                          }
+                          
+                          existingBasket.push(basketData);
+                          localStorage.setItem('documentBasket', JSON.stringify(existingBasket));
+                          alert(`Document "${basketData.letter_no}" added to basket!`);
+                        }}
+                        style={{
+                          padding: '10px 20px',
+                          backgroundColor: '#3b82f6',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          whiteSpace: 'nowrap',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
+                      >
+                        + Add to Basket
+                      </button>
+                    </div>
+                    
+                    {/* Content */}
+                    <div style={{ 
+                      maxHeight: '60vh', 
+                      overflow: 'auto', 
+                      whiteSpace: 'pre-wrap', 
+                      lineHeight: 1.6,
+                      padding: '15px',
+                      backgroundColor: '#f9fafb',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      color: '#374151'
+                    }}>
+                      {previewData.content || previewData.short_desc || <i>Content not found</i>}
+                    </div>
+                  </div>
+                )}
               </Dialog>
               {/* Columns settings dialog (extracted to reusable component) */}
               <ColumnSettings open={columnsModalOpen} onClose={closeColumnsModal} />
