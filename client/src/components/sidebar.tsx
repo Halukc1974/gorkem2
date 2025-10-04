@@ -454,8 +454,8 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
       : "text-foreground hover:bg-accent hover:text-accent-foreground"} pl-[5ch]`}
   data-testid="nav-ai-search"
 >
-  <Network className="h-5 w-5 mr-3" />
-  <span className="truncate">Document Reference Network</span>
+  <Search className="h-5 w-5 mr-3" />
+  <span className="truncate">Document Search & Analysis</span>
 </button>
         )}
         

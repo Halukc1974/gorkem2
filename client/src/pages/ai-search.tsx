@@ -583,9 +583,9 @@ export default function AISearchPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
             <span className="inline-flex items-center justify-center p-2 bg-blue-100 rounded-lg">
-              {/* <Brain className="h-8 w-8 text-blue-600 stroke-2" strokeLinejoin="round" /> */}
+              <Network className="h-8 w-8 text-blue-600 stroke-2" strokeLinejoin="round" />
             </span>
-           Document Reference Graphs
+           Document Search & Analysis
           </h1>
           <p className="text-gray-600 mt-1">
             AI-powered search and document relationship visualization
@@ -594,7 +594,7 @@ export default function AISearchPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-    <TabsList className="grid w-full md:w-auto grid-cols-7">
+        <TabsList className="grid w-full md:w-auto grid-cols-5">
           <TabsTrigger value="documents-search" className="flex items-center gap-2">
             <Search className="h-4 w-4" />
             Documents Search
@@ -607,10 +607,6 @@ export default function AISearchPage() {
             <Network className="h-4 w-4" />
             Document Reference Graph
           </TabsTrigger>
-          {/* <TabsTrigger value="star-map-top" className="flex items-center gap-2">
-            <Network className="h-4 w-4" />
-            All Documents Network
-          </TabsTrigger> */}
           <TabsTrigger value="timeline" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             Timeline View
