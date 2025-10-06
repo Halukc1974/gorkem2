@@ -25,6 +25,8 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
   const [location, setLocation] = useLocation();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const { toast } = useToast();
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const ADMIN_EMAIL = 'gorkeminsaat1@gmail.com'; // Only admin can see Settings
 
   // sheets list removed; Info Center will use Supabase instead
   const [contextMenu, setContextMenu] = useState<{
@@ -188,6 +190,11 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
                 const email = await getEmail();
                 console.log('[SIDEBAR DEBUG] Current user email:', email);
                 
+                // Set current user email for Settings visibility check
+                if (mounted) {
+                  setCurrentUserEmail(email);
+                }
+                
                 let entry = null as any;
                 // Try direct email key
                 if (email && usersMap[email]) {
@@ -321,20 +328,22 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
 
       {/* Navigation */}
       <nav className="flex-1 px-4 py-6 space-y-2">
-        {/* Top-most settings entry */}
-        <button
-          onClick={() => handleNavigation('/settings')}
-          className={`w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-            location === "/settings"
-              ? "bg-primary text-primary-foreground"
-              : "text-foreground hover:bg-accent hover:text-accent-foreground"
-          }`}
-          data-testid="nav-settings"
-        >
-          <i className="fas fa-cog mr-3 h-5 w-5"></i>
-          <Settings className="h-5 w-5 mr-3" />
-          Settings
-        </button>
+        {/* Settings - Only visible to admin user (gorkeminsaat1@gmail.com) */}
+        {currentUserEmail === ADMIN_EMAIL && (
+          <button
+            onClick={() => handleNavigation('/settings')}
+            className={`w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+              location === "/settings"
+                ? "bg-primary text-primary-foreground"
+                : "text-foreground hover:bg-accent hover:text-accent-foreground"
+            }`}
+            data-testid="nav-settings"
+          >
+            <i className="fas fa-cog mr-3 h-5 w-5"></i>
+            <Settings className="h-5 w-5 mr-3" />
+            Settings
+          </button>
+        )}
 
         {!hideSidebarItems.includes("projects-summary") && (
           <button

@@ -1078,10 +1078,23 @@ export default function DocumentSearchPage() {
                       onClick={() => {
                         addToDocumentBasket(quickPreviewData);
                       }}
-                      className="flex items-center gap-2"
-                    >
-                      <ShoppingCart className="h-4 w-4" />
-                      Send To Analysis Page
+                    style={{
+                  background: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '4px 12px',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  marginLeft: 8,
+                  flexShrink: 0,
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#059669'}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#10b981'}
+              >
+                + Send To Analysis Page
                     </Button>
                   )}
                 </div>

@@ -432,7 +432,7 @@ export default function InfoCenterPage(): JSX.Element {
                             detail: { basket: existingBasket } 
                           }));
                           
-                          alert(`Document "${basketData.letter_no}" added to basket!`);
+                          alert(`Document "${basketData.letter_no}" sent to analysis page`);
                         }}
                         style={{
                           padding: '10px 20px',

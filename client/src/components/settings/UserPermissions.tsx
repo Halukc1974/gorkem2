@@ -14,6 +14,13 @@ const SIDEBAR_ITEMS = [
   'projects/info-center'
 ];
 
+// Known users with their UIDs and emails
+const KNOWN_USERS = [
+  { uid: 'BCAwiuzRcwOMYrwS6hQiCNnFMN33', email: 'gorkeminsaat1@gmail.com', name: 'Admin User' },
+  { uid: 'VpPmNfHHhdhmbCfYG6sfh8UCLgn2', email: 'mustafa.turker@gorkemltd.com', name: 'Mustafa Türker' },
+  { uid: 'NbAfbrehDTYkkzjxDL5brX55xls2', email: 'celebi.haluk@gmail.com', name: 'Haluk Çelebi' }
+];
+
 export default function UserPermissions() {
   const [users, setUsers] = useState<Array<{ uid: string; email?: string; name?: string }>>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -26,6 +33,29 @@ export default function UserPermissions() {
     setFetching(true);
     setMessage(null);
     try {
+      // Load permissions document first to get user data
+      const appConfig = (window as any).__APP_CONFIG__ || {};
+      const docId = appConfig?.PERMISSIONS_DOC_ID || 'BCAwiuzRcwOMYrwS6hQiCNnFMN33';
+      const coll = appConfig?.PERMISSIONS_COLLECTION || 'userConfigs';
+      
+      try {
+        const permDoc = await firebaseConfigService.getPermissionsDoc(docId, coll);
+        if (permDoc) {
+          console.log('📄 Loaded permissions doc with users:', Object.keys(permDoc.users || {}));
+          setPermissionsDoc(permDoc);
+        }
+      } catch (e) {
+        console.warn('Failed to load permissions doc:', e);
+      }
+      
+      // Set known users
+      console.log('📋 Loading known users:', KNOWN_USERS);
+      setUsers(KNOWN_USERS);
+      setMessage(null);
+      setFetching(false);
+      return;
+      
+      // Below code kept for fallback but not used anymore
       // 1) Try reading a single permissions document that contains a `users` map (primary: userConfigs collection)
       try {
         const appConfig = (window as any).__APP_CONFIG__ || {};
@@ -131,16 +161,34 @@ export default function UserPermissions() {
     (async () => {
       try {
         setLoading(true);
-        // If we previously loaded a single permissions document containing a `users` map (or flat map),
-        // prefer its in-memory value for the selected user. This avoids extra reads.
+        // Read from in-memory permissionsDoc if available
+        // Structure: { users: { "email@example.com": { sidebar: { dashboard: true, ... } } } }
         try {
           if (permissionsDoc) {
             const usersMap = (permissionsDoc.users && typeof permissionsDoc.users === 'object') ? permissionsDoc.users : permissionsDoc;
-            if (usersMap && usersMap[selected]) {
-              const sidebar = usersMap[selected] as Record<string, boolean>;
+            console.log('📖 Reading permissions for', selected, 'from usersMap');
+            
+            // Find by email first (since that's how it's stored)
+            const selectedUser = KNOWN_USERS.find(u => u.uid === selected || u.email === selected);
+            const emailKey = selectedUser?.email || selected;
+            
+            console.log('🔑 Looking for key:', emailKey, 'in usersMap keys:', Object.keys(usersMap || {}));
+            
+            if (usersMap && usersMap[emailKey]) {
+              const userEntry = usersMap[emailKey];
+              console.log('📋 User entry found:', userEntry);
+              
+              // Extract sidebar from user entry: { sidebar: {...} }
+              const sidebar = (userEntry.sidebar && typeof userEntry.sidebar === 'object') 
+                ? userEntry.sidebar 
+                : (typeof userEntry === 'object' && Object.values(userEntry).some((v: any) => typeof v === 'boolean') ? userEntry : {});
+              
               const keys = Object.keys(sidebar || {}).filter(k => !!sidebar[k]);
+              console.log('✅ Loaded visible items:', keys);
               if (!canceled) setVisibleItems(keys);
               return;
+            } else {
+              console.log('⚠️ No entry found for', emailKey, 'in usersMap');
             }
           }
         } catch (e) {
@@ -240,17 +288,41 @@ export default function UserPermissions() {
       const docId = appConfig?.PERMISSIONS_DOC_ID || 'BCAwiuzRcwOMYrwS6hQiCNnFMN33';
       if (permissionsDoc) {
         try {
-          await firebaseConfigService.setPermissionsDocEntry(docId, selected, payload.sidebar || payload, 'userConfigs');
-          // Simulate a successful Response object for downstream handling
-          // (so existing code that reads putRes.json() still works)
-          // Create a small object with users map
-          const usersMap = { ...(permissionsDoc.users || {}), [selected]: payload.sidebar || payload };
-          setPermissionsDoc(prev => ({ ...(prev || {}), users: usersMap }));
-          // update visibleItems
-          const keys = Object.keys(payload.sidebar || payload).filter(k => !!(payload.sidebar || payload)[k]);
+          console.log('💾 Saving permissions for user:', selected);
+          console.log('📝 Sidebar config:', sidebarMap);
+          
+          // Find the selected user in known users list
+          const selectedUser = KNOWN_USERS.find(u => u.uid === selected || u.email === selected);
+          
+          // Structure to save: { sidebar: { dashboard: true, ... } }
+          const userEntry = { sidebar: sidebarMap };
+          
+          if (selectedUser) {
+            // Save with EMAIL key (as per Firestore structure)
+            console.log('� Saving permissions for email:', selectedUser.email, userEntry);
+            await firebaseConfigService.setPermissionsDocEntry(docId, selectedUser.email, userEntry, 'userConfigs');
+            console.log('✅ Saved permissions successfully');
+          } else {
+            // Fallback: save with selected key only
+            console.log('⚠️ User not found in KNOWN_USERS, saving with selected key:', selected);
+            await firebaseConfigService.setPermissionsDocEntry(docId, selected, userEntry, 'userConfigs');
+          }
+          
+          // Update in-memory state: users[email] = { sidebar: {...} }
+          const emailKey = selectedUser?.email || selected;
+          const updatedUsersMap = { 
+            ...(permissionsDoc.users || {}), 
+            [emailKey]: { sidebar: sidebarMap }
+          };
+          setPermissionsDoc({ ...permissionsDoc, users: updatedUsersMap });
+          
+          // Update visible items
+          const keys = Object.keys(sidebarMap).filter(k => !!sidebarMap[k]);
           setVisibleItems(keys);
-          setMessage('Kaydedildi');
-          try { window.dispatchEvent(new Event('permissions:changed')); } catch (e) { /* ignore */ }
+          setMessage('✅ Kaydedildi');
+          
+          console.log('🔔 Dispatching permissions:changed event');
+          try { window.dispatchEvent(new Event('permissions:changed')); } catch (e) { console.error('Event dispatch failed:', e); }
           return;
         } catch (err) {
           console.error('Direct Firestore write failed, falling back to server endpoint', err);
@@ -331,13 +403,21 @@ export default function UserPermissions() {
         </div>
 
         <div className="space-y-1 max-h-72 overflow-auto">
-          {users.length === 0 && <div className="text-sm text-muted-foreground">Kullanıcı listesi boş. Yukarıdan 'Yenile' ile yeniden deneyin. (Kullanıcılar Firestore'daki `users` map'inden çekilir.)</div>}
-          {users.map(u => (
-            <button key={u.uid} className={`w-full text-left px-3 py-2 rounded ${selected===u.uid? 'bg-accent text-accent-foreground' : 'hover:bg-muted/50'}`} onClick={() => setSelected(u.uid)}>
-              <div className="text-sm font-medium">{u.email || u.uid}</div>
-              <div className="text-xs text-muted-foreground">{u.name || ''}</div>
-            </button>
-          ))}
+          {users.length === 0 && <div className="text-sm text-muted-foreground">Kullanıcı listesi boş. Yukarıdan 'Yenile' ile yeniden deneyin.</div>}
+          {users.map(u => {
+            // Use email as the key for selection (since Firestore uses email keys)
+            const selectionKey = u.email || u.uid;
+            return (
+              <button 
+                key={u.uid} 
+                className={`w-full text-left px-3 py-2 rounded ${selected===selectionKey ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/50'}`} 
+                onClick={() => setSelected(selectionKey)}
+              >
+                <div className="text-sm font-medium">{u.name || u.email || u.uid}</div>
+                <div className="text-xs text-muted-foreground">{u.email || ''}</div>
+              </button>
+            );
+          })}
         </div>
 
         {/* Manual UID add removed — users are loaded directly from Firestore `users` map */}

@@ -318,7 +318,7 @@ export default function AISearchPage() {
           return newBasket;
         });
         
-        alert(`"${data.letter_no}" document added to basket!`);
+        alert(`"${data.letter_no}" document sent to analysis page`);
       }
     } catch (error) {
       console.error('Error adding document to basket:', error);
@@ -684,7 +684,7 @@ export default function AISearchPage() {
         <TabsList className="grid w-full md:w-auto grid-cols-5">
           <TabsTrigger value="documents-search" className="flex items-center gap-2">
             <Search className="h-4 w-4" />
-            Documents Search
+            Document Search
           </TabsTrigger>
           <TabsTrigger value="vector-search" className="flex items-center gap-2">
             <Brain className="h-4 w-4" />
@@ -711,7 +711,7 @@ export default function AISearchPage() {
                 src="/document-search?embed=true&hideSidebar=true"
                 className="w-full border-0"
                 style={{ height: 'calc(100vh - 250px)', minHeight: '600px' }}
-                title="Documents Search"
+                title="Document Search"
               />
             </CardContent>
           </Card>

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs'
 import ColumnSettings from '../components/settings/ColumnSettings'
 import ConfigSettings from '../components/settings/ConfigSettings'
@@ -7,8 +7,46 @@ import GraphSettings from '../components/settings/GraphSettings'
 import { GraphCustomizationProvider } from '../components/graph-engine/context/GraphCustomizationContext'
 import VectorSearchSettings from '../components/settings/VectorSearchSettings'
 import UserPermissions from '../components/settings/UserPermissions'
+import { auth } from '../lib/firebase'
+import { onAuthStateChanged } from 'firebase/auth'
+import { Alert, AlertDescription } from '../components/ui/alert'
+import { AlertCircle } from 'lucide-react'
+
+const ADMIN_EMAIL = 'gorkeminsaat1@gmail.com';
 
 export default function SettingsPage() {
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUserEmail(user?.email || null);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="text-center">Loading...</div>
+      </div>
+    );
+  }
+
+  if (currentUserEmail !== ADMIN_EMAIL) {
+    return (
+      <div className="p-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            🔒 Access Denied: Only admin user ({ADMIN_EMAIL}) can access Settings page.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6">
       <h2 className="text-2xl font-semibold mb-4">Settings</h2>
