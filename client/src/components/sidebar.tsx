@@ -396,6 +396,7 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
           </button>
         )}
 
+        {/* Decision Support System - Commented out for all users
         {!hideSidebarItems.includes("decision-support") && (
           <button
             onClick={() => handleNavigation("/decision-support")}
@@ -410,6 +411,7 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
             🧠 Decision Support System
           </button>
         )}
+        */}
 
         {/* {!hideSidebarItems.includes("decision-support-template") && (
           <button

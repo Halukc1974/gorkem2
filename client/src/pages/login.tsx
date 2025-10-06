@@ -5,6 +5,7 @@ import { auth } from "../lib/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 //import { googleSheetsClient } from "@/services/googleSheets";
 import { useLocation } from "wouter";
+import gorkemLogo from "../assets/gorkemlogo.jpg";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -44,7 +45,9 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
       <Card className="w-[420px]">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Görkem Construction</CardTitle>
+          <div className="flex justify-center mb-2">
+            <img src={gorkemLogo} alt="Görkem Construction" className="h-16 object-contain" />
+          </div>
           <CardDescription>Document Management System</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
