@@ -421,7 +421,7 @@ export default function DocumentSearchPage() {
     setQuickPreviewOpen(true);
   };
 
-  // Add to basket function (shared with other pages via localStorage)
+  // Send To Analysis Page function (shared with other pages via localStorage)
   const addToDocumentBasket = (doc: any) => {
     try {
       const basketData = {
@@ -447,7 +447,7 @@ export default function DocumentSearchPage() {
         return;
       }
       
-      // Add to basket
+      // Send To Analysis Page
       existingBasket.push(basketData);
       localStorage.setItem('documentBasket', JSON.stringify(existingBasket));
       
@@ -1081,7 +1081,7 @@ export default function DocumentSearchPage() {
                       className="flex items-center gap-2"
                     >
                       <ShoppingCart className="h-4 w-4" />
-                      Add to Basket
+                      Send To Analysis Page
                     </Button>
                   )}
                 </div>
@@ -1211,7 +1211,8 @@ export default function DocumentSearchPage() {
 
       {/* Stats Dashboard */}
       {!hasResults && !isLoading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
@@ -1219,39 +1220,20 @@ export default function DocumentSearchPage() {
                 <div>
                   <div className="text-2xl font-bold">{stats.totalDocuments}</div>
                   <div className="text-sm text-gray-600">Total Correspondence</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    <span style={{ color: 'green' }}>&#8681;</span> {(stats.incomingOutgoing['Gelen'] || stats.incomingOutgoing['incoming'] || 0)} Incoming • 
+                    <span style={{ color: 'red' }}>&#8679;</span> {(stats.incomingOutgoing['Giden'] || stats.incomingOutgoing['outgoing'] || 0)} Outgoing
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
+          {/* Incoming/Outgoing Card - Commented for future use
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <Clock className="h-8 w-8 text-green-600" />
-                <div>
-                  <div className="text-2xl font-bold">{stats.recentDocuments}</div>
-                  <div className="text-sm text-gray-600">This Week</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <Folder className="h-8 w-8 text-purple-600" />
-                <div>
-                  <div className="text-2xl font-bold">{Object.keys(stats.correspondenceTypeCounts).length}</div>
-                  <div className="text-sm text-gray-600">Correspondence Type</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <TrendingUp className="h-8 w-8 text-orange-600" />
+                <TrendingUp className="h-8 w-8 text-green-600" />
                 <div>
                   <div className="text-2xl font-bold">
                     {(stats.incomingOutgoing['Gelen'] || stats.incomingOutgoing['incoming'] || 0) + 
@@ -1260,6 +1242,23 @@ export default function DocumentSearchPage() {
                   <div className="text-sm text-gray-600">Incoming/Outgoing</div>
                   <div className="text-xs text-gray-500 mt-1">
                     {stats.incomingOutgoing['Gelen'] || stats.incomingOutgoing['incoming'] || 0} / {stats.incomingOutgoing['Giden'] || stats.incomingOutgoing['outgoing'] || 0}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          */}
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <Clock className="h-8 w-8 text-green-600" />
+                <div>
+                  <div className="text-2xl font-bold">{stats.recentDocuments}</div>
+                  <div className="text-sm text-gray-600">This Week</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    <span style={{ color: 'green' }}>&#8681;</span> {Math.round((stats.incomingOutgoing['Gelen'] || stats.incomingOutgoing['incoming'] || 0) * stats.recentDocuments / stats.totalDocuments)} Incoming • 
+                    <span style={{ color: 'red' }}>&#8679;</span> {Math.round((stats.incomingOutgoing['Giden'] || stats.incomingOutgoing['outgoing'] || 0) * stats.recentDocuments / stats.totalDocuments)} Outgoing
                   </div>
                 </div>
               </div>

@@ -1126,7 +1126,7 @@ export function DocumentGraph({ data, onNodeClick, initialActiveTab, openStarMap
                 onMouseEnter={(e) => e.currentTarget.style.background = '#059669'}
                 onMouseLeave={(e) => e.currentTarget.style.background = '#10b981'}
               >
-                + Add to Basket
+                + Send To Analysis Page
               </button>
             )}
           </div>

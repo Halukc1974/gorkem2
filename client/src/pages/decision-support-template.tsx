@@ -1047,7 +1047,7 @@ Authorized
                               disabled={correspondenceBasket.some(b => b.id === item.id)}
                             >
                               <Plus className="mr-2 h-3 w-3" />
-                              Add to Basket
+                              Send To Analysis Page
                             </Button>
                             <Button
                               size="sm"

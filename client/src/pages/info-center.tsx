@@ -377,7 +377,7 @@ export default function InfoCenterPage(): JSX.Element {
               >
                 {previewData && (
                   <div>
-                    {/* Header with document info and Add to Basket button */}
+                    {/* Header with document info and Send To Analysis Page button */}
                     <div style={{ 
                       display: 'flex', 
                       justifyContent: 'space-between', 
@@ -404,7 +404,7 @@ export default function InfoCenterPage(): JSX.Element {
                       </div>
                       <button
                         onClick={() => {
-                          // Add to basket functionality - will be implemented
+                          // Send To Analysis Page functionality - will be implemented
                           const basketData = {
                             id: previewData.id || previewData.letter_no,
                             letter_no: previewData.letter_no,
@@ -449,7 +449,7 @@ export default function InfoCenterPage(): JSX.Element {
                         onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
                         onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
                       >
-                        + Add to Basket
+                        + Send To Analysis Page
                       </button>
                     </div>
                     

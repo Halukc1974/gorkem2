@@ -411,7 +411,7 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
           </button>
         )}
 
-        {!hideSidebarItems.includes("decision-support-template") && (
+        {/* {!hideSidebarItems.includes("decision-support-template") && (
           <button
             onClick={() => handleNavigation("/decision-support-template")}
             className={`w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
@@ -424,7 +424,7 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
             <i className="fas fa-file-alt mr-3 h-5 w-5"></i>
             📋 Decision Support Template
           </button>
-        )}
+        )} */}
 
         {!hideSidebarItems.includes('n8n-vector-search') && (
           <button

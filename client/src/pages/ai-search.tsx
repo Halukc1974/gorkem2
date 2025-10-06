@@ -670,7 +670,7 @@ export default function AISearchPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
             <span className="inline-flex items-center justify-center p-2 bg-blue-100 rounded-lg">
-              <Network className="h-8 w-8 text-blue-600 stroke-2" strokeLinejoin="round" />
+              <Brain className="h-8 w-8 text-blue-600 stroke-2" strokeLinejoin="round" />
             </span>
            Document Search & Analysis
           </h1>
@@ -1435,7 +1435,7 @@ export default function AISearchPage() {
                 {/* Document table */}
                 {documentBasket.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
-                    No documents added yet. Hover over nodes in graphs and click 'Add to Basket' button to add documents.
+                    No documents added yet. Hover over nodes in graphs and click 'Send To Analysis Page' button to add documents.
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -1493,13 +1493,13 @@ export default function AISearchPage() {
                                 if (incOut === 'incoming' || incOut === 'gelen' || incOut === 'inc' || incOut === 'in') {
                                   return (
                                     <Badge className="bg-green-500 text-white hover:bg-green-600">
-                                      📨 Incoming
+                                      Incoming
                                     </Badge>
                                   );
                                 } else if (incOut === 'outgoing' || incOut === 'giden' || incOut === 'out' || incOut === 'ex') {
                                   return (
                                     <Badge className="bg-red-500 text-white hover:bg-red-600">
-                                      📤 Outgoing
+                                      Outgoing
                                     </Badge>
                                   );
                                 } else {
@@ -1746,7 +1746,7 @@ export default function AISearchPage() {
                 onMouseEnter={(e) => e.currentTarget.style.background = timelineTooltip.doc?.inc_out === 'inc' ? '#059669' : '#dc2626'}
                 onMouseLeave={(e) => e.currentTarget.style.background = timelineTooltip.doc?.inc_out === 'inc' ? '#10b981' : '#ef4444'}
               >
-                + Add to Basket
+                + Send To Analysis Page
               </button>
             )}
           </div>
