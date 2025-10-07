@@ -23,6 +23,7 @@ import { useToast } from '../hooks/use-toast';
 export default function AISearchPage() {
   // User settings hook for API keys
   const { config, hasValidApis } = useUserSettings();
+  const { toast } = useToast();
   
   // Document search hooks
   const {
@@ -128,7 +129,6 @@ export default function AISearchPage() {
   const [starLoading, setStarLoading] = useState(false);
   const [starError, setStarError] = useState<string | null>(null);
   const [showAllDocsConfirm, setShowAllDocsConfirm] = useState(false);
-  const { toast } = useToast();
 
   // Timeline state
   const [timelineQuery, setTimelineQuery] = useState('');
@@ -246,6 +246,44 @@ export default function AISearchPage() {
     content: string 
   } | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+
+  // Analysis modal and results state
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+  const [analysisOptions, setAnalysisOptions] = useState({
+    useChatGPT: true,
+    useDeepSeek: false,
+    chatgptModel: 'gpt-4o-mini' as 'gpt-4o-mini' | 'gpt-4o' | 'gpt-4-turbo' | 'gpt-3.5-turbo'
+  });
+  const [tokenUsage, setTokenUsage] = useState<{
+    chatgpt?: { prompt: number; completion: number; total: number };
+    deepseek?: { prompt: number; completion: number; total: number };
+  }>({});
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResults, setAnalysisResults] = useState<Array<{
+    id: string;
+    letter_no: string;
+    letter_date?: string;
+    short_desc?: string;
+    chatgptAnalysis?: {
+      summary: string;
+      request: string;
+      deadline?: string;
+      importance: string;
+      relevance: string;
+      relevanceNote?: string;
+      actions: string[];
+    };
+    deepseekAnalysis?: {
+      summary: string;
+      request: string;
+      deadline?: string;
+      importance: string;
+      relevance: string;
+      relevanceNote?: string;
+      actions: string[];
+    };
+  }>>([]);
+  const [selectedForDraft, setSelectedForDraft] = useState<Set<string>>(new Set());
 
   // Add document to basket function
   const addToDocumentBasket = useCallback(async (documentId: string) => {
@@ -380,6 +418,348 @@ export default function AISearchPage() {
       window.open(weburl, '_blank', 'noopener,noreferrer');
     } else {
       alert('URL not found for this document!');
+    }
+  };
+
+  // Comprehensive document analysis function
+  const handleComprehensiveAnalysis = async () => {
+    if (selectedDocuments.size === 0) {
+      toast({
+        title: 'No Documents Selected',
+        description: 'Please select at least one document to analyze.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!analysisOptions.useChatGPT && !analysisOptions.useDeepSeek) {
+      toast({
+        title: 'No AI Selected',
+        description: 'Please select at least one AI service (ChatGPT or DeepSeek).',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setShowAnalysisModal(false);
+    setTokenUsage({}); // Reset token usage before new analysis
+
+    try {
+      const selectedDocs = documentBasket.filter(doc => selectedDocuments.has(doc.id));
+      
+      // Fetch full content for selected documents
+      const docsWithContent = await Promise.all(
+        selectedDocs.map(async (doc) => {
+          const { data, error } = await supabaseService.getClient()
+            .from('documents')
+            .select('id, letter_no, letter_date, short_desc, content, inc_out, ref_letters')
+            .eq('id', doc.id)
+            .single();
+          
+          if (error || !data) {
+            console.error(`Error fetching document ${doc.id}:`, error);
+            return null;
+          }
+          
+          return data;
+        })
+      );
+      
+      const validDocs = docsWithContent.filter(d => d !== null);
+      
+      if (validDocs.length === 0) {
+        toast({
+          title: 'Error',
+          description: 'Could not load document content for analysis.',
+          variant: 'destructive'
+        });
+        setIsAnalyzing(false);
+        return;
+      }
+
+      toast({
+        title: 'Analysis Started',
+        description: `Analyzing ${validDocs.length} documents...`,
+      });
+
+      // Analyze each document separately
+      const analysisPromises = validDocs.map(async (doc) => {
+        const result: any = {
+          id: doc.id,
+          letter_no: doc.letter_no,
+          letter_date: doc.letter_date,
+          short_desc: doc.short_desc
+        };
+
+        // ChatGPT Analysis
+        if (analysisOptions.useChatGPT && config?.apis?.openai) {
+          try {
+            const chatgptResult = await analyzeWithAI(doc, 'chatgpt');
+            result.chatgptAnalysis = chatgptResult;
+          } catch (error) {
+            console.error('ChatGPT analysis error:', error);
+            result.chatgptAnalysis = {
+              summary: 'Analysis failed',
+              request: 'N/A',
+              importance: 'Unknown',
+              relevance: 'Unknown',
+              actions: ['Analysis could not be completed']
+            };
+          }
+        }
+
+        // DeepSeek Analysis
+        if (analysisOptions.useDeepSeek && config?.apis?.deepseek) {
+          try {
+            const deepseekResult = await analyzeWithAI(doc, 'deepseek');
+            result.deepseekAnalysis = deepseekResult;
+          } catch (error) {
+            console.error('DeepSeek analysis error:', error);
+            result.deepseekAnalysis = {
+              summary: 'Analysis failed',
+              request: 'N/A',
+              importance: 'Unknown',
+              relevance: 'Unknown',
+              actions: ['Analysis could not be completed']
+            };
+          }
+        }
+
+        return result;
+      });
+
+      const results = await Promise.all(analysisPromises);
+      setAnalysisResults(results);
+
+      toast({
+        title: 'Analysis Complete',
+        description: `Successfully analyzed ${results.length} documents.`,
+      });
+
+    } catch (error) {
+      console.error('Comprehensive analysis error:', error);
+      toast({
+        title: 'Analysis Failed',
+        description: error instanceof Error ? error.message : 'An error occurred during analysis.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // AI analysis function for a single document
+  const analyzeWithAI = async (doc: any, aiType: 'chatgpt' | 'deepseek') => {
+    const apiKey = aiType === 'chatgpt' ? config?.apis?.openai : config?.apis?.deepseek;
+    const apiUrl = aiType === 'chatgpt' 
+      ? 'https://api.openai.com/v1/chat/completions'
+      : 'https://api.deepseek.com/v1/chat/completions';
+    const model = aiType === 'chatgpt' ? analysisOptions.chatgptModel : 'deepseek-chat';
+
+    const allDocsContext = documentBasket.map(d => 
+      `Letter No: ${d.letter_no}\nDate: ${d.letter_date}\nSubject: ${d.short_desc}`
+    ).join('\n\n');
+
+    const analysisPrompt = `
+You are analyzing official correspondence documents. Here is the context of all selected documents for relationship analysis:
+
+SELECTED DOCUMENTS CONTEXT:
+${allDocsContext}
+
+DOCUMENT TO ANALYZE:
+Letter No: ${doc.letter_no}
+Date: ${doc.letter_date}
+Subject: ${doc.short_desc}
+Content: ${doc.content || doc.short_desc}
+
+ANALYSIS REQUIREMENTS (respond in ENGLISH):
+1. **Summary**: Provide a concise summary (2-3 sentences in English)
+2. **Request**: What is being requested or communicated? (in English)
+3. **Deadline**: If there's a deadline mentioned, extract it. Format: "DD.MM.YYYY" or "None"
+4. **Importance**: Rate as "Low", "Medium", or "High"
+5. **Relevance**: Analyze how this document relates to OTHER documents in the selected group. Rate as:
+   - "High" - Directly related, references other documents
+   - "Medium" - Somewhat related, similar topic
+   - "Low" - Not related, different topic
+   - "Irrelevant" - Completely unrelated to the group
+6. **Relevance Note**: If relevance is "Low" or "Irrelevant", explain in English why this document doesn't belong with the others
+7. **Actions**: List 3-4 specific action items (in English)
+
+RETURN JSON FORMAT (all values in ENGLISH):
+{
+  "summary": "English summary",
+  "request": "What is requested",
+  "deadline": "DD.MM.YYYY or None",
+  "importance": "Low|Medium|High",
+  "relevance": "High|Medium|Low|Irrelevant",
+  "relevanceNote": "Explanation if low relevance (optional)",
+  "actions": ["Action 1", "Action 2", "Action 3"]
+}
+`;
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert in analyzing official correspondence. Always respond in JSON format with English language content.'
+          },
+          {
+            role: 'user',
+            content: analysisPrompt
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 2000
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`${aiType} API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const aiResponse = data.choices[0]?.message?.content;
+
+    // Track token usage
+    if (data.usage) {
+      setTokenUsage(prev => ({
+        ...prev,
+        [aiType]: {
+          prompt: (prev[aiType]?.prompt || 0) + (data.usage.prompt_tokens || 0),
+          completion: (prev[aiType]?.completion || 0) + (data.usage.completion_tokens || 0),
+          total: (prev[aiType]?.total || 0) + (data.usage.total_tokens || 0)
+        }
+      }));
+    }
+
+    if (!aiResponse) {
+      throw new Error(`${aiType} returned empty response`);
+    }
+
+    // Try to parse JSON
+    try {
+      const parsed = JSON.parse(aiResponse);
+      return parsed;
+    } catch (parseError) {
+      // If JSON parsing fails, try to extract JSON from markdown code blocks
+      const jsonMatch = aiResponse.match(/```json\n([\s\S]*?)\n```/) || aiResponse.match(/```\n([\s\S]*?)\n```/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[1]);
+      }
+      throw new Error('Failed to parse AI response as JSON');
+    }
+  };
+
+  // Generate draft document from selected analysis results
+  const handleGenerateDraft = async () => {
+    if (selectedForDraft.size === 0) {
+      toast({
+        title: 'No Documents Selected',
+        description: 'Please select at least one analyzed document to generate a draft.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      const selectedAnalyses = analysisResults.filter(r => selectedForDraft.has(r.id));
+      
+      // Combine all summaries and actions
+      const combinedContext = selectedAnalyses.map(doc => {
+        const analysis = doc.chatgptAnalysis || doc.deepseekAnalysis;
+        return `
+Document: ${doc.letter_no} (${doc.letter_date})
+Summary: ${analysis?.summary}
+Request: ${analysis?.request}
+Actions: ${analysis?.actions.join(', ')}
+        `;
+      }).join('\n\n');
+
+      const draftPrompt = `
+Based on the following analyzed documents, generate a professional response letter in English:
+
+${combinedContext}
+
+Generate a formal business letter that:
+1. Acknowledges receipt of the referenced documents
+2. Addresses the main requests
+3. Proposes solutions or next steps
+4. Maintains a professional tone
+5. Is structured with proper formatting (date, subject, body, closing)
+
+Return the complete draft letter in plain text format.
+`;
+
+      const apiKey = config?.apis?.openai || config?.apis?.deepseek;
+      const apiUrl = config?.apis?.openai 
+        ? 'https://api.openai.com/v1/chat/completions'
+        : 'https://api.deepseek.com/v1/chat/completions';
+      const model = config?.apis?.openai ? 'gpt-4o-mini' : 'deepseek-chat';
+
+      toast({
+        title: 'Generating Draft',
+        description: 'Please wait...',
+      });
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a professional business correspondence writer.'
+            },
+            {
+              role: 'user',
+              content: draftPrompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 2000
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const draftText = data.choices[0]?.message?.content;
+
+      // Show draft in a modal or download
+      const blob = new Blob([draftText], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `draft-response-${new Date().toISOString().split('T')[0]}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: 'Draft Generated',
+        description: 'Draft document has been downloaded.',
+      });
+
+    } catch (error) {
+      console.error('Draft generation error:', error);
+      toast({
+        title: 'Draft Generation Failed',
+        description: error instanceof Error ? error.message : 'An error occurred.',
+        variant: 'destructive'
+      });
     }
   };
  
@@ -1388,95 +1768,14 @@ export default function AISearchPage() {
                 {/* Analyze button */}
                 <div className="flex justify-between items-center">
                   <div className="text-sm text-gray-600">
-                    {documentBasket.length} documents selected
+                    {selectedDocuments.size} documents selected
                   </div>
                   <Button 
-                    onClick={async () => {
-                      if (selectedDocuments.size === 0) return;
-                      
-                      const { toast } = useToast();
-                      
-                      try {
-                        // Get selected documents from basket
-                        const selectedDocs = documentBasket.filter(doc => selectedDocuments.has(doc.id));
-                        
-                        if (selectedDocs.length === 0) {
-                          toast({
-                            title: 'No Documents Selected',
-                            description: 'Please select documents to analyze.',
-                            variant: 'destructive'
-                          });
-                          return;
-                        }
-                        
-                        // Fetch full content for selected documents
-                        const docsWithContent = await Promise.all(
-                          selectedDocs.map(async (doc) => {
-                            const { data, error } = await supabaseService.getClient()
-                              .from('documents')
-                              .select('id, letter_no, letter_date, short_desc, content, inc_out')
-                              .eq('id', doc.id)
-                              .single();
-                            
-                            if (error || !data) {
-                              console.error(`Error fetching document ${doc.id}:`, error);
-                              return null;
-                            }
-                            
-                            return data;
-                          })
-                        );
-                        
-                        const validDocs = docsWithContent.filter(d => d !== null);
-                        
-                        if (validDocs.length === 0) {
-                          toast({
-                            title: 'Error',
-                            description: 'Could not load document content for analysis.',
-                            variant: 'destructive'
-                          });
-                          return;
-                        }
-                        
-                        // Create combined content for analysis
-                        const combinedContent = validDocs.map(doc => 
-                          `DOCUMENT: ${doc.short_desc}\nTYPE: ${doc.inc_out === 'inc' ? 'Incoming' : 'Outgoing'}\nDATE: ${doc.letter_date}\nCONTENT:\n${doc.content || 'No content'}`
-                        ).join('\n\n---\n\n');
-                        
-                        toast({
-                          title: 'Analysis Started',
-                          description: `Analyzing ${validDocs.length} documents with AI...`
-                        });
-                        
-                        // Use DecisionSupportService for analysis
-                        const decisionService = new DecisionSupportService();
-                        const apiType = config?.apis.openai ? 'openai' : 'deepseek';
-                        const analysis = await decisionService.analyzeCorrespondence(combinedContent, apiType);
-                        
-                        // Show analysis results
-                        console.log('Analysis results:', analysis);
-                        
-                        toast({
-                          title: 'Analysis Complete',
-                          description: 'Document analysis has been completed successfully.',
-                        });
-                        
-                        // TODO: Display analysis results in a modal or separate section
-                        alert(`Analysis Complete!\n\nSummary: ${analysis.summary}\n\nRisk Level: ${analysis.risk_analysis.level}\n\nAction Suggestions: ${analysis.action_suggestions.join(', ')}`);
-                        
-                      } catch (error) {
-                        console.error('Analysis error:', error);
-                        toast({
-                          title: 'Analysis Failed',
-                          description: error instanceof Error ? error.message : 'An error occurred during analysis.',
-                          variant: 'destructive'
-                        });
-                      }
-                    }}
-                    disabled={selectedDocuments.size === 0 || !hasValidApis}
+                    onClick={() => setShowAnalysisModal(true)}
+                    disabled={selectedDocuments.size === 0 || !hasValidApis || isAnalyzing}
                   >
                     <Brain className="w-4 h-4 mr-2" />
-                    Analyze ({selectedDocuments.size})
+                    {isAnalyzing ? 'Analyzing...' : `Analyze (${selectedDocuments.size})`}
                   </Button>
                 </div>
 
@@ -1602,11 +1901,372 @@ export default function AISearchPage() {
                     </table>
                   </div>
                 )}
+
+                {/* Analysis Results Section */}
+                {analysisResults.length > 0 && (
+                  <div className="mt-8 space-y-4">
+                    {/* Token Usage Display */}
+                    {(tokenUsage.chatgpt || tokenUsage.deepseek) && (
+                      <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+                        <div className="flex items-center gap-2 mb-3">
+                          <CircuitBoard className="w-5 h-5 text-blue-600" />
+                          <h4 className="font-semibold text-gray-900">Token Usage Summary</h4>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {tokenUsage.chatgpt && (
+                            <div className="bg-white rounded-lg p-3 border border-blue-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Brain className="w-4 h-4 text-blue-600" />
+                                <span className="font-medium text-sm text-blue-900">ChatGPT ({analysisOptions.chatgptModel})</span>
+                              </div>
+                              <div className="space-y-1 text-xs text-gray-700">
+                                <div className="flex justify-between">
+                                  <span>Input tokens:</span>
+                                  <span className="font-mono font-medium">{tokenUsage.chatgpt.prompt.toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Output tokens:</span>
+                                  <span className="font-mono font-medium">{tokenUsage.chatgpt.completion.toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between pt-1 border-t border-blue-200">
+                                  <span className="font-medium">Total:</span>
+                                  <span className="font-mono font-bold text-blue-700">{tokenUsage.chatgpt.total.toLocaleString()}</span>
+                                </div>
+                                <div className="pt-1 text-[10px] text-gray-500">
+                                  {analysisOptions.chatgptModel === 'gpt-4o-mini' && '≈ 1x cost'}
+                                  {analysisOptions.chatgptModel === 'gpt-4o' && '≈ 15x cost vs mini'}
+                                  {analysisOptions.chatgptModel === 'gpt-4-turbo' && '≈ 30x cost vs mini'}
+                                  {analysisOptions.chatgptModel === 'gpt-3.5-turbo' && '≈ 0.3x cost vs mini'}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          {tokenUsage.deepseek && (
+                            <div className="bg-white rounded-lg p-3 border border-purple-200">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Sparkles className="w-4 h-4 text-purple-600" />
+                                <span className="font-medium text-sm text-purple-900">DeepSeek</span>
+                              </div>
+                              <div className="space-y-1 text-xs text-gray-700">
+                                <div className="flex justify-between">
+                                  <span>Input tokens:</span>
+                                  <span className="font-mono font-medium">{tokenUsage.deepseek.prompt.toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Output tokens:</span>
+                                  <span className="font-mono font-medium">{tokenUsage.deepseek.completion.toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between pt-1 border-t border-purple-200">
+                                  <span className="font-medium">Total:</span>
+                                  <span className="font-mono font-bold text-purple-700">{tokenUsage.deepseek.total.toLocaleString()}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-lg font-semibold">Analysis Results</h3>
+                      <Button 
+                        onClick={handleGenerateDraft}
+                        disabled={selectedForDraft.size === 0}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        Generate Draft Response ({selectedForDraft.size})
+                      </Button>
+                    </div>
+
+                    {/* Analysis Cards */}
+                    <div className="space-y-4">
+                      {analysisResults.map((result) => (
+                        <Card key={result.id} className="border-2">
+                          <CardHeader className="pb-3">
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-start gap-3">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedForDraft.has(result.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedForDraft(prev => new Set([...prev, result.id]));
+                                    } else {
+                                      setSelectedForDraft(prev => {
+                                        const newSet = new Set(prev);
+                                        newSet.delete(result.id);
+                                        return newSet;
+                                      });
+                                    }
+                                  }}
+                                  className="mt-1 rounded"
+                                />
+                                <div>
+                                  <CardTitle className="text-base">{result.letter_no}</CardTitle>
+                                  <CardDescription className="text-sm">
+                                    {result.letter_date} • {result.short_desc}
+                                  </CardDescription>
+                                </div>
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-6">
+                            {/* ChatGPT Analysis */}
+                            {result.chatgptAnalysis && (
+                              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <Brain className="w-5 h-5 text-blue-600" />
+                                  <h4 className="font-semibold text-blue-900">ChatGPT Analysis</h4>
+                                </div>
+                                
+                                <div className="space-y-3 text-sm">
+                                  <div>
+                                    <span className="font-medium text-gray-700">Summary:</span>
+                                    <p className="mt-1 text-gray-800">{result.chatgptAnalysis.summary}</p>
+                                  </div>
+                                  
+                                  <div>
+                                    <span className="font-medium text-gray-700">Request:</span>
+                                    <p className="mt-1 text-gray-800">{result.chatgptAnalysis.request}</p>
+                                  </div>
+                                  
+                                  <div className="flex gap-4">
+                                    <div>
+                                      <span className="font-medium text-gray-700">Deadline:</span>
+                                      <span className="ml-2 text-gray-800">{result.chatgptAnalysis.deadline || 'None'}</span>
+                                    </div>
+                                    <div>
+                                      <span className="font-medium text-gray-700">Importance:</span>
+                                      <Badge className={`ml-2 ${
+                                        result.chatgptAnalysis.importance === 'High' ? 'bg-red-500' :
+                                        result.chatgptAnalysis.importance === 'Medium' ? 'bg-yellow-500' : 'bg-green-500'
+                                      }`}>
+                                        {result.chatgptAnalysis.importance}
+                                      </Badge>
+                                    </div>
+                                    <div>
+                                      <span className="font-medium text-gray-700">Relevance:</span>
+                                      <Badge className={`ml-2 ${
+                                        result.chatgptAnalysis.relevance === 'High' ? 'bg-green-500' :
+                                        result.chatgptAnalysis.relevance === 'Medium' ? 'bg-yellow-500' :
+                                        result.chatgptAnalysis.relevance === 'Low' ? 'bg-orange-500' : 'bg-red-500'
+                                      }`}>
+                                        {result.chatgptAnalysis.relevance}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                  
+                                  {result.chatgptAnalysis.relevanceNote && (
+                                    <div className="p-2 bg-orange-50 border border-orange-200 rounded">
+                                      <span className="font-medium text-orange-700">⚠️ Relevance Note:</span>
+                                      <p className="mt-1 text-orange-800 text-xs">{result.chatgptAnalysis.relevanceNote}</p>
+                                    </div>
+                                  )}
+                                  
+                                  <div>
+                                    <span className="font-medium text-gray-700">Recommended Actions:</span>
+                                    <ul className="mt-2 space-y-1 list-disc list-inside text-gray-800">
+                                      {result.chatgptAnalysis.actions.map((action, idx) => (
+                                        <li key={idx}>{action}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* DeepSeek Analysis */}
+                            {result.deepseekAnalysis && (
+                              <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <Sparkles className="w-5 h-5 text-purple-600" />
+                                  <h4 className="font-semibold text-purple-900">DeepSeek Analysis</h4>
+                                </div>
+                                
+                                <div className="space-y-3 text-sm">
+                                  <div>
+                                    <span className="font-medium text-gray-700">Summary:</span>
+                                    <p className="mt-1 text-gray-800">{result.deepseekAnalysis.summary}</p>
+                                  </div>
+                                  
+                                  <div>
+                                    <span className="font-medium text-gray-700">Request:</span>
+                                    <p className="mt-1 text-gray-800">{result.deepseekAnalysis.request}</p>
+                                  </div>
+                                  
+                                  <div className="flex gap-4">
+                                    <div>
+                                      <span className="font-medium text-gray-700">Deadline:</span>
+                                      <span className="ml-2 text-gray-800">{result.deepseekAnalysis.deadline || 'None'}</span>
+                                    </div>
+                                    <div>
+                                      <span className="font-medium text-gray-700">Importance:</span>
+                                      <Badge className={`ml-2 ${
+                                        result.deepseekAnalysis.importance === 'High' ? 'bg-red-500' :
+                                        result.deepseekAnalysis.importance === 'Medium' ? 'bg-yellow-500' : 'bg-green-500'
+                                      }`}>
+                                        {result.deepseekAnalysis.importance}
+                                      </Badge>
+                                    </div>
+                                    <div>
+                                      <span className="font-medium text-gray-700">Relevance:</span>
+                                      <Badge className={`ml-2 ${
+                                        result.deepseekAnalysis.relevance === 'High' ? 'bg-green-500' :
+                                        result.deepseekAnalysis.relevance === 'Medium' ? 'bg-yellow-500' :
+                                        result.deepseekAnalysis.relevance === 'Low' ? 'bg-orange-500' : 'bg-red-500'
+                                      }`}>
+                                        {result.deepseekAnalysis.relevance}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                  
+                                  {result.deepseekAnalysis.relevanceNote && (
+                                    <div className="p-2 bg-orange-50 border border-orange-200 rounded">
+                                      <span className="font-medium text-orange-700">⚠️ Relevance Note:</span>
+                                      <p className="mt-1 text-orange-800 text-xs">{result.deepseekAnalysis.relevanceNote}</p>
+                                    </div>
+                                  )}
+                                  
+                                  <div>
+                                    <span className="font-medium text-gray-700">Recommended Actions:</span>
+                                    <ul className="mt-2 space-y-1 list-disc list-inside text-gray-800">
+                                      {result.deepseekAnalysis.actions.map((action, idx) => (
+                                        <li key={idx}>{action}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Analysis Options Modal */}
+      <Dialog open={showAnalysisModal} onOpenChange={setShowAnalysisModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Analysis Options</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-3">
+              {/* ChatGPT Section */}
+              <div className="border rounded-lg p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Brain className="w-5 h-5 text-blue-600" />
+                    <div>
+                      <div className="font-medium">ChatGPT (OpenAI)</div>
+                      <div className="text-xs text-gray-500">Select model for analysis</div>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={analysisOptions.useChatGPT}
+                    onChange={(e) => setAnalysisOptions(prev => ({ ...prev, useChatGPT: e.target.checked }))}
+                    disabled={!config?.apis?.openai}
+                    className="w-5 h-5 rounded"
+                  />
+                </div>
+                
+                {/* ChatGPT Model Selection */}
+                {analysisOptions.useChatGPT && (
+                  <div className="space-y-2 ml-8 pt-2 border-t">
+                    <div className="text-xs font-medium text-gray-700">Select Model:</div>
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="chatgptModel"
+                          value="gpt-4o-mini"
+                          checked={analysisOptions.chatgptModel === 'gpt-4o-mini'}
+                          onChange={(e) => setAnalysisOptions(prev => ({ ...prev, chatgptModel: e.target.value as any }))}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm">GPT-4o Mini <span className="text-xs text-gray-500">(Fast, ~1x cost)</span></span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="chatgptModel"
+                          value="gpt-4o"
+                          checked={analysisOptions.chatgptModel === 'gpt-4o'}
+                          onChange={(e) => setAnalysisOptions(prev => ({ ...prev, chatgptModel: e.target.value as any }))}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm">GPT-4o <span className="text-xs text-gray-500">(Better, ~15x cost)</span></span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="chatgptModel"
+                          value="gpt-4-turbo"
+                          checked={analysisOptions.chatgptModel === 'gpt-4-turbo'}
+                          onChange={(e) => setAnalysisOptions(prev => ({ ...prev, chatgptModel: e.target.value as any }))}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm">GPT-4 Turbo <span className="text-xs text-gray-500">(Advanced, ~30x cost)</span></span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="chatgptModel"
+                          value="gpt-3.5-turbo"
+                          checked={analysisOptions.chatgptModel === 'gpt-3.5-turbo'}
+                          onChange={(e) => setAnalysisOptions(prev => ({ ...prev, chatgptModel: e.target.value as any }))}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm">GPT-3.5 Turbo <span className="text-xs text-gray-500">(Cheapest, ~0.3x cost)</span></span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* DeepSeek Section */}
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Sparkles className="w-5 h-5 text-purple-600" />
+                  <div>
+                    <div className="font-medium">DeepSeek</div>
+                    <div className="text-xs text-gray-500">DeepSeek-Chat model</div>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={analysisOptions.useDeepSeek}
+                  onChange={(e) => setAnalysisOptions(prev => ({ ...prev, useDeepSeek: e.target.checked }))}
+                  disabled={!config?.apis?.deepseek}
+                  className="w-5 h-5 rounded"
+                />
+              </div>
+            </div>
+
+            <div className="text-xs text-gray-500 p-3 bg-gray-50 rounded">
+              <p><strong>Note:</strong> Select one or both AI services for analysis. Each document will be analyzed separately, and relationships between documents will be evaluated.</p>
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setShowAnalysisModal(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleComprehensiveAnalysis} disabled={!analysisOptions.useChatGPT && !analysisOptions.useDeepSeek}>
+                <Brain className="w-4 h-4 mr-2" />
+                Start Analysis
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Document Detail Modal */}
       <Dialog open={showDocumentModal} onOpenChange={setShowDocumentModal}>
