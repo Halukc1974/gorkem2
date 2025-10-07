@@ -330,7 +330,12 @@ export default function AISearchPage() {
 
       if (error) {
         console.error('Document not found:', error);
-        alert(`Document not found: ${documentId}`);
+        toast({
+          title: 'Error',
+          description: `Document not found: ${documentId}`,
+          variant: 'destructive',
+          duration: 2000,
+        });
         return;
       }
 
@@ -338,7 +343,11 @@ export default function AISearchPage() {
         // If already in basket, don't add
         if (documentBasket.some(doc => doc.id === String(data.id))) {
           console.log('Document already in basket:', data.id);
-          alert('This document is already in the basket!');
+          toast({
+            title: 'Already Added',
+            description: 'This document is already in the basket!',
+            duration: 2000,
+          });
           return;
         }
 
@@ -364,11 +373,20 @@ export default function AISearchPage() {
           return newBasket;
         });
         
-        alert(`"${data.letter_no}" document sent to analysis page`);
+        toast({
+          title: 'Success',
+          description: `"${data.letter_no}" document sent to analysis page`,
+          duration: 2000,
+        });
       }
     } catch (error) {
       console.error('Error adding document to basket:', error);
-      alert('An error occurred while adding the document to basket!');
+      toast({
+        title: 'Error',
+        description: 'An error occurred while adding the document to basket!',
+        variant: 'destructive',
+        duration: 2000,
+      });
     }
   }, [documentBasket]);
 
@@ -435,7 +453,8 @@ export default function AISearchPage() {
       toast({
         title: 'No Documents Selected',
         description: 'Please select at least one document to analyze.',
-        variant: 'destructive'
+        variant: 'destructive',
+        duration: 3000,
       });
       return;
     }
@@ -444,7 +463,8 @@ export default function AISearchPage() {
       toast({
         title: 'No AI Selected',
         description: 'Please select at least one AI service (ChatGPT or DeepSeek).',
-        variant: 'destructive'
+        variant: 'destructive',
+        duration: 3000,
       });
       return;
     }
@@ -543,6 +563,7 @@ export default function AISearchPage() {
       toast({
         title: 'Analysis Complete',
         description: `Successfully analyzed ${results.length} documents.`,
+        duration: 2000,
       });
 
     } catch (error) {
@@ -550,7 +571,8 @@ export default function AISearchPage() {
       toast({
         title: 'Analysis Failed',
         description: error instanceof Error ? error.message : 'An error occurred during analysis.',
-        variant: 'destructive'
+        variant: 'destructive',
+        duration: 3000,
       });
     } finally {
       setIsAnalyzing(false);
@@ -673,7 +695,8 @@ RETURN JSON FORMAT (all values in ENGLISH):
       toast({
         title: 'Warning',
         description: 'Document selected for response cannot be added as reference.',
-        variant: 'destructive'
+        variant: 'destructive',
+        duration: 3000,
       });
       return;
     }
@@ -688,7 +711,8 @@ RETURN JSON FORMAT (all values in ENGLISH):
       toast({
         title: 'Warning',
         description: 'Reference document cannot be selected for response.',
-        variant: 'destructive'
+        variant: 'destructive',
+        duration: 3000,
       });
       return;
     }
@@ -715,7 +739,8 @@ RETURN JSON FORMAT (all values in ENGLISH):
       toast({
         title: 'Error',
         description: 'Please select a document to respond to.',
-        variant: 'destructive'
+        variant: 'destructive',
+        duration: 3000,
       });
       return;
     }
@@ -730,6 +755,7 @@ RETURN JSON FORMAT (all values in ENGLISH):
       toast({
         title: 'Generating Response',
         description: 'Please wait...',
+        duration: 3000,
       });
 
       const responseDoc = analysisResults.find(r => r.id === selectedForResponse);
@@ -837,6 +863,7 @@ RETURN JSON FORMAT (all values in ENGLISH):
       toast({
         title: 'Success',
         description: 'Draft response generated successfully.',
+        duration: 2000,
       });
 
     } catch (error) {
@@ -844,7 +871,8 @@ RETURN JSON FORMAT (all values in ENGLISH):
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'An error occurred while generating the response.',
-        variant: 'destructive'
+        variant: 'destructive',
+        duration: 3000,
       });
     }
   };
@@ -859,6 +887,7 @@ RETURN JSON FORMAT (all values in ENGLISH):
       toast({
         title: 'Loading All Documents',
         description: 'This may take up to 2 minutes. Please wait...',
+        duration: 5000,
       });
       
       // Load all document relations from Supabase
@@ -871,6 +900,7 @@ RETURN JSON FORMAT (all values in ENGLISH):
       toast({
         title: 'Success',
         description: `Loaded ${fullGraph.nodes.length} documents and ${fullGraph.edges.length} connections.`,
+        duration: 3000,
       });
       
       setStarLoading(false);
@@ -881,6 +911,7 @@ RETURN JSON FORMAT (all values in ENGLISH):
         title: 'Error',
         description: 'Failed to load all documents. Please try again.',
         variant: 'destructive',
+        duration: 3000,
       });
       setStarLoading(false);
     }
@@ -2816,6 +2847,7 @@ RETURN JSON FORMAT (all values in ENGLISH):
                   toast({
                     title: 'Downloaded',
                     description: 'Draft response downloaded as text file.',
+                    duration: 2000,
                   });
                 }}
                 variant="outline"
@@ -2828,7 +2860,8 @@ RETURN JSON FORMAT (all values in ENGLISH):
                   toast({
                     title: 'Info',
                     description: 'For PDF feature, please run "npm install jspdf" in terminal first.',
-                    variant: 'default'
+                    variant: 'default',
+                    duration: 4000,
                   });
                 }}
                 disabled
