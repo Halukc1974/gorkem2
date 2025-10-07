@@ -321,7 +321,7 @@ export default function Sidebar({ isOpen, onClose, isMobile, isVisible = true, w
           <i className="fas fa-building text-primary text-2xl mr-3"></i>
           <div>
             <h1 className="text-lg font-semibold text-foreground">Görkem Construction</h1>
-            <p className="text-sm text-muted-foreground">Project Tracking System</p>
+            <p className="text-sm text-muted-foreground">Document Management System</p>
           </div>
         </div>
       </div>

@@ -681,28 +681,53 @@ export default function AISearchPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full md:w-auto grid-cols-5">
-          <TabsTrigger value="documents-search" className="flex items-center gap-2">
-            <Search className="h-4 w-4" />
-            Document Search
-          </TabsTrigger>
-          <TabsTrigger value="vector-search" className="flex items-center gap-2">
-            <Brain className="h-4 w-4" />
-            Vector Search
-          </TabsTrigger>
-          <TabsTrigger value="graph" className="flex items-center gap-2">
-            <Network className="h-4 w-4" />
-            Document Reference Graph
-          </TabsTrigger>
-          <TabsTrigger value="timeline" className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            Timeline View
-          </TabsTrigger>
-          <TabsTrigger value="analysis" className="flex items-center gap-2">
-            <Cpu className="h-4 w-4" />
-            Document Analysis
-          </TabsTrigger>
-        </TabsList>
+       <TabsList className="grid w-full md:w-auto grid-cols-5 gap-2">
+  <TabsTrigger
+    value="documents-search"
+    className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors
+              data-[state=active]:bg-[#e0f2ff] data-[state=active]:border data-[state=active]:border-[#90caf9] data-[state=active]:text-blue-900"
+  >
+    <Search className="h-4 w-4" />
+    Document Search
+  </TabsTrigger>
+
+  <TabsTrigger
+    value="vector-search"
+    className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors
+              data-[state=active]:bg-[#e0f2ff] data-[state=active]:border data-[state=active]:border-[#90caf9] data-[state=active]:text-blue-900"
+  >
+    <Brain className="h-4 w-4" />
+    Vector Search
+  </TabsTrigger>
+
+  <TabsTrigger
+    value="graph"
+    className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors
+              data-[state=active]:bg-[#e0f2ff] data-[state=active]:border data-[state=active]:border-[#90caf9] data-[state=active]:text-blue-900"
+  >
+    <Network className="h-4 w-4" />
+    Document Reference Graph
+  </TabsTrigger>
+
+  <TabsTrigger
+    value="timeline"
+    className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors
+              data-[state=active]:bg-[#e0f2ff] data-[state=active]:border data-[state=active]:border-[#90caf9] data-[state=active]:text-blue-900"
+  >
+    <Calendar className="h-4 w-4" />
+    Timeline View
+  </TabsTrigger>
+
+  <TabsTrigger
+    value="analysis"
+    className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors
+              data-[state=active]:bg-[#e0f2ff] data-[state=active]:border data-[state=active]:border-[#90caf9] data-[state=active]:text-blue-900"
+  >
+    <Cpu className="h-4 w-4" />
+    Document Analysis
+  </TabsTrigger>
+</TabsList>
+
         
         <TabsContent value="documents-search">
           <Card>
@@ -1245,7 +1270,7 @@ export default function AISearchPage() {
 
                     {/* Document List Table - Moved below timeline */}
                     <div className="mt-6">
-                      <div className="text-sm font-medium text-gray-700 mb-2">Island documents (full list)</div>
+                      <div className="text-sm font-medium text-gray-700 mb-2">Timeline documents (full list)</div>
                       <div className="overflow-x-auto bg-white rounded border" style={{ maxHeight: 400 }}>
                         <table className="w-full text-xs">
                           <thead className="sticky top-0 bg-gray-50">
@@ -1256,6 +1281,7 @@ export default function AISearchPage() {
                               <th className="px-2 py-1 border-b">Type</th>
                               <th className="px-2 py-1 border-b">Refs</th>
                               <th className="px-2 py-1 border-b">Short Desc</th>
+                              <th className="px-2 py-1 border-b text-center">Preview</th>
                               <th className="px-2 py-1 border-b">URL</th>
                             </tr>
                           </thead>
@@ -1266,20 +1292,42 @@ export default function AISearchPage() {
                                 <td className="px-2 py-1 align-top font-medium">{d.letter_no || '-'}</td>
                                 <td className="px-2 py-1 align-top">{d.letter_date ? formatDDMMYYYY(d.letter_date) : '-'}</td>
                                 <td className="px-2 py-1 align-top">
-                                  {d.inc_out === 'inc' ? (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                                      Inc
-                                    </span>
-                                  ) : d.inc_out === 'out' ? (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                                      Out
-                                    </span>
-                                  ) : (
-                                    '-'
-                                  )}
+                                  {(() => {
+                                    const incOut = String(d.inc_out || '').toLowerCase().trim();
+                                    if (incOut === 'inc' || incOut === 'incoming' || incOut === 'in' || incOut === 'gelen') {
+                                      return (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                          Inc
+                                        </span>
+                                      );
+                                    } else if (incOut === 'out' || incOut === 'outgoing' || incOut === 'ex' || incOut === 'giden') {
+                                      return (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                          Out
+                                        </span>
+                                      );
+                                    } else {
+                                      return '-';
+                                    }
+                                  })()}
                                 </td>
                                 <td className="px-2 py-1 align-top truncate" style={{ maxWidth: 200 }} title={d.ref_letters || ''}>{d.ref_letters || '-'}</td>
                                 <td className="px-2 py-1 align-top truncate" style={{ maxWidth: 240 }} title={d.short_desc || ''}>{d.short_desc || '-'}</td>
+                                <td className="px-2 py-1 align-top text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => handlePreviewDocument(d.id, d.letter_no)}
+                                    title="Preview Content"
+                                    style={{ 
+                                      border: 'none', 
+                                      background: 'transparent', 
+                                      cursor: 'pointer',
+                                      padding: '4px'
+                                    }}
+                                  >
+                                    <Eye className="w-4 h-4" style={{ color: '#0b5cff' }} />
+                                  </button>
+                                </td>
                                 <td className="px-2 py-1 align-top">
                                   {d.weburl ? (
                                     <a href={d.weburl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Open</a>
@@ -1640,21 +1688,55 @@ export default function AISearchPage() {
             <div className="flex-1 overflow-hidden flex flex-col">
               {/* Header with document info */}
               <div className="flex-shrink-0 pb-4 mb-4 border-b-2 border-gray-200">
-                <div className="space-y-2">
-                  <div>
-                    <strong className="text-gray-900 text-base">Letter No:</strong>{' '}
-                    <span className="text-gray-700">{previewContent.letter_no || '-'}</span>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'flex-start'
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div className="space-y-2">
+                      <div>
+                        <strong className="text-gray-900 text-base">Letter No:</strong>{' '}
+                        <span className="text-gray-700">{previewContent.letter_no || '-'}</span>
+                      </div>
+                      <div>
+                        <strong className="text-gray-900 text-sm">Letter Date:</strong>{' '}
+                        <span className="text-gray-700 text-sm">
+                          {previewContent.letter_date ? new Date(previewContent.letter_date).toLocaleDateString('en-GB') : '-'}
+                        </span>
+                      </div>
+                      <div>
+                        <strong className="text-gray-900 text-sm">Reference Letters:</strong>{' '}
+                        <span className="text-gray-700 text-sm">{previewContent.ref_letters || '-'}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <strong className="text-gray-900 text-sm">Letter Date:</strong>{' '}
-                    <span className="text-gray-700 text-sm">
-                      {previewContent.letter_date ? new Date(previewContent.letter_date).toLocaleDateString('en-GB') : '-'}
-                    </span>
-                  </div>
-                  <div>
-                    <strong className="text-gray-900 text-sm">Reference Letters:</strong>{' '}
-                    <span className="text-gray-700 text-sm">{previewContent.ref_letters || '-'}</span>
-                  </div>
+                  <button
+                    onClick={() => {
+                      // Add to document basket
+                      if (previewContent.letter_no) {
+                        addToDocumentBasket(previewContent.letter_no);
+                        setShowPreviewModal(false);
+                      }
+                    }}
+                    style={{
+                      background: '#10b981',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: 6,
+                      padding: '8px 16px',
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      marginLeft: 16,
+                      flexShrink: 0,
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#059669'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = '#10b981'}
+                  >
+                    + Send To Analysis Page
+                  </button>
                 </div>
               </div>
               
