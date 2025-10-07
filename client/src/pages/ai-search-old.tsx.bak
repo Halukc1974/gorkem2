@@ -5,7 +5,7 @@ import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { Switch } from '../components/ui/switch';
 import { 
-  Search, Network, Brain, Cpu, CircuitBoard, Sparkles, CheckCircle2, XCircle, Eye, FileText, Calendar, X 
+  Search, Network, Brain, Cpu, CircuitBoard, Sparkles, CheckCircle2, XCircle, Eye, FileText, Calendar 
 } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 import { DocumentGraph } from '../components/graph-engine/DocumentGraph';
@@ -283,15 +283,13 @@ export default function AISearchPage() {
       actions: string[];
     };
   }>>([]);
-  const [selectedForDraft, setSelectedForDraft] = useState<Set<string>>(new Set());
-
-  // Draft Response feature states
-  const [selectedForResponse, setSelectedForResponse] = useState<string | null>(null);
-  const [selectedAsReference, setSelectedAsReference] = useState<Set<string>>(new Set());
+  const [selectedForResponse, setSelectedForResponse] = useState<string | null>(null); // Only one document can be selected for response
+  const [selectedAsReference, setSelectedAsReference] = useState<Set<string>>(new Set()); // Multiple documents as references
   const [showDraftModal, setShowDraftModal] = useState(false);
-  const [showGeneratedDraftModal, setShowGeneratedDraftModal] = useState(false);
   const [draftInstructions, setDraftInstructions] = useState('');
-  const [generatedDraftText, setGeneratedDraftText] = useState('');
+  const [showGeneratedDraft, setShowGeneratedDraft] = useState(false);
+  const [generatedDraft, setGeneratedDraft] = useState('');
+  const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
 
   // Add document to basket function
   const addToDocumentBasket = useCallback(async (documentId: string) => {
@@ -666,55 +664,13 @@ RETURN JSON FORMAT (all values in ENGLISH):
     }
   };
 
-  // Checkbox handlers for draft response feature
-  const handleResponseCheckbox = (id: string) => {
-    // Check if this document is already selected as reference
-    if (selectedAsReference.has(id)) {
-      toast({
-        title: 'Warning',
-        description: 'Document selected for response cannot be added as reference.',
-        variant: 'destructive'
-      });
-      return;
-    }
-    
-    // Toggle selection
-    setSelectedForResponse(id === selectedForResponse ? null : id);
-  };
-
-  const handleReferenceCheckbox = (id: string) => {
-    // Check if this document is selected for response
-    if (selectedForResponse === id) {
-      toast({
-        title: 'Warning',
-        description: 'Reference document cannot be selected for response.',
-        variant: 'destructive'
-      });
-      return;
-    }
-    
-    // Toggle in set
-    const newSet = new Set(selectedAsReference);
-    if (newSet.has(id)) {
-      newSet.delete(id);
-    } else {
-      newSet.add(id);
-    }
-    setSelectedAsReference(newSet);
-  };
-
-  const removeReference = (id: string) => {
-    const newSet = new Set(selectedAsReference);
-    newSet.delete(id);
-    setSelectedAsReference(newSet);
-  };
-
-  // Open draft configuration modal
+  // Generate draft document from selected analysis results
+  // Open draft modal (simplified - just opens modal)
   const handleGenerateDraft = () => {
     if (!selectedForResponse) {
       toast({
-        title: 'Error',
-        description: 'Please select a document to respond to.',
+        title: 'No Document Selected',
+        description: 'Please select one document to respond to.',
         variant: 'destructive'
       });
       return;
@@ -722,16 +678,22 @@ RETURN JSON FORMAT (all values in ENGLISH):
     setShowDraftModal(true);
   };
 
-  // Generate actual draft text using AI
+  // Remove reference from list
+  const removeReference = (id: string) => {
+    setSelectedAsReference(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(id);
+      return newSet;
+    });
+  };
+
+  // Actually generate the draft
   const handleActualDraftGeneration = async () => {
     if (!selectedForResponse) return;
 
-    try {
-      toast({
-        title: 'Generating Response',
-        description: 'Please wait...',
-      });
+    setIsGeneratingDraft(true);
 
+    try {
       const responseDoc = analysisResults.find(r => r.id === selectedForResponse);
       const referenceDocs = analysisResults.filter(r => selectedAsReference.has(r.id));
 
@@ -741,61 +703,51 @@ RETURN JSON FORMAT (all values in ENGLISH):
 
       const responseAnalysis = responseDoc.chatgptAnalysis || responseDoc.deepseekAnalysis;
       
-      // Build prompt
-      let prompt = `Based on the following document, generate a professional formal business response letter in English:\n\n`;
-      prompt += `DOCUMENT TO RESPOND TO:\n`;
-      prompt += `Letter No: ${responseDoc.letter_no}\n`;
-      prompt += `Date: ${responseDoc.letter_date || 'N/A'}\n`;
-      prompt += `Subject: ${responseDoc.short_desc || 'N/A'}\n`;
-      if (responseAnalysis) {
-        prompt += `Summary: ${responseAnalysis.summary}\n`;
-        prompt += `Request: ${responseAnalysis.request}\n`;
-        prompt += `Deadline: ${responseAnalysis.deadline || 'Not specified'}\n`;
-      }
+      // Build context
+      let draftPrompt = `
+Generate a formal business response letter in English based on the following:
+
+RESPONDING TO:
+Document: ${responseDoc.letter_no}
+Date: ${responseDoc.letter_date}
+Subject: ${responseDoc.short_desc}
+Summary: ${responseAnalysis?.summary}
+Request: ${responseAnalysis?.request}
+Deadline: ${responseAnalysis?.deadline || 'Not specified'}
+`;
 
       if (referenceDocs.length > 0) {
-        prompt += `\n\nREFERENCE DOCUMENTS:\n`;
-        referenceDocs.forEach((doc, idx) => {
+        draftPrompt += `\n\nREFERENCE DOCUMENTS:\n`;
+        referenceDocs.forEach(doc => {
           const analysis = doc.chatgptAnalysis || doc.deepseekAnalysis;
-          prompt += `${idx + 1}. Letter No: ${doc.letter_no}, Date: ${doc.letter_date || 'N/A'}\n`;
-          if (analysis) {
-            prompt += `   Summary: ${analysis.summary}\n`;
-          }
+          draftPrompt += `
+- ${doc.letter_no} (${doc.letter_date}): ${doc.short_desc}
+  Summary: ${analysis?.summary}
+`;
         });
       }
 
       if (draftInstructions.trim()) {
-        prompt += `\n\nADDITIONAL INSTRUCTIONS:\n${draftInstructions}\n`;
+        draftPrompt += `\n\nSPECIAL INSTRUCTIONS:\n${draftInstructions}\n`;
       }
 
-      prompt += `\n\nGenerate a complete formal business letter that:\n`;
-      prompt += `1. Acknowledges receipt of the referenced document\n`;
-      prompt += `2. Addresses the main requests clearly\n`;
-      prompt += `3. Proposes concrete solutions or next steps\n`;
-      prompt += `4. Maintains a highly professional and formal tone\n`;
-      prompt += `5. Is properly structured with date, subject, body, and closing\n`;
-      prompt += `6. Includes proper salutations and sign-off\n`;
-      if (referenceDocs.length > 0) {
-        prompt += `7. References the provided reference documents where relevant\n`;
-      }
-      prompt += `\nReturn the complete draft letter in plain text format. Use proper business letter formatting.`;
+      draftPrompt += `
+Generate a professional business letter that:
+1. References the main document (${responseDoc.letter_no}) and any reference documents
+2. Acknowledges the request clearly
+3. Provides a comprehensive response following the special instructions if provided
+4. Maintains a formal, professional tone
+5. Includes proper business letter structure (date, subject, salutation, body, closing)
+6. Signs off professionally
 
-      // Use selected AI model from analysisOptions
-      let apiKey: string | undefined;
-      let apiUrl: string;
-      let model: string;
+Return the complete draft letter in plain text format, ready to send.
+`;
 
-      if (analysisOptions.useChatGPT && config?.apis?.openai) {
-        apiKey = config.apis.openai;
-        apiUrl = 'https://api.openai.com/v1/chat/completions';
-        model = analysisOptions.chatgptModel;
-      } else if (analysisOptions.useDeepSeek && config?.apis?.deepseek) {
-        apiKey = config.apis.deepseek;
-        apiUrl = 'https://api.deepseek.com/v1/chat/completions';
-        model = 'deepseek-chat';
-      } else {
-        throw new Error('No AI model selected or API key not configured');
-      }
+      const apiKey = config?.apis?.openai || config?.apis?.deepseek;
+      const apiUrl = config?.apis?.openai 
+        ? 'https://api.openai.com/v1/chat/completions'
+        : 'https://api.deepseek.com/v1/chat/completions';
+      const model = config?.apis?.openai ? analysisOptions.chatgptModel : 'deepseek-chat';
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -812,11 +764,11 @@ RETURN JSON FORMAT (all values in ENGLISH):
             },
             {
               role: 'user',
-              content: prompt
+              content: draftPrompt
             }
           ],
           temperature: 0.7,
-          max_tokens: 2500
+          max_tokens: 3000
         })
       });
 
@@ -827,25 +779,68 @@ RETURN JSON FORMAT (all values in ENGLISH):
       const data = await response.json();
       const draftText = data.choices[0]?.message?.content;
 
-      if (!draftText) {
-        throw new Error('No draft text generated');
-      }
-
-      setGeneratedDraftText(draftText);
-      setShowGeneratedDraftModal(true);
+      setGeneratedDraft(draftText);
+      setShowGeneratedDraft(true);
 
       toast({
-        title: 'Success',
-        description: 'Draft response generated successfully.',
+        title: 'Draft Generated Successfully',
+        description: 'Your response letter is ready.',
       });
 
     } catch (error) {
       console.error('Draft generation error:', error);
       toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'An error occurred while generating the response.',
+        title: 'Draft Generation Failed',
+        description: error instanceof Error ? error.message : 'An error occurred.',
         variant: 'destructive'
       });
+    } finally {
+      setIsGeneratingDraft(false);
+    }
+  };
+
+  // Download draft as text
+  const downloadDraftAsTxt = () => {
+    const blob = new Blob([generatedDraft], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `response-letter-${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Download draft as PDF (simple implementation)
+  const downloadDraftAsPdf = () => {
+    // For PDF generation, we'll create a simple formatted version
+    // In production, you'd use a proper PDF library like jsPDF
+    const pdfContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; padding: 40px; max-width: 800px; margin: 0 auto; }
+    pre { white-space: pre-wrap; word-wrap: break-word; }
+  </style>
+</head>
+<body>
+  <pre>${generatedDraft}</pre>
+</body>
+</html>
+`;
+    const blob = new Blob([pdfContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `response-letter-${new Date().toISOString().split('T')[0]}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: 'HTML Downloaded',
+      description: 'Open the HTML file and print as PDF from your browser.',
+    });
     }
   };
  
@@ -2067,12 +2062,16 @@ RETURN JSON FORMAT (all values in ENGLISH):
 
                     {/* Analysis Cards */}
                     <div className="space-y-4">
-                      {analysisResults.map((result) => (
-                        <Card key={result.id} className="border-2">
+                      {analysisResults.map((result) => {
+                        const isSelectedForResponse = selectedForResponse === result.id;
+                        const isSelectedAsReference = selectedAsReference.has(result.id);
+                        
+                        return (
+                        <Card key={result.id} className={`border-2 ${isSelectedForResponse ? 'ring-2 ring-blue-500' : ''}`}>
                           <CardHeader className="pb-3">
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
-                                <div className="flex items-start gap-3 mb-2">
+                                <div className="flex items-center gap-3 mb-2">
                                   <div>
                                     <CardTitle className="text-base">{result.letter_no}</CardTitle>
                                     <CardDescription className="text-sm">
@@ -2080,24 +2079,66 @@ RETURN JSON FORMAT (all values in ENGLISH):
                                     </CardDescription>
                                   </div>
                                 </div>
-                                <div className="flex gap-6 ml-0 mt-2">
+                                
+                                {/* Selection Checkboxes */}
+                                <div className="flex gap-4 mt-3 p-3 bg-gray-50 rounded-lg border">
                                   <label className="flex items-center gap-2 cursor-pointer">
                                     <input
                                       type="checkbox"
-                                      checked={selectedForResponse === result.id}
-                                      onChange={() => handleResponseCheckbox(result.id)}
+                                      checked={isSelectedForResponse}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          // Check if already selected as reference
+                                          if (selectedAsReference.has(result.id)) {
+                                            toast({
+                                              title: 'Cannot Select',
+                                              description: 'A document marked as reference cannot be selected for response. Please uncheck "Add as Reference" first.',
+                                              variant: 'destructive'
+                                            });
+                                            return;
+                                          }
+                                          // Clear all other response selections
+                                          setSelectedForResponse(result.id);
+                                        } else {
+                                          setSelectedForResponse(null);
+                                        }
+                                      }}
                                       className="w-4 h-4 rounded"
                                     />
-                                    <span className="text-sm font-medium text-blue-700">For Response</span>
+                                    <span className="text-sm font-medium text-blue-700">
+                                      Respond to this document
+                                    </span>
                                   </label>
+                                  
                                   <label className="flex items-center gap-2 cursor-pointer">
                                     <input
                                       type="checkbox"
-                                      checked={selectedAsReference.has(result.id)}
-                                      onChange={() => handleReferenceCheckbox(result.id)}
+                                      checked={isSelectedAsReference}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          // Check if already selected for response
+                                          if (selectedForResponse === result.id) {
+                                            toast({
+                                              title: 'Cannot Add as Reference',
+                                              description: 'The document you are responding to cannot be added as a reference.',
+                                              variant: 'destructive'
+                                            });
+                                            return;
+                                          }
+                                          setSelectedAsReference(prev => new Set([...prev, result.id]));
+                                        } else {
+                                          setSelectedAsReference(prev => {
+                                            const newSet = new Set(prev);
+                                            newSet.delete(result.id);
+                                            return newSet;
+                                          });
+                                        }
+                                      }}
                                       className="w-4 h-4 rounded"
                                     />
-                                    <span className="text-sm font-medium text-green-700">Add as Reference</span>
+                                    <span className="text-sm font-medium text-purple-700">
+                                      Add as Reference
+                                    </span>
                                   </label>
                                 </div>
                               </div>
@@ -2233,7 +2274,8 @@ RETURN JSON FORMAT (all values in ENGLISH):
                             )}
                           </CardContent>
                         </Card>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -2588,6 +2630,135 @@ RETURN JSON FORMAT (all values in ENGLISH):
         </div>
       )}
 
+      {/* Draft Configuration Modal */}
+      <Dialog open={showDraftModal} onOpenChange={setShowDraftModal}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Generate Draft Response</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Responding To Section */}
+            {selectedForResponse && (
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 className="font-semibold text-blue-900 mb-2">Responding To:</h4>
+                {(() => {
+                  const responseDoc = analysisResults.find(r => r.id === selectedForResponse);
+                  if (!responseDoc) return null;
+                  return (
+                    <div className="text-sm">
+                      <div><strong>Document:</strong> {responseDoc.letter_no}</div>
+                      <div><strong>Date:</strong> {responseDoc.letter_date}</div>
+                      <div><strong>Subject:</strong> {responseDoc.short_desc}</div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* Reference Documents Section */}
+            {selectedAsReference.size > 0 && (
+              <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                <h4 className="font-semibold text-purple-900 mb-2">Reference Documents:</h4>
+                <div className="space-y-2">
+                  {Array.from(selectedAsReference).map(refId => {
+                    const refDoc = analysisResults.find(r => r.id === refId);
+                    if (!refDoc) return null;
+                    return (
+                      <div key={refId} className="flex items-start justify-between p-2 bg-white rounded border">
+                        <div className="text-sm flex-1">
+                          <div><strong>{refDoc.letter_no}</strong> - {refDoc.letter_date}</div>
+                          <div className="text-gray-600 text-xs">{refDoc.short_desc}</div>
+                        </div>
+                        <button
+                          onClick={() => removeReference(refId)}
+                          className="ml-2 text-red-600 hover:text-red-800 font-bold text-lg"
+                          title="Remove reference"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Response Instructions */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Response Instructions (Optional)
+              </label>
+              <textarea
+                value={draftInstructions}
+                onChange={(e) => setDraftInstructions(e.target.value)}
+                placeholder="e.g., 'Respond positively and offer a meeting next week' or 'Politely decline the request due to budget constraints'"
+                className="w-full min-h-[100px] p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500">
+                Describe how you want to respond (positive, negative, neutral, etc.) and any specific points to include.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 justify-end pt-4 border-t">
+              <Button variant="outline" onClick={() => setShowDraftModal(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleActualDraftGeneration}
+                disabled={isGeneratingDraft || !selectedForResponse}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {isGeneratingDraft ? (
+                  <>
+                    <CircuitBoard className="w-4 h-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Generate Response Letter
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Generated Draft Display Modal */}
+      <Dialog open={showGeneratedDraft} onOpenChange={setShowGeneratedDraft}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle>Generated Response Letter</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto p-4 bg-gray-50 rounded border">
+            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
+              {generatedDraft}
+            </pre>
+          </div>
+          <div className="flex gap-2 justify-end pt-4 border-t flex-shrink-0">
+            <Button variant="outline" onClick={() => setShowGeneratedDraft(false)}>
+              Close
+            </Button>
+            <Button 
+              onClick={downloadDraftAsTxt}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Download as Text
+            </Button>
+            <Button 
+              onClick={downloadDraftAsPdf}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Download as PDF (HTML)
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Confirmation Dialog for Bring All Documents */}
       <AlertDialog open={showAllDocsConfirm} onOpenChange={setShowAllDocsConfirm}>
         <AlertDialogContent>
@@ -2607,240 +2778,6 @@ RETURN JSON FORMAT (all values in ENGLISH):
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Draft Configuration Modal */}
-      <Dialog open={showDraftModal} onOpenChange={setShowDraftModal}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Generate Draft Response</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {/* AI Model Selection */}
-            <div className="border rounded-lg p-4 bg-gray-50">
-              <h3 className="font-semibold text-sm mb-3">AI Model Selection</h3>
-              <div className="space-y-3">
-                {/* ChatGPT Section */}
-                <div className="border rounded-lg p-3 space-y-3 bg-white">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Brain className="w-5 h-5 text-blue-600" />
-                      <div>
-                        <div className="font-medium">ChatGPT (OpenAI)</div>
-                        <div className="text-xs text-gray-500">Select model for draft generation</div>
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={analysisOptions.useChatGPT}
-                      onChange={(e) => setAnalysisOptions(prev => ({ 
-                        ...prev, 
-                        useChatGPT: e.target.checked,
-                        useDeepSeek: e.target.checked ? false : prev.useDeepSeek
-                      }))}
-                      disabled={!config?.apis?.openai}
-                      className="w-5 h-5 rounded"
-                    />
-                  </div>
-                  
-                  {analysisOptions.useChatGPT && (
-                    <div className="pl-8 space-y-2">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="chatgpt-model-draft"
-                          checked={analysisOptions.chatgptModel === 'gpt-4o-mini'}
-                          onChange={() => setAnalysisOptions(prev => ({ ...prev, chatgptModel: 'gpt-4o-mini' }))}
-                          className="w-4 h-4"
-                        />
-                        <span className="text-sm">GPT-4o-mini <span className="text-xs text-gray-500">(Default, 1x cost)</span></span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="chatgpt-model-draft"
-                          checked={analysisOptions.chatgptModel === 'gpt-4o'}
-                          onChange={() => setAnalysisOptions(prev => ({ ...prev, chatgptModel: 'gpt-4o' }))}
-                          className="w-4 h-4"
-                        />
-                        <span className="text-sm">GPT-4o <span className="text-xs text-gray-500">(15x cost)</span></span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="chatgpt-model-draft"
-                          checked={analysisOptions.chatgptModel === 'gpt-4-turbo'}
-                          onChange={() => setAnalysisOptions(prev => ({ ...prev, chatgptModel: 'gpt-4-turbo' }))}
-                          className="w-4 h-4"
-                        />
-                        <span className="text-sm">GPT-4-turbo <span className="text-xs text-gray-500">(30x cost)</span></span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="chatgpt-model-draft"
-                          checked={analysisOptions.chatgptModel === 'gpt-3.5-turbo'}
-                          onChange={() => setAnalysisOptions(prev => ({ ...prev, chatgptModel: 'gpt-3.5-turbo' }))}
-                          className="w-4 h-4"
-                        />
-                        <span className="text-sm">GPT-3.5-turbo <span className="text-xs text-gray-500">(0.3x cost)</span></span>
-                      </label>
-                    </div>
-                  )}
-                </div>
-
-                {/* DeepSeek Section */}
-                <div className="border rounded-lg p-3 bg-white">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Sparkles className="w-5 h-5 text-purple-600" />
-                      <div>
-                        <div className="font-medium">DeepSeek</div>
-                        <div className="text-xs text-gray-500">Alternative AI model</div>
-                      </div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={analysisOptions.useDeepSeek}
-                      onChange={(e) => setAnalysisOptions(prev => ({ 
-                        ...prev, 
-                        useDeepSeek: e.target.checked,
-                        useChatGPT: e.target.checked ? false : prev.useChatGPT
-                      }))}
-                      disabled={!config?.apis?.deepseek}
-                      className="w-5 h-5 rounded"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Response Document */}
-            {selectedForResponse && (() => {
-              const responseDoc = analysisResults.find(r => r.id === selectedForResponse);
-              if (!responseDoc) return null;
-              return (
-                <div className="border rounded-lg p-4 bg-blue-50">
-                  <h3 className="font-semibold text-sm mb-2">Document to Respond To:</h3>
-                  <div className="space-y-1 text-sm">
-                    <div><span className="font-medium">Document No:</span> {responseDoc.letter_no}</div>
-                    <div><span className="font-medium">Date:</span> {responseDoc.letter_date}</div>
-                    <div><span className="font-medium">Subject:</span> {responseDoc.short_desc}</div>
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* Reference Documents */}
-            {selectedAsReference.size > 0 && (
-              <div className="border rounded-lg p-4 bg-green-50">
-                <h3 className="font-semibold text-sm mb-2">Reference Documents:</h3>
-                <div className="space-y-2">
-                  {Array.from(selectedAsReference).map(refId => {
-                    const refDoc = analysisResults.find(r => r.id === refId);
-                    if (!refDoc) return null;
-                    return (
-                      <div key={refId} className="flex items-start justify-between bg-white p-2 rounded border">
-                        <div className="text-sm flex-1">
-                          <div><span className="font-medium">Document No:</span> {refDoc.letter_no}</div>
-                          <div className="text-xs text-gray-600">{refDoc.letter_date} • {refDoc.short_desc}</div>
-                        </div>
-                        <button
-                          onClick={() => removeReference(refId)}
-                          className="text-red-600 hover:text-red-800 ml-2"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Instructions */}
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Response Style / Instructions:
-              </label>
-              <textarea
-                value={draftInstructions}
-                onChange={(e) => setDraftInstructions(e.target.value)}
-                placeholder="Example: Write a positive response, accept the requests... or Write a negative response, explain the reasons..."
-                className="w-full min-h-[100px] p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Optional: Specify how you want the response to be (positive/negative, detailed/brief, etc.)
-              </p>
-            </div>
-
-            {/* Generate Button */}
-            <div className="flex justify-end pt-4">
-              <Button 
-                onClick={handleActualDraftGeneration}
-                disabled={!analysisOptions.useChatGPT && !analysisOptions.useDeepSeek}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                Generate Draft Response
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Generated Draft Display Modal */}
-      <Dialog open={showGeneratedDraftModal} onOpenChange={setShowGeneratedDraftModal}>
-        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Generated Draft Response</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {/* Draft Text Display */}
-            <div className="border rounded-lg p-4 bg-gray-50 min-h-[400px] whitespace-pre-wrap font-mono text-sm">
-              {generatedDraftText}
-            </div>
-
-            {/* Download Buttons */}
-            <div className="flex gap-3 justify-end">
-              <Button
-                onClick={() => {
-                  const blob = new Blob([generatedDraftText], { type: 'text/plain;charset=utf-8' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `draft-response-${new Date().toISOString().split('T')[0]}.txt`;
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                  URL.revokeObjectURL(url);
-                  toast({
-                    title: 'Downloaded',
-                    description: 'Draft response downloaded as text file.',
-                  });
-                }}
-                variant="outline"
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                Download as Text
-              </Button>
-              <Button
-                onClick={() => {
-                  toast({
-                    title: 'Info',
-                    description: 'For PDF feature, please run "npm install jspdf" in terminal first.',
-                    variant: 'default'
-                  });
-                }}
-                disabled
-                className="bg-gray-400 cursor-not-allowed"
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                Download as PDF (requires npm install jspdf)
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
